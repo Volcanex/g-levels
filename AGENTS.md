@@ -3,7 +3,8 @@
 **Owner:** Gabriel Penman **Host:** h **CLI:** `glevels` (or `python3 -m glevels`) **No service, no deps**
 
 The registry for the making ladder: gates (L2), charters (L3), the results they
-produce, and the research behind them. The framework itself is the g-levels skill
+produce. The theory is in Volcanex/g-research
+(`pieces/making-ladder.md`). The framework itself is the g-levels skill
 (`gp-core/skills/g-levels/SKILL.md`). The explainer is gabrielpenman.com/charter.
 
 ## Layout
@@ -13,7 +14,6 @@ produce, and the research behind them. The framework itself is the g-levels skil
   pins by version, which block, and exceptions. `g-system` covers every repo.
   A narrower charter `extends` it and wins per gate.
 - `glevels/`: registry loading and scope resolution (`registry.py`), the CLI (`cli.py`).
-- `research/`: theory pieces, with sources.
 - `var/results.jsonl`: the results log. Gitignored, because notes can carry private
   incident detail. Set `GLEVELS_LOG` to write elsewhere.
 
