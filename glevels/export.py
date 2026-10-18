@@ -29,7 +29,8 @@ def _newest(pattern):
 
 
 def _graded_ids(log):
-    return {r["note"].split(" ", 2)[1] for r in log if r["result"] == "grade" and len(r["note"].split()) > 1}
+    notes = ((r.get("note") or "") for r in log if r.get("result") == "grade")
+    return {n.split()[1] for n in notes if len(n.split()) > 1}
 
 
 def registry_view():
@@ -37,7 +38,7 @@ def registry_view():
     gates, charters = registry.load_gates(), registry.load_charters()
     out_gates = []
     for gid, g in sorted(gates.items()):
-        kind, domain, name = gid.split(".", 2)
+        kind, domain, name = (gid.split(".", 2) + ["", ""])[:3] if gid.count(".") >= 2 else ("", "", gid)
         out_gates.append({
             "id": gid, "kind": g.get("kind"), "prefix": kind, "domain": domain, "name": name,
             "version": g.get("version"), "trigger": g.get("trigger", "every-run"),
@@ -84,7 +85,7 @@ def results_view(reg=None):
         g = r["gate"]
         if r["result"] == "grade":
             per_gate[g]["graded"] += 1
-            per_gate[g]["agreed"] += r["note"].startswith("agree")
+            per_gate[g]["agreed"] += (r.get("note") or "").startswith("agree")
             continue
         per_gate[g][r["result"]] += 1
         per_day[g][r["ts"][:10]][r["result"]] += 1
