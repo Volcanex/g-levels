@@ -1,0 +1,48 @@
+id = "delivery"
+title = "Reusable delivery charter"
+extends = ["g-system"]
+repos = []
+principles = [
+  "The delivered result follows the accepted brief and current decisions.",
+  "Completion claims have fresh evidence from the claimed artifact and target.",
+  "Reports answer the operator's question and promised artifacts can be reviewed.",
+  "Existing work and data survive changes outside their authorized scope.",
+  "Agents complete authorized routine work and documentation stays true to the candidate.",
+]
+
+[[gates]]
+id = "correct.delivery.requirements-fidelity"
+version = 1
+
+[[gates]]
+id = "correct.delivery.verify-before-claiming-done"
+version = 1
+blocking = true
+
+[[gates]]
+id = "correct.delivery.operator-report-clarity"
+version = 1
+
+[[gates]]
+id = "correct.delivery.reviewable-deliverable-access"
+version = 1
+
+[[gates]]
+id = "correct.delivery.concurrent-work-preservation"
+version = 1
+
+[[gates]]
+id = "correct.delivery.routine-task-autonomy"
+version = 1
+
+[[gates]]
+id = "correct.delivery.context-continuity"
+version = 1
+
+[[gates]]
+id = "correct.delivery.destructive-change-scope"
+version = 1
+
+[[gates]]
+id = "correct.delivery.documentation-truth"
+version = 1

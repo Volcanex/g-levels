@@ -1,0 +1,30 @@
+id = "correct.delivery.verify-before-claiming-done"
+version = 1
+kind = "correcting"
+trigger = "milestone"
+principle = "Completion claims are supported by fresh evidence along the user's actual path on the claimed target."
+guidance = """
+Choose checks that establish the requested outcome. Run relevant existing tests or builds and
+exercise the changed path after the last relevant edit. Inspect visual results when relevant.
+Keep the command or procedure, result, candidate state and target environment available.
+A draft needs artifact checks. A claim that an application works needs evidence of that use.
+"""
+pass = "Met when fresh checks support the claimed outcome and relevant regression checks pass on the identified candidate and target. Attempted for partial evidence. Impossible when required verification cannot be performed, with the actual blocker recorded."
+remediation = "Withdraw unsupported completion claims, run the missing checks, repair failures and return fresh evidence for review. Report an actual verification blocker without claiming the blocked outcome works."
+written_against = { model = "claude-opus-5-5", date = "2026-10-18" }
+
+[sensor]
+type = "review"
+rubric = """
+An independent reviewer compares each completion claim with the brief, final candidate and
+actual verification outputs. Establish which candidate state and environment were checked
+and whether evidence follows the last relevant edit. Inspect required test or build results,
+the changed user path and a relevant regression check. For visual or runner claims, inspect
+the captured output as well as logs. A screenshot merely saved, a build identifier alone,
+component tests for an unexercised user journey, or results from another target do not
+establish success. Match the checks to the promised artifact and flag every unsupported claim.
+"""
+
+[origin]
+date = "2026-10-18"
+incident = "Fixes were presented for delivery without demonstrated tests, inspected runner output or regression checks."

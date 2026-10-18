@@ -1,0 +1,28 @@
+id = "correct.delivery.reviewable-deliverable-access"
+version = 1
+kind = "correcting"
+trigger = "milestone"
+principle = "The intended reviewer can open and inspect every promised artifact through the supplied entry point."
+guidance = """
+Provide the exact link, download or shared workspace path for the requested review surface.
+Check that it opens the current candidate with the intended permissions and usable entry
+steps. Stay within the authorized sharing scope. This gate does not authorize publication.
+"""
+pass = "Met when every promised artifact is reachable and inspectable by its intended reviewer through the supplied entry point. A chat answer with no promised separate artifact needs no extra link. Attempted when access or artifact identity remains unverified."
+remediation = "Repair the route, permissions, download or entry instructions and provide the working review location. If access needs an owner action, name that blocker and avoid claiming the artifact is accessible."
+written_against = { model = "claude-opus-5-5", date = "2026-10-18" }
+
+[sensor]
+type = "review"
+rubric = """
+An independent reviewer takes the exact entry point supplied with the delivery and opens it
+with the intended reviewer's access. Confirm the expected artifact, environment and candidate
+are shown and that the promised preview, download or sandbox can actually be inspected or
+used. A successful HTTP response, empty page, inaccessible server path or implementation
+description is insufficient. A local path passes when the reviewer shares that workspace
+and can open it. Do not require a public deployment or an artifact absent from the brief.
+"""
+
+[origin]
+date = "2026-10-18"
+incident = "Delivered links showed no reviewable result and finished designs or sandboxes lacked a usable entry point."

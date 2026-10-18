@@ -1,0 +1,28 @@
+id = "correct.delivery.requirements-fidelity"
+version = 1
+kind = "correcting"
+trigger = "milestone"
+principle = "The delivered result satisfies the accepted brief and stays within its authorized scope."
+guidance = """
+Carry observable acceptance criteria and the latest accepted decisions through the work.
+Check requested names, titles, defaults, target repository, exclusions and promised surfaces.
+Use discretion where the brief grants it. Surface choices that change the requested outcome.
+"""
+pass = "Met when every applicable accepted requirement is evidenced in the candidate and changes stay within scope. Attempted when a requirement remains incomplete, even if the omission is disclosed."
+remediation = "Restore the requested target or behavior, complete omitted criteria and remove unauthorized additions while preserving unrelated work. Return the revised candidate for review."
+written_against = { model = "claude-opus-5-5", date = "2026-10-18" }
+
+[sensor]
+type = "review"
+rubric = """
+An independent reviewer reads the brief and accepted decisions in order, then inspects the
+candidate and diff. Trace each applicable requirement to an observable result. Compare exact
+names, titles, defaults, page separation, target repository, exclusions and promised surfaces
+where specified. Cite omissions, substitutions and additions outside the authorized scope.
+A stated blocker explains an unmet requirement but does not satisfy it. Do not invent prior
+requirements from a new preference or reject choices explicitly left to the worker.
+"""
+
+[origin]
+date = "2026-10-18"
+incident = "Deliveries substituted requested names and page boundaries or retained content the brief required changing."

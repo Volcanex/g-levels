@@ -1,0 +1,29 @@
+id = "correct.delivery.context-continuity"
+version = 1
+kind = "correcting"
+trigger = "milestone"
+principle = "Resumed work follows the active objective, exact deliverable and accepted decisions carried through the conversation."
+guidance = """
+On resumption, reconcile the latest steering with the relevant handoff and work evidence.
+Resolve the active batch or candidate by available identifiers and dates. Carry unfinished
+requirements forward and replace the objective only when the operator actually changes it.
+"""
+pass = "Met when the resumed target and retained decisions match the live brief and work evidence. Attempted when the active target remains unresolved or work follows a stale or similar deliverable. Work with no resumption can pass without a new handoff document."
+remediation = "Recover the relevant handoff and artifact identity, reconcile current steering and continue the correct remaining work. Ask only if an unresolved ambiguity changes which deliverable is intended."
+written_against = { model = "claude-opus-5-5", date = "2026-10-18" }
+
+[sensor]
+type = "review"
+rubric = """
+An independent reviewer compares the current brief, relevant prior decisions, handoff when
+present and candidate identifiers. Check that a resumed batch, dated artifact or branch is
+the one requested and that unfinished requirements survived the handoff. Distinguish a
+follow-up about existing work from an instruction to start a new objective. Cite any stale
+target, dropped decision or unrelated task resumed without authorization. An explicit change
+of direction supersedes older decisions. No separate continuity document is required when
+the conversation and work evidence establish the correct target.
+"""
+
+[origin]
+date = "2026-10-18"
+incident = "Resumed work targeted a different batch from the previously created batch the operator meant."

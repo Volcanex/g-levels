@@ -1,0 +1,30 @@
+id = "correct.delivery.documentation-truth"
+version = 1
+kind = "correcting"
+trigger = "milestone"
+principle = "Documentation affected by the delivery accurately describes the candidate's usable behavior and limitations."
+guidance = """
+Check existing instructions affected by the change as well as newly written documentation.
+Verify documented prerequisites, entry points, inputs, outputs and limitations against the
+candidate. Distinguish proposed behavior from implemented behavior. Keep the accepted brief
+as the authority when stale documentation contradicts the requested work.
+"""
+pass = "Met when affected documentation agrees with observed candidate behavior and clearly labels proposed or unavailable behavior. Attempted when a relevant claim is stale or unverified. A change affecting no documented behavior needs no new documentation."
+remediation = "Correct stale instructions or repair behavior required by the brief, then replay the affected documented steps. Label any remaining limitation and return the evidence for review."
+written_against = { model = "claude-opus-5-5", date = "2026-10-18" }
+
+[sensor]
+type = "review"
+rubric = """
+An independent reviewer identifies documentation added or made relevant by the change and
+compares its claims with the brief and candidate. Replay affected documented steps with
+the stated prerequisites. Compare actual entry points, accepted inputs, outputs and limits
+with the text. Cite stale claims even when the code otherwise works, including unsupported
+claims that a required workflow cannot work. A clearly labeled proposal may describe future
+behavior. Do not demand rewriting unrelated documentation or creating docs for a change
+that affects no documented behavior.
+"""
+
+[origin]
+date = "2026-10-18"
+incident = "Documentation claims conflicted with the behavior needed to complete the requested workflow."
