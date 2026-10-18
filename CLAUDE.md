@@ -14,6 +14,8 @@ produce. The theory is in Volcanex/g-research
   pins by version, which block, and exceptions. `g-system` covers every repo.
   A narrower charter `extends` it and wins per gate.
 - `glevels/`: registry loading and scope resolution (`registry.py`), the CLI (`cli.py`).
+- `glevels/export.py`: a read-only JSON snapshot of the registry, results, backlog and level
+  summary, for gcommand's /levels page. Grading still goes through `glevels grade`.
 - `var/results.jsonl`: the results log. Gitignored, because notes can carry private
   incident detail. Set `GLEVELS_LOG` to write elsewhere.
 
