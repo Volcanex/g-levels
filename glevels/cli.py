@@ -60,18 +60,20 @@ def fill(cmd, **values):
 
 
 def run_sensor(gate, entry, repo, rel):
-    """Returns (ok, output). A command containing {file} runs once per tracked file in scope."""
+    """Returns (result, output): met, caught, or impossible when every failure exits with the sensor's
+    cannot_run_exit. A command containing {file} runs once per tracked file in scope."""
     cmd = gate["sensor"]["run"]
     if "{file}" in cmd:
-        files = files_under(repo, rel, entry.get("paths", ["**"]))
-        fails = []
-        for f in files:
-            p = subprocess.run(fill(cmd, file=repo / f, repo=repo), shell=True, capture_output=True, text=True)
-            if p.returncode:
-                fails.append(f"{f}\n{(p.stdout + p.stderr).strip()[:800]}")
-        return not fails, "\n\n".join(fails) or f"{len(files)} files"
-    p = subprocess.run(fill(cmd, repo=repo, path=repo / rel), shell=True, capture_output=True, text=True)
-    return p.returncode == 0, (p.stdout + p.stderr).strip()[-1500:]
+        runs = [(f, subprocess.run(fill(cmd, file=repo / f, repo=repo), shell=True, capture_output=True, text=True))
+                for f in files_under(repo, rel, entry.get("paths", ["**"]))]
+    else:
+        runs = [(rel, subprocess.run(fill(cmd, repo=repo, path=repo / rel), shell=True, capture_output=True, text=True))]
+    fails = [(f, p) for f, p in runs if p.returncode]
+    if not fails:
+        return "met", f"{len(runs)} files"
+    cannot = gate["sensor"].get("cannot_run_exit")
+    result = "impossible" if cannot and all(p.returncode == cannot for _, p in fails) else "caught"
+    return result, "\n\n".join(f"{f}\n{(p.stdout + p.stderr).strip()[-800:]}" for f, p in fails)
 
 
 def cmd_check(a):
@@ -94,15 +96,22 @@ def cmd_check(a):
         if e["waiver"]:
             record(g["id"], g["version"], e["charter"], repo.name, rel, "waived", e["waiver"]["reason"])
             print(f"  waived     {g['id']}{tag}: {e['waiver']['reason']}")
-        elif g["sensor"]["type"] == "command":
-            ok, out = run_sensor(g, e, repo, rel)
-            if ok:
-                record(g["id"], g["version"], e["charter"], repo.name, rel, "met")
-                print(f"  met        {g['id']}{tag}")
+        elif g["sensor"]["type"] == "command" or "run" in g["sensor"]:
+            # A review gate with a run command has a mechanical half: it runs here, and its catch is
+            # logged, then the rubric still goes to an independent reviewer.
+            result, out = run_sensor(g, e, repo, rel)
+            review = g["sensor"]["type"] == "review"
+            if result == "met":
+                if not review:
+                    record(g["id"], g["version"], e["charter"], repo.name, rel, "met")
+                print(f"  {'mechanical' if review else 'met       '} {g['id']}{tag}{' passed' if review else ''}")
             else:
-                caught += 1
-                record(g["id"], g["version"], e["charter"], repo.name, rel, "caught", out[:500])
-                print(f"  caught     {g['id']}{tag}\n    fix: {g['remediation'].strip()}\n    {out.replace(chr(10), chr(10) + '    ')}")
+                caught += result == "caught"
+                record(g["id"], g["version"], e["charter"], repo.name, rel, result, out[:500])
+                print(f"  {result:<10} {g['id']}{tag}\n    fix: {g['remediation'].strip()}\n    {out.replace(chr(10), chr(10) + '    ')}")
+            if review:
+                print(f"  review     {g['id']}{tag}: {g['sensor']['rubric'].strip()}\n"
+                      f"    then: glevels record {g['id']} met|attempted|impossible {a.path} --honest \"...\"")
         elif g["sensor"]["type"] == "review":
             print(f"  review     {g['id']}{tag}: {g['sensor']['rubric'].strip()}\n"
                   f"    then: glevels record {g['id']} met|attempted|impossible {a.path} --honest \"...\"")

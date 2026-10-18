@@ -11,10 +11,11 @@ written_against = { model = "claude-opus-5-5", date = "2026-10-18" }
 
 [sensor]
 # Two halves. `run` is the mechanical half: Playwright geometry at 1280x800 and 390x844,
-# exit 1 on clear faults, 2 when it cannot run. The rubric is the review half and starts
-# by running it. glevels check prints the rubric for a review sensor and does not run `run`.
+# exit 1 on clear faults, 2 when it cannot run. glevels check runs it and logs a catch, then
+# prints the rubric, the review half, for an independent reviewer.
 type = "review"
 run = "python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/spacing.py {file}"
+cannot_run_exit = 2
 rubric = """
 You did not build this page. Judge it against the g-spacing checklist.
 1. Run `python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/spacing.py <the page file or URL>`, passing sibling screens together if the work has them. Exit 2 means it could not run: record impossible with its reason. Exit 1 lists clear faults. Each is a fault unless the screenshot shows it is a deliberate layer (a stamp, a map pin, a fill under a label): say which in your note.

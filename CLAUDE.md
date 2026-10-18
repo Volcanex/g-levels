@@ -34,7 +34,10 @@ produce. The theory is in Volcanex/g-research
 
 A command sensor passes on exit 0. A command containing `{file}` runs once per
 tracked file matching the charter's `paths`. A review sensor prints its rubric and
-waits for `glevels record`. `caught` is logged when a sensor fails, so the counts
+waits for `glevels record`. A review sensor may also carry a `run` command, its
+mechanical half: `check` runs it and logs a catch before printing the rubric.
+`cannot_run_exit` names the exit code that means the sensor could not run, logged
+as `impossible` rather than a catch (ganti uses 2 for absolutes, so it is opt-in). `caught` is logged when a sensor fails, so the counts
 show catches as well as final results.
 
 ## Gate conventions

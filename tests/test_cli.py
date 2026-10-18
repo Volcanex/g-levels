@@ -3,6 +3,8 @@ import os
 import subprocess
 import sys
 
+import pytest
+
 from glevels import registry
 
 
@@ -30,3 +32,26 @@ def test_brief_feeds_gates_and_review_names_only_review_gates(tmp_path):
     assert "correct.copy.voice" in out and "Silence is the only failure" in out
     review = run("brief", "--charter", "g-system", "--review", ".", log=log).stdout
     assert "correct.secrets.argv" in review and "correct.secrets.git-history" not in review
+
+
+def test_exit_code_only_means_impossible_when_the_gate_says_so(tmp_path):
+    from glevels.cli import run_sensor
+    gate = {"sensor": {"run": "exit 2"}}
+    assert run_sensor(gate, {}, tmp_path, "")[0] == "caught"
+    gate["sensor"]["cannot_run_exit"] = 2
+    assert run_sensor(gate, {}, tmp_path, "")[0] == "impossible"
+    assert run_sensor({"sensor": {"run": "true"}}, {}, tmp_path, "")[0] == "met"
+
+
+FIXTURES = registry.ROOT / "tests" / "fixtures-spacing"
+
+
+@pytest.mark.skipif(not os.environ.get("GLEVELS_BROWSER_TESTS"), reason="needs Playwright, set GLEVELS_BROWSER_TESTS=1")
+def test_spacing_blocks_the_failure_fixtures():
+    spacing = registry.ROOT / "glevels" / "spacing.py"
+    for page in ("original.html", "related.html"):
+        p = subprocess.run([sys.executable, str(spacing), str(FIXTURES / page)], capture_output=True, text=True)
+        assert p.returncode == 1, p.stdout[-500:]
+    p = subprocess.run([sys.executable, str(spacing), str(FIXTURES / "related.html"), str(FIXTURES / "related-sibling.html")],
+                       capture_output=True, text=True)
+    assert p.returncode == 1

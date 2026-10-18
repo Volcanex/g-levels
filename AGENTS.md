@@ -14,6 +14,8 @@ produce. The theory is in Volcanex/g-research
   pins by version, which block, and exceptions. `g-system` covers every repo.
   A narrower charter `extends` it and wins per gate.
 - `glevels/`: registry loading and scope resolution (`registry.py`), the CLI (`cli.py`).
+- `glevels/export.py`: a read-only JSON snapshot of the registry, results, backlog and level
+  summary, for gcommand's /levels page. Grading still goes through `glevels grade`.
 - `var/results.jsonl`: the results log. Gitignored, because notes can carry private
   incident detail. Set `GLEVELS_LOG` to write elsewhere.
 
@@ -32,7 +34,10 @@ produce. The theory is in Volcanex/g-research
 
 A command sensor passes on exit 0. A command containing `{file}` runs once per
 tracked file matching the charter's `paths`. A review sensor prints its rubric and
-waits for `glevels record`. `caught` is logged when a sensor fails, so the counts
+waits for `glevels record`. A review sensor may also carry a `run` command, its
+mechanical half: `check` runs it and logs a catch before printing the rubric.
+`cannot_run_exit` names the exit code that means the sensor could not run, logged
+as `impossible` rather than a catch (ganti uses 2 for absolutes, so it is opt-in). `caught` is logged when a sensor fails, so the counts
 show catches as well as final results.
 
 ## Gate conventions
