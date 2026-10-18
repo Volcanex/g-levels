@@ -1,0 +1,28 @@
+id = "correct.ui.spacing"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-spacing"
+principle = "A page looks laid out with care at a glance. Nothing touches, overlaps, pokes out, gets cut off or floats by accident, gaps are even, things that look aligned are aligned, and shared elements hold their place across sibling screens."
+guidance = "Load g-design and g-spacing before building. Before reporting, run the mechanical half yourself, `python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/spacing.py <page or URL> [sibling screens]`, and fix every blocking finding. Then look at its screenshots at both widths with the g-spacing checklist. Someone else does the review."
+pass = "met: the sensor reports no blocking finding, and the reviewer can point at no checklist fault in the screenshots, or each one left is shown to be intended. attempted: clear faults are fixed but the reviewer names judged faults or leads that hold up, each with its screenshot, place and checklist number."
+remediation = "Work the blocking list first: each line names the element, the fault and where it is in page pixels. Fix the layout, not the measurement. No data-audit-skip on real content, no nudging a value until the sensor goes quiet. Then fix what the reviewer named and rerun both halves."
+written_against = { model = "claude-opus-5-5", date = "2026-10-18" }
+
+[sensor]
+# Two halves. `run` is the mechanical half: Playwright geometry at 1280x800 and 390x844,
+# exit 1 on clear faults, 2 when it cannot run. The rubric is the review half and starts
+# by running it. glevels check prints the rubric for a review sensor and does not run `run`.
+type = "review"
+run = "python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/spacing.py {file}"
+rubric = """
+You did not build this page. Judge it against the g-spacing checklist.
+1. Run `python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/spacing.py <the page file or URL>`, passing sibling screens together if the work has them. Exit 2 means it could not run: record impossible with its reason. Exit 1 lists clear faults. Each is a fault unless the screenshot shows it is a deliberate layer (a stamp, a map pin, a fill under a label): say which in your note.
+2. Open every screenshot it prints, desktop and phone, and look before you read the leads. Ask of each tile: does any text touch its box or a neighbour? Does anything overlap, poke out of its card, or get cut off? Does the phone tile fit without sideways scroll? Are insets even on both sides? Are gaps between same-kind things equal? Do things that look aligned line up exactly? Do titles, menus and columns hold one place across sibling panels and screens? Are same-kind icons, badges and buttons one size? Is there a big empty band or a largely blank screen? Is anything oversized for its job, or a section missing its title? Does the page feel like less is more?
+3. Read the leads under 'for the reviewer' and keep only the ones the screenshots bear out. Off-grid counts are a trend, not a fault on their own.
+4. Record met only if nothing blocking is left and you can point at no fault. Otherwise record attempted and name each fault by screenshot file, place and checklist number, so the worker can fix it without asking.
+"""
+
+[origin]
+date = "2026-10-18"
+incident = "Gabriel kept catching spacing faults by eye across Baseline, g-site, poker and NOAD: cards touching text, a mascot flush against copy, charts poking out of their box, squeezed icon buttons, badges with no padding, overlapping text, pages that did not fit a phone, uneven gaps and titles that moved between sibling screens."

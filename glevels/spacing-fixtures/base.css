@@ -1,0 +1,7 @@
+* { box-sizing: border-box; }
+body { margin: 0; font: 15px/20px system-ui, sans-serif; background: #111; color: #eee; }
+main { max-width: 960px; margin: 0 auto; padding: 32px 16px; display: grid; gap: 32px; }
+h1, h2, h3, p { margin: 0; }
+.card { background: #1d1d1f; border: 1px solid #333; border-radius: 8px; padding: 16px; }
+nav { display: flex; gap: 16px; padding: 16px; border-bottom: 1px solid #333; }
+nav a { color: #eee; }

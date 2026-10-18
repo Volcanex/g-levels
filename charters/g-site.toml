@@ -13,3 +13,8 @@ paths = ["pages/*/content.html"]
 id = "correct.copy.house-glyphs"
 version = 1
 paths = ["pages/*/content.html"]
+
+[[gates]]
+id = "correct.ui.spacing"
+version = 1
+paths = ["pages/*/content.html"]

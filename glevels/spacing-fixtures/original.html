@@ -1,0 +1,20 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="base.css"><title>original</title>
+<style>
+.flush { background: #1d1d1f; border: 1px solid #333; padding: 0; }           /* cards touching text */
+.intro { display: flex; align-items: center; gap: 0; background: #1d1d1f; border: 1px solid #333; padding: 16px 64px 16px 0; }
+.intro img { width: 64px; height: 64px; display: block; }                     /* george touching the text, flush left, miles from the right */
+.chart { background: #1d1d1f; border: 1px solid #333; height: 120px; padding: 8px; }
+.chart svg { display: block; margin-top: -40px; }                              /* charts poke through the roof */
+.seat { position: relative; width: 200px; height: 120px; background: #1d1d1f; border: 1px solid #333; }
+.badge { display: inline-block; background: #3a6; color: #000; padding: 0; font-size: 12px; } /* bb/sb with no padding */
+.tools { display: flex; gap: 8px; }
+.tools button { background: #2a2a2e; border: 1px solid #444; color: #eee; padding: 4px 1px; height: 32px; } /* squished icon buttons */
+</style></head><body><main>
+<div class="flush"><h2>Rolling schema</h2><p>Keeps markup current as the site changes. The card has no padding, so the words sit on its border.</p></div>
+<div class="intro"><img alt="george" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' fill='%23c84'/%3E%3C/svg%3E"><p>Welcome to your introductory findings for ActionCOACH UK</p></div>
+<div class="chart"><h3>30 days of AI attention</h3><svg width="300" height="150" viewBox="0 0 300 150"><rect x="0" y="0" width="300" height="150" fill="#357"/></svg></div>
+<div class="seat"><span class="badge">BB</span></div>
+<div class="tools"><button><svg width="16" height="16"><rect width="16" height="16" fill="#eee"/></svg></button><button><svg width="16" height="16"><circle cx="8" cy="8" r="8" fill="#eee"/></svg></button></div>
+<svg width="400" height="80"><text x="10" y="40" fill="#eee" font-size="16">Ingest the prompt</text><text x="60" y="44" fill="#eee" font-size="16">Choose fan-outs</text></svg>
+</main></body></html>

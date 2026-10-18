@@ -1,0 +1,20 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="base.css"><title>related</title>
+<style>
+.deck { display: grid; gap: 16px; }
+.slide { height: 480px; background: #1d1d1f; border: 1px solid #333; border-radius: 8px; padding: 32px; }
+.slide.odd h2 { margin-top: 350px; }                               /* one title 350px off its siblings */
+.lobby { display: grid; grid-template-columns: repeat(4, 220px); gap: 16px; } /* the lobby does not fit a phone */
+.lobby div { background: #1d1d1f; border: 1px solid #333; border-radius: 8px; padding: 16px; height: 80px; }
+.list { display: grid; }
+.list div { background: #1d1d1f; border: 1px solid #333; border-radius: 8px; padding: 16px; }
+.list div:nth-child(1) { margin-bottom: 16px; } .list div:nth-child(2) { margin-bottom: 24px; } .list div:nth-child(3) { margin-bottom: 13px; }
+.stack p:nth-child(2) { margin-left: 3px; }                         /* almost aligned */
+</style></head><body><nav><a href="#">Dashboard</a><a href="#">Audits</a></nav><main>
+<div class="deck"><section class="slide"><h2>Findings</h2><p>Three things to fix first.</p></section>
+<section class="slide odd"><h2>Schema</h2><p>Add Organization schema to the homepage.</p></section>
+<section class="slide"><h2>Next steps</h2><p>What happens after this call.</p></section></div>
+<div class="lobby"><div>Player one</div><div>Player two</div><div>Player three</div><div>Player four</div></div>
+<div class="list"><div>First audit</div><div>Second audit</div><div>Third audit</div><div>Fourth audit</div></div>
+<div class="stack"><p>A paragraph that starts on the column edge.</p><p>One that is three pixels off it.</p></div>
+</main></body></html>
