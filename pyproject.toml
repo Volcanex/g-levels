@@ -1,0 +1,20 @@
+[project]
+name = "g-levels"
+version = "0.1.0"
+description = "Gates and charters for agentic development: checks that stop a class of flaw from recurring, scoped by charters, with results recorded"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+glevels = "glevels.cli:main"
+
+[tool.gcore]
+depends = []
+lineage = ["g-levels skill (gp-core)", "gabrielpenman.com/charter"]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["glevels"]

@@ -1,0 +1,10 @@
+id = "g-site"
+title = "gabrielpenman.com pages"
+extends = ["g-system"]
+repos = ["g-site"]
+principles = ["Every page a person reads is in Gabriel's voice."]
+
+[[gates]]
+id = "copy-voice"
+version = 1
+paths = ["pages/*/content.html"]

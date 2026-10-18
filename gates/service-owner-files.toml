@@ -1,0 +1,17 @@
+id = "service-owner-files"
+version = 1
+kind = "correcting"
+trigger = "milestone"
+principle = "Work done as root leaves no root-owned files where a service runs as another user."
+guidance = "In a repo whose service runs as gabriel, run tests and commits as gabriel, or chown afterwards."
+pass = "Files the service writes or reads are owned by the service user after the work."
+remediation = "chown -R the affected paths to the service user and restart the service."
+written_against = { model = "claude-opus-5-5", date = "2026-10-17" }
+
+[sensor]
+type = "review"
+rubric = "Does this repo have a service with User= other than root? If so, are any files under it now owned by root that were not before?"
+
+[origin]
+date = "2026-10-17"
+incident = "A root pytest run left root-owned files and the gabriel-owned service returned 502 on restart. Held as a memory until now."

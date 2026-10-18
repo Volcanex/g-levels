@@ -1,0 +1,17 @@
+id = "gcore-comply"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "Every managed repo can be found, installed and monitored the same way: CLAUDE.md, pyproject, Volcanex remote, declared depends."
+guidance = "gp-core/conventions.md, compliance section, and the g-gcore-comply skill."
+pass = "All four hard boxes pass. Warnings are attempted territory, not failures."
+remediation = "Run the checker and fix each [FAIL] it names. It says exactly which box and why."
+written_against = { model = "claude-opus-5-5", date = "2026-10-18" }
+
+[sensor]
+type = "command"
+run = "python3 ${GENV:-/home/gabriel/g-env}/skills/g-gcore-comply/scripts/check.py {repo}"
+
+[origin]
+date = "2026-06"
+incident = "Repos drifted out of the system (no CLAUDE.md, no remote, undeclared depends) and agents could not orient in them. The four boxes predate this registry and are registered here as the system charter's baseline."

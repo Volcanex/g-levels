@@ -1,0 +1,37 @@
+id = "g-system"
+title = "The g-system charter"
+repos = ["*"]
+principles = [
+  "Every repo is findable, installable and monitored the same way.",
+  "Nothing secret reaches git or argv.",
+  "Shared hosts are shared politely: work servers carry only work, services keep their file ownership.",
+]
+
+[[gates]]
+id = "no-secrets"
+version = 1
+blocking = true
+
+[[gates]]
+id = "gcore-comply"
+version = 1
+
+[[gates]]
+id = "secrets-out-of-argv"
+version = 1
+blocking = true
+
+[[gates]]
+id = "work-host-quiet"
+version = 1
+
+[[gates]]
+id = "service-owner-files"
+version = 1
+
+[[exceptions]]
+gate = "service-owner-files"
+repo = "g-site"
+reason = "g-site's service runs as root and its output is root-owned by design."
+review = "2027-01-18"
+approved_by = "Gabriel"

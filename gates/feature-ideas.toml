@@ -1,0 +1,25 @@
+id = "feature-ideas"
+version = 1
+kind = "design"
+trigger = "on-demand"
+principle = "Before a feature set is called done, the space of things it could become has been explored until new ideas dry up."
+guidance = """
+Read the product, its users and what exists. Propose features it would benefit from,
+each with who it serves and why now. Different runs take different framings: a
+first-time user, a power user, a rival product, the owner's own taste.
+"""
+pass = "Saturation reached within budget, and a ranked shortlist goes to Gabriel."
+remediation = "If the budget ran out before saturation, say so. The space is richer than the run."
+generators = "Strong, taste-capable models only (Opus class). Cheap fan-out produces more of the same and saturates on the model's range, not the space."
+judge = "One strong model merges duplicates across runs and ranks the union. It does not generate."
+saturation = "Stop when a round of three runs adds fewer than one new idea after merging."
+budget = "At most four rounds."
+written_against = { model = "claude-opus-5-5", date = "2026-10-18" }
+
+[sensor]
+type = "review"
+rubric = "Record the new-ideas count per round. Met at saturation, attempted if the budget ran out first."
+
+[origin]
+date = "2026-10-18"
+incident = "Gabriel named the class: open-ended quality like feature richness improves with the intelligence poured in, and nothing in the system asked for it. Not run yet. No runner exists."

@@ -1,0 +1,17 @@
+id = "work-host-quiet"
+version = 1
+kind = "correcting"
+trigger = "milestone"
+principle = "Hosts that serve paid work carry only that work. Soaks, benchmarks and night jobs run on h."
+guidance = "Before starting anything long or heavy, check the host. The work servers are listed in gp-core manifest.json."
+pass = "Nothing long-running or experimental was started on a work server."
+remediation = "Stop and disable the job on the work server, then rerun it on h."
+written_against = { model = "claude-opus-5-5", date = "2026-10-15" }
+
+[sensor]
+type = "review"
+rubric = "List every process, unit or timer the work started. Did any start on a work server (b2)?"
+
+[origin]
+date = "2026-10-15"
+incident = "Soaks and night jobs ran on b2, a work server. Stopped and disabled after the owner objected. Held as a memory until now."

@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+# Results and notes can carry private incident detail. They stay on the host.
+var/
