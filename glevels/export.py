@@ -91,6 +91,7 @@ def results_view(reg=None):
         per_day[g][r["ts"][:10]][r["result"]] += 1
         last[g] = max(last.get(g, ""), r["ts"])
     triggers = {g["id"]: g["trigger"] for g in reg["gates"]}
+    hooks = {g["id"] for g in reg["gates"] if g["sensor"] == "hook"}
     pinned = {l["gate"] for l in reg["links"] if not l.get("waiver_only")}
     gates = []
     for gid in sorted(set(triggers) | set(per_gate)):
@@ -101,8 +102,9 @@ def results_view(reg=None):
             "graded": n["graded"], "agreed": n["agreed"],
             "taste": round(n["agreed"] / n["graded"], 3) if n["graded"] else None,
             "last": last.get(gid),
-            # Silent: pinned, meant to fire every run, and nothing in the log.
-            "silent": gid in pinned and triggers.get(gid) == "every-run" and gid not in last,
+            # Silent: pinned, meant to fire every run, and nothing in the log. A hook enforces at tool
+            # time and logs only when it breaks, so it is never silent.
+            "silent": gid in pinned and triggers.get(gid) == "every-run" and gid not in last and gid not in hooks,
             "days": [{"day": d, **{k: c[k] for k in COUNTED}} for d, c in sorted(per_day[gid].items())],
         })
     days = sorted({d for g in per_day.values() for d in g})

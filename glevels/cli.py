@@ -157,7 +157,7 @@ def cmd_status(a):
         r = latest.get(e["id"])
         trig = gates[e["id"]].get("trigger", "every-run")
         if r is None:
-            silent += trig == "every-run"
+            silent += trig == "every-run" and gates[e["id"]]["sensor"]["type"] != "hook"
         print(f"  {r['result'] if r else 'silent':10} {e['id']:24} {trig:10} {r['ts'] if r else ''}")
     return 1 if silent else 0
 
