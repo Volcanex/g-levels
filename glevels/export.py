@@ -117,7 +117,19 @@ def sample(n=6, gate=None):
     log = rows()
     graded = _graded_ids(log)
     pool = [r for r in log if r["result"] in GRADABLE and r["id"] not in graded and (not gate or r["gate"] == gate)]
-    pool = pool[-200:][::-1][:n]
+    # Repeated runs log identical verdicts. Show one of each, newest first, taking gates in turn
+    # so a busy gate cannot fill the whole sample.
+    seen, by_gate = set(), collections.OrderedDict()
+    for r in pool[-200:][::-1]:
+        sig = (r["gate"], r.get("repo"), r.get("path"), r["result"], (r.get("note") or "").strip())
+        if sig not in seen:
+            seen.add(sig)
+            by_gate.setdefault(r["gate"], []).append(r)
+    pool, queues = [], list(by_gate.values())
+    while len(pool) < n and any(queues):
+        for q in queues:
+            if q and len(pool) < n:
+                pool.append(q.pop(0))
     return [dict({k: r.get(k) for k in ("id", "ts", "gate", "version", "charter", "repo", "path", "result", "by")},
                  note=(r.get("note") or "")[:800]) for r in pool]
 
