@@ -1,0 +1,30 @@
+id = "wing"
+title = "Wing, the friends-matchmaking dating app"
+extends = ["delivery"]
+repos = ["wing"]
+principles = [
+  "The asymmetry is a server rule with tests: in straight matching cis men are chosen, never choosers.",
+  "Every word a person reads in the app sounds like a person, not an app.",
+  "Every skin is night with soft lighting and is laid out with care at phone width.",
+]
+
+[[gates]]
+id = "correct.product.server-enforced-rules"
+version = 1
+paths = ["api/**", "tests/**"]
+blocking = true
+
+[[gates]]
+id = "correct.copy.voice"
+version = 2
+paths = ["web/theory/index.html", "content/prompts.json", "content/bots.json", "content/decks.json", "content/bot_lines.json"]
+
+[[gates]]
+id = "correct.copy.house-glyphs"
+version = 1
+paths = ["web/theory/index.html", "content/*.json", "app/lib/**/*.dart"]
+
+[[gates]]
+id = "correct.ui.spacing"
+version = 1
+paths = ["web/theory/index.html"]
