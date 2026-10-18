@@ -13,6 +13,7 @@ remediation = "If the budget ran out before saturation, say so. The space is ric
 generators = "Strong, taste-capable models only (Opus class). Cheap fan-out produces more of the same and saturates on the model's range, not the space."
 judge = "One strong model merges duplicates across runs and ranks the union. It does not generate."
 saturation = "Stop when a round of three runs adds fewer than one new idea after merging."
+probe = "After apparent saturation, one round from a different strong model family. New ideas there mean the generator ran out, not the space."
 budget = "At most four rounds."
 written_against = { model = "claude-opus-5-5", date = "2026-10-18" }
 

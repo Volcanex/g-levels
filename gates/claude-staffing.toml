@@ -1,0 +1,17 @@
+id = "claude-staffing"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "Claude quota is protected. When Claude runs cold, Claude-tier subagents need the operator's OK, and Codex does the bounded work."
+guidance = "The staffing section of the shared policy, and the compute pace block in session context."
+pass = "No Claude-tier subagent starts at Cold or Freezing without an 'Operator approved:' line."
+remediation = "Run Sol through g-agent-call, or ask Gabriel in one line naming the job, the tier and why Sol won't do."
+written_against = { model = "claude-opus-5-5", date = "2026-10-09" }
+
+[sensor]
+type = "hook"
+hook = "~/.claude/hooks/agent-gate.py (PreToolUse on Agent). A break records impossible here and allows."
+
+[origin]
+date = "2026-10-09"
+incident = "Sessions spent Claude quota on subagent work Codex could do while Claude was running cold."

@@ -24,6 +24,7 @@ produce, and the research behind them. The framework itself is the g-levels skil
     glevels status <path>         latest result per gate, silent ones flagged
     glevels counts                counts per charter, gate, repo
     glevels notes <gate>          the notes left at one gate
+    glevels map                   the gate taxonomy and its links
     glevels lint                  validate the registry (run before committing here)
 
 A command sensor passes on exit 0. A command containing `{file}` runs once per
@@ -31,12 +32,32 @@ tracked file matching the charter's `paths`. A review sensor prints its rubric a
 waits for `glevels record`. `caught` is logged when a sensor fails, so the counts
 show catches as well as final results.
 
+## Gate conventions
+
+These hold for every gate, in every charter.
+
+- **Structure is strict, judgement is fuzzy.** Links, versions, pins, scopes, skills and
+  exceptions have right answers, and `glevels lint` enforces them. What counts as met
+  stays a judgement. Don't tune thresholds or automate pass criteria yet: tuning a
+  fuzzy sensor hard teaches agents to satisfy the sensor.
+- **Honesty is part of every sensor.** Each check ends with the same question: did the
+  work meet the principle, or only the sensor? Recording `met` or `attempted` needs
+  `--honest`, one line on how you know. Editing the check, threshold or test, not the
+  work, is a catch.
+- **Fail loud.** A hook that breaks still allows, but records `impossible` with the error.
+- **A skill is a gate's guidance half.** Name it in `skill`. `glevels map` shows the whole
+  taxonomy: kind, sensor type, trigger, skill and the charters that pin each gate.
+- **Gate kinds.** `correcting` gates have a right answer. `design` gates generate options
+  and stop at saturation, checked by a probe run from a different strong model family.
+- **Sensor types.** `command` (exit 0 passes), `review` (a rubric the agent answers, then
+  `glevels record`), `hook` (enforced at tool time, outside `glevels check`).
+
 ## Writing a gate
 
 Fields are checked by `glevels lint`: id, version, kind (`correcting` or `design`),
-trigger (`every-run`, `milestone`, `on-demand`), principle, guidance, sensor, pass,
+trigger (`every-run`, `milestone`, `on-demand`), optional skill, principle, guidance, sensor, pass,
 remediation, origin, written_against. A design gate also names its generators,
-judge, saturation rule and budget. Test a new gate against the original failure, a
+judge, saturation rule, probe and budget. Test a new gate against the original failure, a
 related one and clean work. Bump `version` when the sensor or pass criteria change,
 then update the pins in charters.
 

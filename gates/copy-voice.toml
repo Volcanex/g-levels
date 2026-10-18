@@ -2,6 +2,7 @@ id = "copy-voice"
 version = 1
 kind = "correcting"
 trigger = "every-run"
+skill = "anti-ai-voice"
 principle = "Copy a person reads never sounds like AI. It sounds like Gabriel in the register the piece needs."
 guidance = "Load the anti-ai-voice skill before writing. No em dashes, middle dots or semicolons."
 pass = "ganti scores the file at or below the calibrated low threshold."

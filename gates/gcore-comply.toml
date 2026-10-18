@@ -2,6 +2,7 @@ id = "gcore-comply"
 version = 1
 kind = "correcting"
 trigger = "every-run"
+skill = "g-gcore-comply"
 principle = "Every managed repo can be found, installed and monitored the same way: CLAUDE.md, pyproject, Volcanex remote, declared depends."
 guidance = "gp-core/conventions.md, compliance section, and the g-gcore-comply skill."
 pass = "All four hard boxes pass. Warnings are attempted territory, not failures."

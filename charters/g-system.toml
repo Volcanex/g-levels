@@ -29,6 +29,11 @@ version = 1
 id = "service-owner-files"
 version = 1
 
+[[gates]]
+id = "claude-staffing"
+version = 1
+blocking = true
+
 [[exceptions]]
 gate = "service-owner-files"
 repo = "g-site"

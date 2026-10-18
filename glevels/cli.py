@@ -93,9 +93,12 @@ def cmd_check(a):
                 caught += 1
                 record(g["id"], g["version"], e["charter"], repo.name, rel, "caught", out[:500])
                 print(f"  caught     {g['id']}{tag}\n    fix: {g['remediation'].strip()}\n    {out.replace(chr(10), chr(10) + '    ')}")
-        else:
+        elif g["sensor"]["type"] == "review":
             print(f"  review     {g['id']}{tag}: {g['sensor']['rubric'].strip()}\n"
-                  f"    then: glevels record {g['id']} met|attempted|impossible {a.path} --note ...")
+                  f"    then: glevels record {g['id']} met|attempted|impossible {a.path} --honest \"...\"")
+        else:
+            print(f"  hook       {g['id']}{tag}: enforced at tool time by {g['sensor']['hook']}")
+    print(f"\nEvery gate: {registry.HONESTY}")
     return 1 if caught else 0
 
 
@@ -105,12 +108,16 @@ def cmd_record(a):
         sys.exit(f"unknown gate {a.gate}")
     if a.result in ("attempted", "impossible") and not a.note:
         sys.exit(f"{a.result} needs --note saying what is missing or why")
+    if a.result in ("met", "attempted") and not a.honest:
+        sys.exit(f"{a.result} needs --honest: one line on how you know the principle holds, not just the sensor.\n"
+                 f"{registry.HONESTY}")
     repo, rel = target(a.path)
     cid, scoped = registry.in_scope(repo, rel, charters)
     entry = next((e for e in scoped if e["id"] == a.gate), None)
     if entry is None:
         sys.exit(f"{a.gate} is not in scope at {a.path} (charter {cid})")
-    record(a.gate, gates[a.gate]["version"], entry["charter"], repo.name, rel, a.result, a.note or "")
+    note = " | ".join(x for x in (a.note, a.honest and f"honest: {a.honest}") if x)
+    record(a.gate, gates[a.gate]["version"], entry["charter"], repo.name, rel, a.result, note)
     if a.result == "impossible":
         print("recorded. impossible does not ship: tell Gabriel, or raise it at charter review if the charter allows")
     return 0
@@ -173,6 +180,26 @@ def cmd_show(a):
     return 0
 
 
+def cmd_map(a):
+    """The taxonomy: every gate, its kind, sensor, trigger, skill, and the charters that pin it."""
+    gates, charters = registry.load_gates(), registry.load_charters()
+    print(f"{'gate':22} {'kind':10} {'sensor':8} {'trigger':10} {'skill':16} charters")
+    for gid, g in sorted(gates.items(), key=lambda kv: (kv[1]["kind"], kv[1]["sensor"]["type"], kv[0])):
+        pins = []
+        for c in charters.values():
+            for e in c.get("gates", []):
+                if e["id"] == gid:
+                    waived = [x.get("repo", "*") for x in c.get("exceptions", []) if x["gate"] == gid]
+                    pins.append(c["id"] + ("!" if e.get("blocking") else "") + (f" (waived: {', '.join(waived)})" if waived else ""))
+            for x in c.get("exceptions", []):
+                if x["gate"] == gid and not any(e["id"] == gid for e in c.get("gates", [])):
+                    pins.append(f"{c['id']} waives for {x.get('repo', '*')}")
+        print(f"{gid:22} {g['kind']:10} {g['sensor']['type']:8} {g.get('trigger', 'every-run'):10} "
+              f"{g.get('skill', '-'):16} {', '.join(pins) or '-'}")
+    print("\n! = blocking. Skills are the guidance half, sensors the other.")
+    return 0
+
+
 def cmd_lint(a):
     problems, warnings = registry.lint(registry.load_gates(), registry.load_charters())
     for w in warnings:
@@ -196,6 +223,7 @@ def main():
     p.add_argument("result", choices=registry.RESULTS)
     p.add_argument("path", nargs="?", default=".")
     p.add_argument("--note")
+    p.add_argument("--honest", help="how you know the principle holds, not just the sensor")
     p.set_defaults(f=cmd_record)
     p = sub.add_parser("status", help="latest result per gate in scope, silence flagged")
     p.add_argument("path", nargs="?", default=".")
@@ -211,6 +239,7 @@ def main():
     p = sub.add_parser("show", help="print one gate or charter")
     p.add_argument("id")
     p.set_defaults(f=cmd_show)
+    sub.add_parser("map", help="the gate taxonomy and its links").set_defaults(f=cmd_map)
     sub.add_parser("lint", help="validate gates and charters").set_defaults(f=cmd_lint)
     a = ap.parse_args()
     sys.exit(a.f(a))

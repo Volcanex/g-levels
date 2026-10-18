@@ -49,3 +49,22 @@ def test_design_gates_name_their_stopping_rule():
     del bad["saturation"]
     problems, _ = registry.lint({"feature-ideas": bad}, {})
     assert any("saturation" in p for p in problems)
+
+
+def test_lint_enforces_links():
+    bad = dict(GATES["copy-voice"], skill="no-such-skill")
+    problems, _ = registry.lint({"copy-voice": bad}, {})
+    if registry.SKILLS.is_dir():
+        assert any("skill no-such-skill not found" in p for p in problems)
+    charters = {"c": {"id": "c", "repos": ["*"], "gates": [],
+                      "exceptions": [{"gate": "no-secrets", "reason": "x", "review": "2099-01-01", "approved_by": "G"}]}}
+    problems, warnings = registry.lint(GATES, charters)
+    assert any("which no charter in its chain pins" in p for p in problems)
+    assert any("no charter pins it" in w for w in warnings)
+
+
+def test_design_gates_need_a_probe():
+    bad = dict(GATES["feature-ideas"])
+    del bad["probe"]
+    problems, _ = registry.lint({"feature-ideas": bad}, {})
+    assert any("probe" in p for p in problems)

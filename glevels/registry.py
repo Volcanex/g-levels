@@ -1,4 +1,5 @@
 import datetime
+import os
 import fnmatch
 import subprocess
 import tomllib
@@ -9,6 +10,13 @@ RESULTS = ("met", "attempted", "waived", "impossible")
 GATE_FIELDS = ("id", "version", "kind", "principle", "guidance", "sensor", "pass", "remediation", "origin", "written_against")
 KINDS = ("correcting", "design")
 TRIGGERS = ("every-run", "milestone", "on-demand")
+SENSORS = {"command": "run", "review": "rubric", "hook": "hook"}
+DESIGN_FIELDS = {"generators", "judge", "saturation", "probe", "budget"}
+SKILLS = Path(os.environ.get("GLEVELS_SKILLS", Path.home() / ".agents" / "skills"))
+# The universal half of every sensor. Structure is strict, judgement stays fuzzy, and this
+# question is the one judgement every gate shares.
+HONESTY = ("Did the work meet the principle, or only the sensor? If you changed the check, the "
+           "threshold, the test or what it reads instead of the work, that is a catch, not a pass.")
 
 
 def load_gates(root=ROOT):
@@ -101,13 +109,19 @@ def lint(gates, charters, today=None):
             problems.append(f"gate {gid}: kind must be one of {KINDS}")
         if g.get("trigger", "every-run") not in TRIGGERS:
             problems.append(f"gate {gid}: trigger must be one of {TRIGGERS}")
-        if g.get("kind") == "design" and not {"generators", "judge", "saturation", "budget"} <= set(g):
-            problems.append(f"gate {gid}: a design gate names its generators, judge, saturation rule and budget")
+        if g.get("kind") == "design" and not DESIGN_FIELDS <= set(g):
+            problems.append(f"gate {gid}: a design gate names its {', '.join(sorted(DESIGN_FIELDS))}")
         s = g.get("sensor", {})
-        if s.get("type") == "command" and "run" not in s:
-            problems.append(f"gate {gid}: command sensor needs run")
-        if s.get("type") == "review" and "rubric" not in s:
-            problems.append(f"gate {gid}: review sensor needs rubric")
+        if s.get("type") not in SENSORS:
+            problems.append(f"gate {gid}: sensor type must be one of {tuple(SENSORS)}")
+        elif SENSORS[s["type"]] not in s:
+            problems.append(f"gate {gid}: {s['type']} sensor needs {SENSORS[s['type']]}")
+        if "skill" in g and SKILLS.is_dir() and not (SKILLS / g["skill"] / "SKILL.md").exists():
+            problems.append(f"gate {gid}: skill {g['skill']} not found in {SKILLS}")
+    pinned = {e["id"] for c in charters.values() for e in c.get("gates", [])}
+    for gid in gates:
+        if gid not in pinned and gates[gid].get("kind") != "design":
+            warnings.append(f"gate {gid}: no charter pins it, so it never fires")
     for cid, c in charters.items():
         for parent in c.get("extends", []):
             if parent not in charters:
@@ -122,6 +136,8 @@ def lint(gates, charters, today=None):
             missing = [f for f in ("gate", "reason", "review", "approved_by") if f not in x]
             if missing:
                 problems.append(f"charter {cid}: exception for {x.get('gate')} missing {', '.join(missing)}")
+            elif x["gate"] not in {e["id"] for k in chain(cid, charters) for e in k.get("gates", [])}:
+                problems.append(f"charter {cid}: exception for {x['gate']}, which no charter in its chain pins")
             elif str(x["review"]) < today:
                 warnings.append(f"charter {cid}: exception for {x['gate']} was due for review {x['review']}")
     return problems, warnings
