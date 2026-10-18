@@ -3,8 +3,10 @@
 import argparse
 import collections
 import datetime
+import hashlib
 import json
 import os
+import random
 import subprocess
 import sys
 from pathlib import Path
@@ -19,14 +21,22 @@ def record(gate, version, charter, repo, rel, result, note="", by=None):
     row = {"ts": datetime.datetime.now().isoformat(timespec="seconds"), "gate": gate, "version": version,
            "charter": charter, "repo": repo, "path": rel, "result": result, "note": note,
            "by": by or os.environ.get("GLEVELS_BY", "agent")}
+    row["id"] = row_id(row)
     with LOG.open("a") as f:
         f.write(json.dumps(row) + "\n")
+
+
+def row_id(row):
+    return hashlib.sha1(json.dumps({k: v for k, v in row.items() if k != "id"}, sort_keys=True).encode()).hexdigest()[:8]
 
 
 def rows():
     if not LOG.exists():
         return []
-    return [json.loads(line) for line in LOG.read_text().splitlines() if line.strip()]
+    out = [json.loads(line) for line in LOG.read_text().splitlines() if line.strip()]
+    for r in out:
+        r.setdefault("id", row_id(r))
+    return out
 
 
 def target(path):
@@ -117,7 +127,7 @@ def cmd_record(a):
     if entry is None:
         sys.exit(f"{a.gate} is not in scope at {a.path} (charter {cid})")
     note = " | ".join(x for x in (a.note, a.honest and f"honest: {a.honest}") if x)
-    record(a.gate, gates[a.gate]["version"], entry["charter"], repo.name, rel, a.result, note)
+    record(a.gate, gates[a.gate]["version"], entry["charter"], repo.name, rel, a.result, note, by=a.by)
     if a.result == "impossible":
         print("recorded. impossible does not ship: tell Gabriel, or raise it at charter review if the charter allows")
     return 0
@@ -149,11 +159,18 @@ def cmd_counts(a):
     for r in rows():
         if a.charter and r["charter"] != a.charter:
             continue
-        c[(r["charter"], r["gate"], r["repo"])][r["result"]] += 1
+        key = (r["charter"], r["gate"], r["repo"])
+        if r["result"] == "grade":
+            c[key]["graded"] += 1
+            c[key]["agreed"] += r["note"].startswith("agree")
+        else:
+            c[key][r["result"]] += 1
     cols = ("caught",) + registry.RESULTS
-    print(f"{'charter':14} {'gate':24} {'repo':18} " + " ".join(f"{x:>10}" for x in cols))
+    print(f"{'charter':14} {'gate':36} {'repo':14} " + " ".join(f"{x:>10}" for x in cols) + "      taste")
     for (ch, g, rp), n in sorted(c.items()):
-        print(f"{ch:14} {g:24} {rp:18} " + " ".join(f"{n[x]:>10}" for x in cols))
+        taste = f"{n['agreed']}/{n['graded']}" if n["graded"] else "-"
+        print(f"{ch:14} {g:36} {rp:14} " + " ".join(f"{n[x]:>10}" for x in cols) + f" {taste:>10}")
+    print("\ntaste = Gabriel agreed with the gate's verdict / results he graded (glevels sample).")
     return 0
 
 
@@ -177,6 +194,87 @@ def cmd_show(a):
     if item is None:
         sys.exit(f"no gate or charter {a.id}")
     print(json.dumps({k: v for k, v in item.items() if not k.startswith("_")}, indent=2, default=str))
+    return 0
+
+
+def gate_block(g, entry=None):
+    lines = [f"### {g['id']}" + (" (blocking)" if entry and entry.get("blocking") else "")]
+    lines.append(f"Principle: {' '.join(g['principle'].split())}")
+    if g.get("skill"):
+        lines.append(f"Load the {g['skill']} skill before starting.")
+    lines.append(f"Guidance: {' '.join(g['guidance'].split())}")
+    lines.append(f"Passes when: {' '.join(g['pass'].split())}")
+    s = g["sensor"]
+    if s["type"] == "command":
+        lines.append(f"Checked by: `glevels check <path> --gate {g['id']}`. Run it before reporting done and fix every catch.")
+    elif s["type"] == "review":
+        lines.append(f"Checked by an independent reviewer, not you, against: {' '.join(s['rubric'].split())}")
+    else:
+        lines.append(f"Enforced at tool time by a hook: {s['hook']}")
+    if entry and entry.get("paths"):
+        lines.append(f"Applies to: {', '.join(entry['paths'])}")
+    return "\n".join(lines)
+
+
+def cmd_brief(a):
+    """Gate guidance for a subagent brief. The orchestrator pastes it in and later runs the review."""
+    gates, charters = registry.load_gates(), registry.load_charters()
+    picked = {}
+    for cid in a.charter or []:
+        if cid not in charters:
+            sys.exit(f"no charter {cid}")
+        for c in registry.chain(cid, charters):
+            for e in c.get("gates", []):
+                picked[e["id"]] = e
+    for gid in a.gate or []:
+        if gid not in gates:
+            sys.exit(f"no gate {gid}")
+        picked.setdefault(gid, {"id": gid})
+    if not picked:
+        sys.exit("name at least one --charter or --gate")
+    if a.review:
+        print(f"## Independent review of {a.review}\n")
+        print("You did not do this work. Judge it, do not fix it. For each gate, read the work and the brief, "
+              "then record one result with your evidence. Ask of the worker's claims: "
+              + registry.HONESTY + "\n")
+        for gid, e in picked.items():
+            g = gates[gid]
+            if g["sensor"]["type"] != "review":
+                continue
+            print(f"### {gid}\nRubric: {' '.join(g['sensor']['rubric'].split())}\n"
+                  f"Record: `glevels record {gid} met|attempted|impossible {a.review} --by reviewer "
+                  f"--honest \"<evidence>\" [--note \"<what is missing>\"]`\n")
+        return 0
+    print("## Gates on this work\n")
+    print("Your work is checked against these gates. Meet the principle, not just the check: "
+          + registry.HONESTY + " If a gate can't be met here, say so with the reason: that is a result, not a failure. "
+          "Silence is the only failure.\n")
+    for gid, e in picked.items():
+        print(gate_block(gates[gid], e) + "\n")
+    print("Report one line per gate at the end: id, met, attempted, impossible or not run, and why.")
+    return 0
+
+
+def cmd_sample(a):
+    """Human taste sampling: show a few recent verdicts for Gabriel to grade."""
+    graded = {r["note"].split(" ", 2)[1] for r in rows() if r["result"] == "grade" and len(r["note"].split()) > 1}
+    pool = [r for r in rows() if r["result"] in ("met", "attempted", "caught", "impossible")
+            and r["id"] not in graded and (not a.gate or r["gate"] == a.gate)]
+    pool = pool[-200:]
+    for r in random.sample(pool, min(a.n, len(pool))):
+        print(f"{r['id']}  {r['gate']}  {r['repo']}/{r['path']}  {r['result']}  by {r.get('by', '?')}  {r['ts']}")
+        if r["note"]:
+            print(f"    {' '.join(r['note'].split())[:300]}")
+    print("\nGrade each: glevels grade <id> agree|disagree [--note \"why\"]")
+    return 0
+
+
+def cmd_grade(a):
+    match = next((r for r in rows() if r["id"] == a.id and r["result"] != "grade"), None)
+    if match is None:
+        sys.exit(f"no result {a.id}")
+    record(match["gate"], match["version"], match["charter"], match["repo"], match["path"], "grade",
+           f"{a.verdict} {a.id}" + (f" {a.note}" if a.note else ""), by="gabriel")
     return 0
 
 
@@ -224,6 +322,7 @@ def main():
     p.add_argument("path", nargs="?", default=".")
     p.add_argument("--note")
     p.add_argument("--honest", help="how you know the principle holds, not just the sensor")
+    p.add_argument("--by", choices=("worker", "reviewer", "gabriel", "agent"), help="who judged it")
     p.set_defaults(f=cmd_record)
     p = sub.add_parser("status", help="latest result per gate in scope, silence flagged")
     p.add_argument("path", nargs="?", default=".")
@@ -239,6 +338,20 @@ def main():
     p = sub.add_parser("show", help="print one gate or charter")
     p.add_argument("id")
     p.set_defaults(f=cmd_show)
+    p = sub.add_parser("brief", help="gate guidance for a subagent brief, or --review for its reviewer")
+    p.add_argument("--charter", action="append")
+    p.add_argument("--gate", action="append")
+    p.add_argument("--review", metavar="PATH", help="print the independent reviewer's brief for this work")
+    p.set_defaults(f=cmd_brief)
+    p = sub.add_parser("sample", help="recent verdicts for Gabriel to grade")
+    p.add_argument("--gate")
+    p.add_argument("-n", type=int, default=5)
+    p.set_defaults(f=cmd_sample)
+    p = sub.add_parser("grade", help="Gabriel's grade on one verdict")
+    p.add_argument("id")
+    p.add_argument("verdict", choices=("agree", "disagree"))
+    p.add_argument("--note")
+    p.set_defaults(f=cmd_grade)
     sub.add_parser("map", help="the gate taxonomy and its links").set_defaults(f=cmd_map)
     sub.add_parser("lint", help="validate gates and charters").set_defaults(f=cmd_lint)
     a = ap.parse_args()

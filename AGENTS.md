@@ -24,6 +24,9 @@ produce. The theory is in Volcanex/g-research
     glevels status <path>         latest result per gate, silent ones flagged
     glevels counts                counts per charter, gate, repo
     glevels notes <gate>          the notes left at one gate
+    glevels brief --charter C     gate guidance to paste into a subagent brief (--gate G for single gates)
+    glevels brief --charter C --review PATH   the independent reviewer's brief for that work
+    glevels sample                a few recent verdicts for Gabriel to grade (glevels grade <id> agree|disagree)
     glevels map                   the gate taxonomy and its links
     glevels lint                  validate the registry (run before committing here)
 
@@ -52,6 +55,20 @@ These hold for every gate, in every charter.
   and stop at saturation, checked by a probe run from a different strong model family.
 - **Sensor types.** `command` (exit 0 passes), `review` (a rubric the agent answers, then
   `glevels record`), `hook` (enforced at tool time, outside `glevels check`).
+
+## Who runs gates
+
+Gates are for agents, not for chat with Gabriel. The orchestrator picks a charter (or
+a set of gates, say for a night run), pastes `glevels brief` into each worker's brief,
+and the worker runs command gates before reporting. Review gates are judged by a
+separate agent from `glevels brief --review`, never the worker that did the work.
+Gabriel sees impossible results and the counts, and grades a sample of verdicts
+(`glevels sample`). The taste column in `glevels counts` is his agreement rate, the
+calibration a fuzzy sensor gets without being tuned.
+
+Charters mostly live at project level. `g-system` stays lean: compliance and drift.
+Reusable charters such as `delivery` name no repos and are extended by project
+charters.
 
 ## Writing a gate
 
