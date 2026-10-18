@@ -1,4 +1,4 @@
-id = "gcore-comply"
+id = "correct.repo.gcore-boxes"
 version = 1
 kind = "correcting"
 trigger = "every-run"

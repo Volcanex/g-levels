@@ -5,6 +5,11 @@ repos = ["g-site"]
 principles = ["Every page a person reads is in Gabriel's voice."]
 
 [[gates]]
-id = "copy-voice"
+id = "correct.copy.voice"
+version = 2
+paths = ["pages/*/content.html"]
+
+[[gates]]
+id = "correct.copy.house-glyphs"
 version = 1
 paths = ["pages/*/content.html"]

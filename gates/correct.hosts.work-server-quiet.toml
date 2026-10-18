@@ -1,4 +1,4 @@
-id = "work-host-quiet"
+id = "correct.hosts.work-server-quiet"
 version = 1
 kind = "correcting"
 trigger = "milestone"

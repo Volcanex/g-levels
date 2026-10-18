@@ -47,6 +47,7 @@ These hold for every gate, in every charter.
 - **Fail loud.** A hook that breaks still allows, but records `impossible` with the error.
 - **A skill is a gate's guidance half.** Name it in `skill`. `glevels map` shows the whole
   taxonomy: kind, sensor type, trigger, skill and the charters that pin each gate.
+- **Ids are `kind.domain.name`** (`correct.secrets.argv`, `design.product.feature-ideas`), and the file is `gates/<id>.toml`. Lint enforces both.
 - **Gate kinds.** `correcting` gates have a right answer. `design` gates generate options
   and stop at saturation, checked by a probe run from a different strong model family.
 - **Sensor types.** `command` (exit 0 passes), `review` (a rubric the agent answers, then
@@ -67,8 +68,8 @@ then update the pins in charters.
   incident detail stays in memories, failures.md or the results log.
 - **Gates never scope themselves.** Paths live in the charter's gate entry, so one
   gate serves several charters.
-- **Several gates started as memories** (secrets-out-of-argv, work-host-quiet,
-  service-owner-files). A memory is read sometimes. A gate is checked and counted.
+- **Several gates started as memories** (correct.secrets.argv, correct.hosts.work-server-quiet,
+  correct.hosts.service-file-owner). A memory is read sometimes. A gate is checked and counted.
 - **Design gates need strong generators.** Cheap fan-out saturates on the model's
   range, not on the space being explored. There is no design-gate runner yet.
 - Placeholders are substituted by plain replace, not `str.format`, so shell `${VAR}`

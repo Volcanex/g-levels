@@ -166,7 +166,7 @@ def cmd_notes(a):
 
 def cmd_gates(a):
     for g in registry.load_gates().values():
-        print(f"{g['id']:24} v{g['version']}  {g['kind']:10} {g.get('trigger', 'every-run'):10} "
+        print(f"{g['id']:36} v{g['version']}  {g.get('trigger', 'every-run'):10} "
               f"{g['sensor']['type']:8} {g['principle'].strip().splitlines()[0]}")
     return 0
 
@@ -176,15 +176,15 @@ def cmd_show(a):
     item = gates.get(a.id) or charters.get(a.id)
     if item is None:
         sys.exit(f"no gate or charter {a.id}")
-    print(json.dumps(item, indent=2, default=str))
+    print(json.dumps({k: v for k, v in item.items() if not k.startswith("_")}, indent=2, default=str))
     return 0
 
 
 def cmd_map(a):
     """The taxonomy: every gate, its kind, sensor, trigger, skill, and the charters that pin it."""
     gates, charters = registry.load_gates(), registry.load_charters()
-    print(f"{'gate':22} {'kind':10} {'sensor':8} {'trigger':10} {'skill':16} charters")
-    for gid, g in sorted(gates.items(), key=lambda kv: (kv[1]["kind"], kv[1]["sensor"]["type"], kv[0])):
+    print(f"{'gate':36} {'sensor':8} {'trigger':10} {'skill':16} charters")
+    for gid, g in sorted(gates.items()):
         pins = []
         for c in charters.values():
             for e in c.get("gates", []):
@@ -194,7 +194,7 @@ def cmd_map(a):
             for x in c.get("exceptions", []):
                 if x["gate"] == gid and not any(e["id"] == gid for e in c.get("gates", [])):
                     pins.append(f"{c['id']} waives for {x.get('repo', '*')}")
-        print(f"{gid:22} {g['kind']:10} {g['sensor']['type']:8} {g.get('trigger', 'every-run'):10} "
+        print(f"{gid:36} {g['sensor']['type']:8} {g.get('trigger', 'every-run'):10} "
               f"{g.get('skill', '-'):16} {', '.join(pins) or '-'}")
     print("\n! = blocking. Skills are the guidance half, sensors the other.")
     return 0

@@ -1,4 +1,4 @@
-id = "claude-staffing"
+id = "correct.staffing.claude-quota"
 version = 1
 kind = "correcting"
 trigger = "every-run"

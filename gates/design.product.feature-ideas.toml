@@ -1,4 +1,4 @@
-id = "feature-ideas"
+id = "design.product.feature-ideas"
 version = 1
 kind = "design"
 trigger = "on-demand"

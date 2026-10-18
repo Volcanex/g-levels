@@ -1,18 +1,18 @@
-id = "copy-voice"
-version = 1
+id = "correct.copy.voice"
+version = 2
 kind = "correcting"
 trigger = "every-run"
 skill = "anti-ai-voice"
 principle = "Copy a person reads never sounds like AI. It sounds like Gabriel in the register the piece needs."
 guidance = "Load the anti-ai-voice skill before writing. No em dashes, middle dots or semicolons."
-pass = "ganti scores the file at or below the calibrated low threshold."
+pass = "ganti scores the reader-facing text at or below the calibrated low threshold. v2: v1 scored raw HTML, CSS and script included."
 remediation = "Run `ganti score <file>` and work its findings, generic ones first. Rewrite, do not swap synonyms."
 enforced_by = "~/.claude/hooks/ganti-gate.py blocks absolutes at Write time. This gate is the after-the-fact sensor."
 written_against = { model = "claude-opus-5-5", date = "2026-10-15" }
 
 [sensor]
 type = "command"
-run = "ganti score --low --no-log {file}"
+run = "python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/glyphs.py --text {file} | ganti score --low --no-log -"
 
 [origin]
 date = "2026-10-15"

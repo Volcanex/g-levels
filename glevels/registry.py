@@ -1,5 +1,6 @@
 import datetime
 import os
+import re
 import fnmatch
 import subprocess
 import tomllib
@@ -19,8 +20,17 @@ HONESTY = ("Did the work meet the principle, or only the sensor? If you changed 
            "threshold, the test or what it reads instead of the work, that is a catch, not a pass.")
 
 
+PREFIX = {"correcting": "correct", "design": "design"}
+ID = re.compile(r"^(correct|design)\.[a-z0-9-]+\.[a-z0-9-]+$")
+
+
 def load_gates(root=ROOT):
-    return {g["id"]: g for g in (tomllib.loads(p.read_text()) for p in sorted((root / "gates").glob("*.toml")))}
+    gates = {}
+    for p in sorted((root / "gates").glob("*.toml")):
+        g = tomllib.loads(p.read_text())
+        g["_file"] = p.stem
+        gates[g["id"]] = g
+    return gates
 
 
 def load_charters(root=ROOT):
@@ -102,6 +112,12 @@ def lint(gates, charters, today=None):
     today = today or datetime.date.today().isoformat()
     problems, warnings = [], []
     for gid, g in gates.items():
+        if not ID.match(gid):
+            problems.append(f"gate {gid}: id must be kind.domain.name, kind correct or design")
+        elif gid.split(".")[0] != PREFIX.get(g.get("kind")):
+            problems.append(f"gate {gid}: id prefix does not match kind {g.get('kind')}")
+        if g.get("_file", gid) != gid:
+            problems.append(f"gate {gid}: file must be named {gid}.toml")
         missing = [f for f in GATE_FIELDS if f not in g]
         if missing:
             problems.append(f"gate {gid}: missing {', '.join(missing)}")
