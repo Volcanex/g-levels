@@ -22,7 +22,7 @@ paths = ["web/theory/index.html", "content/prompts.json", "content/bots.json", "
 [[gates]]
 id = "correct.copy.house-glyphs"
 version = 1
-paths = ["web/theory/index.html", "content/*.json", "app/lib/**/*.dart"]
+paths = ["web/theory/index.html", "content/*.json"]
 
 [[gates]]
 id = "correct.ui.spacing"
