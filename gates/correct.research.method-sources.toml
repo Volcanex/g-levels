@@ -1,0 +1,17 @@
+id = "correct.research.method-sources"
+version = 1
+kind = "correcting"
+trigger = "milestone"
+principle = "Methods rest on papers, official documentation or primary sources, not blog summaries."
+guidance = "Cite the paper, the vendor's own docs or the dataset documentation for each method and each tool limit (API quotas, model accuracy, terms). Note publication date."
+pass = "Met when each method and tool claim cites a primary source. Attempted when secondary sources remain and are flagged."
+remediation = "Replace the secondary source with the primary one or mark the claim unverified."
+written_against = { model = "claude-opus-5-5", date = "2026-10-19" }
+
+[sensor]
+type = "review"
+rubric = "A separate reviewer opens each cited source and checks it is primary and says what is claimed."
+
+[origin]
+date = "2026-10-19"
+incident = "Written ahead of the first client research sweep: method choices needed to stand on literature."

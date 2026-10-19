@@ -1,0 +1,21 @@
+id = "correct.research.causal-honesty"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "A claim about what a campaign caused names its window, its comparison and its strength."
+guidance = """
+State the time window, the baseline or control it is compared with, and the method. Without a
+counterfactual (control series, pre-period model, holdout) the claim is an association and says
+so. Name confounders you can see: seasonality, weekdays, other campaigns, bot traffic.
+"""
+pass = "Met when every effect claim carries window, comparison and a strength label (causal, association, anecdote). Attempted when labels exist but confounders are unexamined."
+remediation = "Add the missing comparison, or relabel the claim as association or anecdote."
+written_against = { model = "claude-opus-5-5", date = "2026-10-19" }
+
+[sensor]
+type = "review"
+rubric = "A separate reviewer reads each effect claim and tries to explain it without the campaign. A plausible alternative left unmentioned is a catch."
+
+[origin]
+date = "2026-10-19"
+incident = "Written ahead of the first client research sweep: campaign effect claims are the easiest to overstate."
