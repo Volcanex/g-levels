@@ -1,0 +1,27 @@
+id = "design.research.campaign-echo"
+version = 1
+kind = "design"
+trigger = "on-demand"
+principle = "Before a campaign study is scoped, the space of signals that could show a campaign's effect has been explored until new ideas dry up."
+guidance = """
+Read what data is held and what the web offers. Propose signals that could show a campaign's
+effect on and off the client's site, each with source, collection cost, and the claim it could
+back. Framings: the client's marketing lead, a competitor analyst, a sceptical statistician,
+a journalist.
+"""
+pass = "Saturation reached within budget, and a ranked shortlist goes to Gabriel."
+remediation = "If the budget ran out before saturation, say so."
+generators = "Opus class, varied framings."
+judge = "One strong model merges and ranks; it does not generate."
+saturation = "Stop when a round of three runs adds fewer than one new idea after merging."
+probe = "One round from a different strong model family after apparent saturation."
+budget = "At most four rounds."
+written_against = { model = "claude-opus-5-5", date = "2026-10-19" }
+
+[sensor]
+type = "review"
+rubric = "Record the new-ideas count per round. Met at saturation, attempted if the budget ran out first."
+
+[origin]
+date = "2026-10-19"
+incident = "Gabriel asked for the whole picture of what a campaign study could collect before scoping one."

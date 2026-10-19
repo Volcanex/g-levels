@@ -1,0 +1,25 @@
+id = "correct.research.evidence-trace"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "Every research claim can be walked back to the raw evidence it rests on."
+guidance = """
+Store raw captures before summarising them: the query text and its result, the URL with fetch
+time and HTTP status, the screenshot or transcript file. Each finding names its evidence ids.
+A number in a finding is reproducible from its stored query or file, not retyped from memory.
+"""
+pass = "Met when every claim in the output resolves to stored evidence that supports it. Attempted when some claims are untraced and are marked as such."
+remediation = "Re-fetch or re-run to capture the missing evidence, or downgrade the claim to an untraced lead."
+written_against = { model = "claude-opus-5-5", date = "2026-10-19" }
+
+[sensor]
+type = "review"
+rubric = """
+A separate reviewer samples at least ten claims, opens each cited evidence item and checks it
+exists, is dated, and actually says what the claim says. Any claim citing nothing, a dead
+reference, or evidence that says something weaker is a catch.
+"""
+
+[origin]
+date = "2026-10-19"
+incident = "Written ahead of the first client research sweep: findings meant for a client had to be defensible line by line."

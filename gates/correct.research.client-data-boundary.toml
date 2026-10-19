@@ -1,0 +1,23 @@
+id = "correct.research.client-data-boundary"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "Client data is read, never changed, and never leaves the systems it was entrusted to."
+guidance = """
+Client warehouses are read-only: SELECT and metadata only, a dry run first, and a byte cap on
+every query. No client rows to third-party services other than the model providers already in
+use. Public web collection stays logged out, keeps no named private individuals, and stores
+tone in aggregate. Credentials never in argv, logs or git.
+"""
+pass = "Met when the run log shows only reads under the cap and no personal data stored. Any write, uncapped query or stored personal identifier is impossible to waive."
+remediation = "Stop, delete the offending data, report it to Gabriel."
+written_against = { model = "claude-opus-5-5", date = "2026-10-19" }
+
+[sensor]
+type = "review"
+run = "! grep -rIlE '\"private_key\"|BEGIN PRIVATE KEY' {file}"
+rubric = "A separate reviewer reads the query log and the stored collections for writes, uncapped scans and personal identifiers."
+
+[origin]
+date = "2026-10-19"
+incident = "Written when read access to a client's analytics warehouse was granted for research."
