@@ -2,6 +2,7 @@
 
 g-command-web's levels page calls snapshot() on each request. Nothing here writes:
 grading goes through `glevels grade`, so there is one writer for the log.
+project_view() gives a project's charter, pinned gates and latest states without private detail.
 
     python3 -m glevels.export            the whole snapshot as JSON
     python3 -m glevels.export sample     only the ungraded verdicts
@@ -114,6 +115,69 @@ def results_view(reg=None):
     return {"log": str(LOG), "rows": len(log), "days": days, "gates": gates, "totals": dict(total)}
 
 
+def project_view(names, gates=None, charters=None, log=None):
+    """The narrowest charter and latest gate states across a project's repo names."""
+    gates = registry.load_gates() if gates is None else gates
+    charters = registry.load_charters() if charters is None else charters
+    log = rows() if log is None else log
+    cid, scoped, lineage = None, [], []
+    for name in names:
+        candidate, entries = registry.in_scope(Path("/nonexistent") / name, "", charters)
+        ancestors = registry.chain(candidate, charters) if candidate is not None else []
+        if len(ancestors) > len(lineage):
+            cid, scoped, lineage = candidate, entries, ancestors
+    latest = {}
+    for r in log:
+        if r["result"] == "grade" or r["repo"] not in names:
+            continue
+        gid = r["gate"]
+        if gid not in latest or r["ts"] > latest[gid]["ts"]:
+            latest[gid] = r
+    out_gates = []
+    counts = dict.fromkeys(registry.RESULTS + ("caught", "silent", "not-run", "hook"), 0)
+    blocking = {"total": 0, "silent": 0, "failing": 0}
+    for e in scoped:
+        g, r = gates[e["id"]], latest.get(e["id"])
+        trigger = g.get("trigger", "every-run")
+        sensor = g["sensor"]["type"]
+        waived = bool(e["waiver"])
+        if r is not None:
+            state = r["result"]
+        elif waived:
+            state = "waived"
+        elif sensor == "hook":
+            state = "hook"
+        else:
+            state = "silent" if trigger == "every-run" else "not-run"
+        out_gates.append({
+            "gate": e["id"], "charter": e["charter"], "version": e["version"],
+            "trigger": trigger, "sensor": sensor, "blocking": bool(e.get("blocking")),
+            "waived": waived, "state": state,
+            "last": r["ts"] if r is not None else None, "result": r["result"] if r is not None else None,
+        })
+        counts[state] = counts.get(state, 0) + 1
+        if e.get("blocking"):
+            blocking["total"] += 1
+            blocking["silent"] += state == "silent"
+            blocking["failing"] += state in ("caught", "impossible")
+    return {"repos": names, "charter": cid,
+            "chain": [{"id": c["id"], "title": c.get("title", c["id"])} for c in lineage],
+            "gates": out_gates, "counts": counts, "blocking": blocking}
+
+
+def projects_view(projects, gates=None, charters=None, log=None):
+    """Compact project summaries from one registry and log read."""
+    gates = registry.load_gates() if gates is None else gates
+    charters = registry.load_charters() if charters is None else charters
+    log = rows() if log is None else log
+    out = {}
+    for pid, names in projects.items():
+        view = project_view(names, gates, charters, log)
+        out[pid] = {k: view[k] for k in ("charter", "counts", "blocking")}
+        out[pid]["total"] = len(view["gates"])
+    return out
+
+
 def sample(n=6, gate=None):
     """Ungraded verdicts, newest first: the pool `glevels sample` draws from, in a stable order."""
     log = rows()
@@ -195,6 +259,9 @@ def snapshot(n=6):
 
 if __name__ == "__main__":
     what = sys.argv[1] if len(sys.argv) > 1 else "snapshot"
-    out = sample() if what == "sample" else snapshot()
+    if what == "project":
+        out = project_view(sys.argv[2:])
+    else:
+        out = sample() if what == "sample" else snapshot()
     json.dump(out, sys.stdout, indent=1, default=str)
     print()
