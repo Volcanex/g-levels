@@ -1,0 +1,18 @@
+id = "correct.engine.feature-isolation"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "Every engine feature can be switched off, and a feature that breaks the engine is known to be broken and kept out of the default build until it passes."
+guidance = "Each feature in the integrated environment (v2/tests/environment.mjs) and each spec feature that touches play (time regions and multi-threaded time dilation, region workers, speculation, slow motion, precut walls, and so on) has a switch and a recorded status. The range tour runs with each feature off in turn; when turning a feature on breaks the shot tour, the destruction look or break latency against its off run, mark it broken with the evidence and set it off by default. A broken feature never ships on in the default build."
+pass = "met: every feature has a switch and a status backed by an on/off range comparison from this build, and none marked broken is on by default. attempted: some features have no switch or no fresh comparison, named in the note."
+remediation = "The sensor lists features with no switch, no fresh comparison, or broken but on. Add the switch, run the comparison, or turn it off with the evidence."
+written_against = { model = "claude-opus-5-5", date = "2026-10-20" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && node v2/tests/range/gate.mjs feature-isolation"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-10-20"
+incident = "Many spec features were integrated together; when the picture broke, nobody could tell which one, and a broken feature stayed in the default build."

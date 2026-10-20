@@ -1,0 +1,18 @@
+id = "correct.engine.ragdoll"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "People hit by blasts, debris or cars go limp, get thrown with the impulse and come to rest on the ground."
+guidance = "Reuse the existing ragdoll (v2/tests/walk/lib/ragdoll.mjs) through the engine's ped path rather than writing a new one. It runs in the owner sim and replays like any other body."
+pass = "met: a sim test shows a blast impulse switching a ped to ragdoll and it settles on the ground, and the range ped bays pass the destruction-look reviewer's question 6. attempted: the switch works but a pose or landing still looks wrong, named in the note."
+remediation = "The test prints the ped's state, height above ground and speed over time. Fix the handoff or the joint limits, not the camera."
+written_against = { model = "claude-opus-5-5", date = "2026-10-20" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && node v2/tests/range/gate.mjs ragdoll"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-10-20"
+incident = "Peds in the sandbox had no ragdoll; blasts and cars left them standing."

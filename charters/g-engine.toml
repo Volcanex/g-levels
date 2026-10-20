@@ -1,0 +1,59 @@
+id = "g-engine"
+title = "g-engine, judged on its own debug range"
+extends = ["delivery"]
+repos = ["g-engine"]
+principles = [
+  "The engine is judged on its debug range, by eye, from seeded screenshots, before any soak number.",
+  "Destruction looks right in a still frame and breaks on the frame the blast lands.",
+  "A feature that breaks the engine is known to be broken and stays off in the default build.",
+]
+
+[[gates]]
+id = "correct.engine.range-default"
+version = 1
+paths = ["v2/**"]
+blocking = true
+
+[[gates]]
+id = "correct.engine.shot-tour"
+version = 1
+paths = ["v2/**"]
+blocking = true
+
+[[gates]]
+id = "correct.engine.destruction-look"
+version = 1
+paths = ["v2/**"]
+blocking = true
+
+[[gates]]
+id = "correct.engine.repeat-hit"
+version = 1
+paths = ["v2/**"]
+blocking = true
+
+[[gates]]
+id = "correct.engine.break-latency"
+version = 1
+paths = ["v2/**"]
+
+[[gates]]
+id = "correct.engine.ragdoll"
+version = 1
+paths = ["v2/**"]
+
+[[gates]]
+id = "correct.engine.floors"
+version = 1
+paths = ["v2/**"]
+
+[[gates]]
+id = "correct.engine.stutter"
+version = 1
+paths = ["v2/**"]
+
+[[gates]]
+id = "correct.engine.feature-isolation"
+version = 1
+paths = ["v2/**"]
+blocking = true

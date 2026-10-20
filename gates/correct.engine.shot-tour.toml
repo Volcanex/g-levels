@@ -1,0 +1,18 @@
+id = "correct.engine.shot-tour"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "Every engine feature that changes the picture has a scripted, seeded shot on the range, so any change can be looked at frame by frame and compared run to run."
+guidance = "Each bay gets one scripted event (rocket, grenade, car impact, second rocket into an existing breach, ped in blast, ground-floor walls removed) with a fixed seed and fixed camera, and frozen poses at before, +0.1 s, +1 s and settled. Use the existing tour machinery (sandbox lib/tour.mjs, v2/tests/visual/capture.py, check.py). Captures run on h or b under the shared browser lock, never on b2."
+pass = "met: the range tour captures every bay and pose, writes a complete manifest and contact sheet, and two captures of the same build match (SSIM at least .95 per tile). attempted: the tour captures but a bay or pose is missing or non-deterministic, named in the note."
+remediation = "Fix the nondeterminism at its source (seed, settle interval, async upload) rather than loosening the SSIM threshold. A missing bay is a missing script, not a skip."
+written_against = { model = "claude-opus-5-5", date = "2026-10-20" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && node v2/tests/range/gate.mjs shot-tour"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-10-20"
+incident = "Destruction was judged from soak numbers and occasional screenshots of whatever happened, so visibly wrong breaks went unfixed for weeks."
