@@ -3,3 +3,7 @@ title = "gcommand, the command dashboard"
 extends = ["delivery", "look"]
 repos = ["g-command-web"]
 principles = ["Laid out with care, on the house system, with real assets."]
+
+[[gates]]
+id = "correct.ui.shared-layout"
+version = 1
