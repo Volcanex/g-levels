@@ -1,0 +1,36 @@
+id = "correct.ux.first-run"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "webapp-testing"
+principle = "A person who arrives alone reaches something worth coming back for in their first few minutes, whatever their role, without help and without hitting a dead end."
+guidance = """
+Walk the product as each kind of newcomer it has, on a fresh account, through the real UI.
+For Wing that is a straight man (he only receives), a single on her own (no friend on the
+app) and a wing on their own (their friend never joins). Sign-up asks only for what matching
+needs. Everything else is optional and asked for later, in context, with the reason.
+Every screen has one obvious next action, every empty state says what happens next and
+offers something to do now, and every decision button is in reach without scrolling.
+Confirm every action the person takes. Explain a product word in plain words the first time
+it appears. Where a newcomer waits on another person, something answers (a bot in a beta).
+Targets for Wing: home within about 8 taps, and a first intro, pitch or match within about 2
+minutes for each role.
+"""
+pass = "met: the walk script reaches a first meaningful thing for every role inside its time limit, and the reviewer finds no dead end, out-of-reach decision, unconfirmed action or unexplained product word in the screenshots. attempted: every role gets there, but the reviewer names friction with its screenshot and step."
+remediation = "Read the manifest: the role and step where it stalled. Fix the flow, not the script. A missing counterpart is a bot gap (correct.product.bot-coverage). A long or confusing step gets cut, deferred or explained. Then walk again."
+written_against = { model = "claude-opus-5-5", date = "2026-10-19" }
+
+[sensor]
+type = "review"
+run = "cd {repo} && /usr/bin/python3 app/test/screens.py"
+rubric = """
+You did not build this. Run the walk (it builds against the local API unless WING_ORIGIN is set; a non-zero exit means a role stalled or it could not run, say which).
+1. Read the manifest: taps and seconds to home and to the first intro, pitch, match or message, per role.
+2. Open every screenshot in order, as the newcomer. At each one: is the next action obvious? Can they act without scrolling? Did their last action get a confirmation? Is any product word used before it is explained? Is anything required that could wait?
+3. Does any role end on a screen with nothing to do?
+4. Record met only if nothing in 2 or 3 holds up. Otherwise attempted, naming each fault by role, step and screenshot file.
+"""
+
+[origin]
+date = "2026-10-19"
+incident = "Wing's first beta users mostly never acted: men landed on an empty home, wings with no friend on the app hit a dead end, and onboarding was nine steps. Gabriel called it too hard for beta users."

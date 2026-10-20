@@ -116,7 +116,7 @@ def test_unknown_repo_uses_wildcard_charter():
 def test_wing_uses_narrow_charter_and_inherits_pins():
     view = export.project_view(["wing"], log=[])
     assert view["charter"] == "wing"
-    assert [c["id"] for c in view["chain"]] == ["g-system", "delivery", "wing"]
+    assert [c["id"] for c in view["chain"]] == ["g-system", "delivery", "look", "wing"]
     pins = {g["gate"]: g["charter"] for g in view["gates"]}
     assert pins["correct.secrets.argv"] == "g-system"
     assert pins["correct.delivery.verify-before-claiming-done"] == "delivery"

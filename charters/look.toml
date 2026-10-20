@@ -1,0 +1,21 @@
+id = "look"
+title = "Reusable look charter for anything a person sees"
+extends = ["g-system"]
+repos = []
+principles = [
+  "Nothing touches, overlaps, gets cut off or hides under a bar, at any width or in any state.",
+  "A UI is built from its house system, not generic AI defaults.",
+  "Every visual is real or crafted with its source recorded: emergence over hand-drawn.",
+]
+
+[[gates]]
+id = "correct.ui.spacing"
+version = 2
+
+[[gates]]
+id = "correct.ui.on-system"
+version = 1
+
+[[gates]]
+id = "correct.assets.real-sourced"
+version = 1

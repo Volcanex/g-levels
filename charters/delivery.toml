@@ -46,3 +46,7 @@ version = 1
 [[gates]]
 id = "correct.delivery.documentation-truth"
 version = 1
+
+[[gates]]
+id = "correct.delivery.runtime-clean"
+version = 1
