@@ -1,0 +1,17 @@
+id = "correct.staffing.job-shape"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "Staff by job shape at any temperature. Sonnet is for work the operator is waiting on. Bounded background builds go to Sol, and UI parts to Opus low."
+guidance = "The staffing section of the shared policy, the compute pace block in session context, and the agent descriptions for sonnet-medium-worker and opus-low-worker."
+pass = "No Sonnet subagent starts without an 'Operator waiting:' or 'Operator approved:' line in its prompt."
+remediation = "Run Sol through g-agent-call for non-UI work, use opus-low-worker for UI parts, or add 'Operator waiting: <what they wait on>' when the operator really is waiting."
+written_against = { model = "claude-opus-5-5", date = "2026-10-20" }
+
+[sensor]
+type = "hook"
+hook = "~/.claude/hooks/agent-gate.py (PreToolUse on Agent). Logs caught on each deny. A break records impossible on correct.staffing.claude-quota and allows."
+
+[origin]
+date = "2026-10-20"
+incident = "An orchestrator restaffed a background UI and physics fan-out onto Sonnet medium workers while Claude was warm, where Sol and Opus low were the right tiers."
