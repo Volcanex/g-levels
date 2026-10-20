@@ -37,7 +37,7 @@ else:
 
 HERE = Path(__file__).resolve().parent
 IMAGES = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".avif"}
-LICENCES = {"CC0-1.0", "OFL-1.1", "MIT", "Apache-2.0", "ISC", "CC-BY-4.0", "own", "client-owned", "licensed"}
+LICENCES = {"CC0-1.0", "public-domain", "OFL-1.1", "MIT", "Apache-2.0", "ISC", "CC-BY-4.0", "own", "client-owned", "licensed"}
 KINDS = {"photo", "icon", "mascot", "texture", "figure", "font", "model", "hdri", "splat", "illustration", "logo", "video", "banner"}
 METHODS = {"captured", "crafted", "pipeline", "library", "sourced", "generated"}
 GENERATORS = re.compile(r"OpenAI|DALL[ -]?E|gpt-image|ChatGPT|Codex|Midjourney|Stable[ _-]Diffusion|ComfyUI|Automatic1111|Firefly|Imagen|Gemini|Ideogram|\bFlux\b|Leonardo|Recraft", re.I)
