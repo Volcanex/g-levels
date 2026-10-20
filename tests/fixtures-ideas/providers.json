@@ -1,0 +1,7 @@
+{
+  "roles": {"design": ["claude:sonnet", "codex:gpt-6-luna"]},
+  "effort": {"design": "low"},
+  "sandbox": {"design": "workspace-write"},
+  "timeout_s": {"design": 15},
+  "value": {"design": {"families": ["sonnet", "luna"], "floor": 0}}
+}

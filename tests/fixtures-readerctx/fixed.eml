@@ -1,0 +1,8 @@
+From: reviews@example.test
+To: customer@example.test
+Subject: Your website review
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+We fixed the walkthrough.

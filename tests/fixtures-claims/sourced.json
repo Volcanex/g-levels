@@ -1,0 +1,5 @@
+{"records": [
+  {"name": "Fare", "price": 24, "source": "https://example.test/fare", "as_of": "2026-10-19"},
+  {"name": "Count", "count": 0, "evidence": "local count export", "checked": "2026-10-19"},
+  {"name": "Rank", "rank": 2, "ref": "survey.csv", "date": "2026-10-18"}
+]}

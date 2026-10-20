@@ -1,0 +1,47 @@
+{
+  "mode": "tree", "entry": ["http://127.0.0.1:8000/"], "viewport": {"width": 1280, "height": 800}, "started": "2026-10-20T00:00:00Z",
+  "states": [
+    {"id": "home", "url": "http://127.0.0.1:8000/", "title": "Tasks", "depth": 0, "via": null, "sig": "home", "screenshot": "shots/home.png", "text": "text/home.txt",
+     "controls": [
+       {"ref": "add", "role": "button", "tag": "button", "name": "Add task", "visible": true, "disabled": false, "selector": "#add"},
+       {"ref": "dead", "role": "button", "tag": "button", "name": "Save draft", "visible": true, "disabled": false, "selector": "#dead"},
+       {"ref": "blank", "role": "link", "tag": "a", "name": "Blank", "href": "/blank", "visible": true, "disabled": false},
+       {"ref": "empty", "role": "link", "tag": "a", "name": "Empty workspace", "href": "/empty", "visible": true, "disabled": false},
+       {"ref": "settings", "role": "link", "tag": "a", "name": "Settings", "href": "/settings", "visible": true, "disabled": false},
+       {"ref": "known", "role": "link", "tag": "a", "name": "Visible option", "href": "/linked?visible=1", "visible": true, "disabled": false},
+       {"ref": "secret", "role": "button", "tag": "button", "name": "Secret report", "visible": false, "disabled": false, "selector": "#secret"},
+       {"ref": "disabled", "role": "button", "tag": "button", "name": "Disabled action", "visible": true, "disabled": true},
+       {"ref": "analytics", "role": "checkbox", "tag": "input", "type": "checkbox", "name": "Analytics", "checked": false, "visible": true, "selector": "#analytics"},
+       {"ref": "alerts", "role": "switch", "tag": "button", "type": "button", "name": "Alerts", "checked": true, "visible": true, "selector": "#alerts"},
+       {"ref": "daily", "role": "radio", "tag": "input", "type": "radio", "name": "Daily", "checked": true, "visible": true, "selector": "#daily"},
+       {"ref": "theme", "role": "combobox", "tag": "select", "name": "Theme", "value": "system", "visible": true, "selector": "#theme", "options": [{"label": "System", "selected": true}, {"label": "Dark", "selected": false}]}
+     ], "forms": [{"action": "/", "method": "get", "fields": [{"name": "search", "type": "text", "label": "Search", "required": false, "value": "", "checked": false}]}], "errors": []},
+    {"id": "error", "url": "http://127.0.0.1:8000/error", "title": "Task failure", "depth": 1, "via": "e-add", "sig": "error", "text": "Unexpected error while adding your task.", "controls": [], "forms": [], "errors": [{"kind": "errortext", "message": "Unexpected error while adding your task", "sameOrigin": true}]},
+    {"id": "blank", "url": "http://127.0.0.1:8000/blank", "title": "Blank screen", "depth": 1, "via": "e-blank", "sig": "blank", "text": "", "controls": [], "forms": [], "errors": []},
+    {"id": "empty", "url": "http://127.0.0.1:8000/empty", "title": "Empty workspace", "depth": 1, "via": "e-empty", "sig": "empty", "text": "text/empty.txt", "controls": [], "forms": [], "errors": []},
+    {"id": "settings", "url": "http://127.0.0.1:8000/settings", "title": "Settings", "depth": 1, "via": "e-settings", "sig": "settings", "text": "Choose a theme.", "controls": [{"ref": "next", "role": "button", "tag": "button", "name": "Choose theme", "visible": true, "disabled": false}], "forms": [], "errors": []},
+    {"id": "advanced", "url": "http://127.0.0.1:8000/advanced", "title": "Advanced", "depth": 2, "via": "e-next", "sig": "advanced", "text": "Advanced settings.", "controls": [{"ref": "next", "tag": "select", "role": "combobox", "name": "Access", "visible": true, "disabled": false, "options": [{"label": "Private", "selected": true}]}], "forms": [], "errors": []},
+    {"id": "step2", "url": "http://127.0.0.1:8000/step2", "title": "Second step", "depth": 3, "via": "e-access", "sig": "step2", "text": "Second step.", "controls": [{"ref": "next", "tag": "button", "role": "button", "name": "Continue", "visible": true, "disabled": false}], "forms": [], "errors": []},
+    {"id": "step3", "url": "http://127.0.0.1:8000/step3", "title": "Third step", "depth": 4, "via": "e-step2", "sig": "step3", "text": "Third step.", "controls": [{"ref": "next", "tag": "button", "role": "button", "name": "Continue", "visible": true, "disabled": false}], "forms": [], "errors": []},
+    {"id": "step4", "url": "http://127.0.0.1:8000/step4", "title": "Fourth step", "depth": 5, "via": "e-step3", "sig": "step4", "text": "Fourth step.", "controls": [{"ref": "next", "tag": "button", "role": "button", "name": "Continue", "visible": true, "disabled": false}], "forms": [], "errors": []},
+    {"id": "final", "url": "http://127.0.0.1:8000/final", "title": "Final settings", "depth": 6, "via": "e-step4", "sig": "final", "text": "Final settings.", "controls": [{"ref": "back", "tag": "a", "role": "link", "name": "Home", "href": "/", "visible": true, "disabled": false}, {"ref": "export", "tag": "button", "role": "button", "name": "Export history", "visible": false, "disabled": false}], "forms": [], "errors": []},
+    {"id": "orphan", "url": "http://127.0.0.1:8000/orphan", "title": "Unreachable orphan", "depth": 8, "via": null, "text": "Unexpected error in an unrelated state", "controls": [], "forms": [], "errors": [{"kind": "pageerror", "message": "unrelated exception"}]}
+  ],
+  "edges": [
+    {"id": "e-add", "from": "home", "to": "error", "action": {"kind": "click", "ref": "add", "name": "Add task", "selector": "#add"}, "outcome": "error", "errors": [{"kind": "errortext", "message": "Unexpected error while adding your task", "sameOrigin": true}], "ms": 20},
+    {"id": "e-dead", "from": "home", "to": "home", "action": {"kind": "click", "ref": "dead", "name": "Save draft", "selector": "#dead"}, "outcome": "none", "errors": [], "ms": 20},
+    {"id": "e-disabled", "from": "home", "to": "home", "action": {"kind": "click", "ref": "disabled", "name": "Disabled action"}, "outcome": "none", "errors": [], "ms": 20},
+    {"id": "e-hidden", "from": "home", "to": "home", "action": {"kind": "click", "ref": "secret", "name": "Secret report"}, "outcome": "none", "errors": [], "ms": 20},
+    {"id": "e-blank", "from": "home", "to": "blank", "action": {"kind": "link", "ref": "blank", "name": "Blank"}, "outcome": "navigate", "errors": [], "ms": 20},
+    {"id": "e-empty", "from": "home", "to": "empty", "action": {"kind": "link", "ref": "empty", "name": "Empty workspace"}, "outcome": "navigate", "errors": [], "ms": 20},
+    {"id": "e-settings", "from": "home", "to": "settings", "action": {"kind": "link", "ref": "settings", "name": "Settings"}, "outcome": "navigate", "errors": [], "ms": 20},
+    {"id": "e-next", "from": "settings", "to": "advanced", "action": {"kind": "click", "ref": "next", "name": "Choose theme"}, "outcome": "dom", "errors": [], "ms": 20},
+    {"id": "e-access", "from": "advanced", "to": "step2", "action": {"kind": "select", "ref": "next", "name": "Access"}, "outcome": "dom", "errors": [], "ms": 20},
+    {"id": "e-step2", "from": "step2", "to": "step3", "action": {"kind": "click", "ref": "next", "name": "Continue"}, "outcome": "dom", "errors": [], "ms": 20},
+    {"id": "e-step3", "from": "step3", "to": "step4", "action": {"kind": "click", "ref": "next", "name": "Continue"}, "outcome": "dom", "errors": [], "ms": 20},
+    {"id": "e-step4", "from": "step4", "to": "final", "action": {"kind": "click", "ref": "next", "name": "Continue"}, "outcome": "dom", "errors": [], "ms": 20},
+    {"id": "e-back", "from": "final", "to": "home", "action": {"kind": "link", "ref": "back", "name": "Home"}, "outcome": "navigate", "errors": [], "ms": 20}
+  ],
+  "skipped": [{"state": "home", "ref": "known", "name": "Visible option", "reason": "budget"}],
+  "budget": {"maxStates": 11, "maxActions": 13, "states": 11, "actions": 13, "hit": true}
+}

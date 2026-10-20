@@ -1,0 +1,2 @@
+Campaign notebook helps marketing leads compare campaign visits and signups.
+The existing product has one results page, shown in tests/fixtures-ideas/product.html.

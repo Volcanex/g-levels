@@ -1,0 +1,48 @@
+id = "correct.copy.reader-context"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "anti-ai-voice"
+principle = "Copy is written for the person reading it. It assumes nothing they don't know, explains nothing they already know, and says nothing about how we made, fixed or tested it unless they need that to act."
+guidance = """
+Before writing, name the reader and the one thing they should do or understand after reading.
+Write from their side: what they already know, what they saw last, what they want next.
+- Nothing assumed: a product word, acronym or number gets its plain meaning the first time this
+  reader meets it, or it goes.
+- Nothing over-explained: don't tell an expert what their own field means. Detail they might want
+  goes behind a link or a tooltip, not in the line.
+- Nothing about our process: not what we fixed, checked, sampled, walked through or haven't
+  tested yet, unless the reader needs it to decide something. "He does not need to know we fixed
+  the walkthrough."
+- True from where they sit: don't claim what they can't see or didn't do.
+Blocking is only what is never right for a customer ("never been walked through", TODO, {{name}},
+undefined). "We fixed", tool names and code identifiers are leads, because a reply to the person
+who reported the bug or a developer walkthrough can need them. Code (`inline` or a block) stays in
+the copy for the critic but out of the mechanical checks.
+Run `python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/readerctx.py --reader "<who>" --task "<what they need to do>" <file>`
+and fix every blocking line. This gate is reader context. Voice (does it sound like AI) is
+correct.copy.voice. Pass both.
+"""
+pass = "met: nothing blocking, and an isolated critic who sees only the rendered copy, the reader's background and their task can say in one sentence what it asks and what happens next, with no verified quote it calls assumed, over-explained, process or suspicious. attempted: nothing blocking, but the critic's verified quotes name friction the work kept."
+remediation = "Work the blocking lines first: each quotes the sentence and the trigger (a process leak, a template left unfilled, an internal name). Rewrite the sentence for the reader, don't swap the trigger word. Then take each verified quote from the critic: cut it, explain it plainly, move it behind a link, or say it from the reader's side. Run the critic again on the new copy, fresh."
+written_against = { model = "claude-opus-5-5", date = "2026-10-20" }
+
+[sensor]
+# Mechanical half: readerctx.py extracts the rendered copy (HTML, markdown, email, deck JSON,
+# walk dumps) and blocks on process leaks, unfilled templates and internal identifiers.
+# Its --critic flag is the judged half: an isolated model with no tools and no repo.
+type = "review"
+run = "python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/readerctx.py {file}"
+cannot_run_exit = 2
+rubric = """
+You did not write this copy.
+1. Find who reads it and what they need to do (the brief, the recipient, the page's audience). Write both as one line each, from their side.
+2. Run `python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/readerctx.py --reader "<background>" --task "<task>" --critic <file>`. The critic is Claude Opus (the default --model; never a cheaper tier, which misses what a reader would trip on). It runs in an empty directory with no tools: it sees only the rendered copy, the reader and the task, never the code, the worker's report or why the copy was written. Quotes not found in the copy are discarded and counted.
+3. Every blocking line is a fault. Read the critic's gist: if it does not match what the copy is for, the ask is unclear, and that is a fault too.
+4. For each verified quote, decide whether it holds up for this reader. Say why in a line.
+5. Record met only with nothing blocking, a gist that matches, and no quote that holds up. Otherwise attempted, listing each quote and its problem.
+"""
+
+[origin]
+date = "2026-10-20"
+incident = "19 corrections, 17 of them in October, mostly customer decks and emails: slide copy 'not imagining the user's context' (16 Oct), a setup page telling a customer its steps had 'never been walked through end to end' (19 Oct), a follow-up email mentioning a fix the recipient never reached (19 Oct), and long explanatory lines that belonged in a tooltip (23 Sep). The voice gate passed copy like this, because it checks voice, not the reader."

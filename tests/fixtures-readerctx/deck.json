@@ -1,0 +1,7 @@
+{
+  "id": "internal_deck_id",
+  "template": "We fixed the staging pipeline",
+  "slides": [
+    {"title": "A plan for {company}", "body": "Your ARR will grow."}
+  ]
+}

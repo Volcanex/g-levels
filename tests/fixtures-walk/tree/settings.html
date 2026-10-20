@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Settings</title>
+<link rel="icon" href="data:,">
+<h1>Settings</h1>
+<a href="index.html">Home</a>
+<label for="theme">Theme</label>
+<select id="theme" onchange="document.querySelector('#theme-value').textContent=this.value">
+  <option>Light</option><option>Dark</option><option>System</option>
+</select>
+<p id="theme-value">Light</p>
+<button id="notifications" role="switch" aria-checked="false"
+  onclick="this.setAttribute('aria-checked', this.getAttribute('aria-checked') === 'false' ? 'true' : 'false')">Notifications</button>
+</html>

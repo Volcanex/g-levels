@@ -1,0 +1,3 @@
+title,fare,url,fetched
+Sourced fare,12,https://example.test/fare,2026-10-19
+Missing fare,18,,
