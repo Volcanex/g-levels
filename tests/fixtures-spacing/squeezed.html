@@ -1,0 +1,18 @@
+<!doctype html>
+<meta name="viewport" content="width=device-width">
+<style>
+  body { margin: 0; font: 15px/1.5 sans-serif; }
+  .foot { position: absolute; bottom: 24px; left: 24px; width: 160px; display: flex; gap: 6px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; height: 28px; padding: 0 12px; border: 1px solid #ccc; border-radius: 6px; flex: 1 1 auto; min-width: 0; overflow: hidden; }
+  .btn-icon { width: 28px; padding: 0; }
+  .btn-icon svg { width: 16px; height: 16px; flex: none; }
+  .wide { white-space: nowrap; }
+  main { padding: 24px; }
+</style>
+<main><h1>Settings</h1><p>Two icon buttons share a flex row with two text buttons that refuse to shrink.</p></main>
+<div class="foot">
+  <a class="btn btn-icon" href="#" aria-label="Setup"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/></svg></a>
+  <a class="btn btn-icon" href="#" aria-label="Log out"><svg viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12"/></svg></a>
+  <button class="btn wide">Density</button>
+  <button class="btn wide">Theme</button>
+</div>

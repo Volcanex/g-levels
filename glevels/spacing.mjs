@@ -3,8 +3,14 @@
    the report. This file opens one Chromium, renders every target at every
    viewport, measures, and writes screenshots and findings.json to --out.
 
-   Usage: node spacing.mjs --out DIR [--viewports desktop=1280x800,phone=390x844]
-                           [--tiles 10] URL [URL ...]
+   Usage: node spacing.mjs --out DIR [--viewports phone=390x844,desktop=1440x900]
+          [--landscape] [--states loaded,loading,error,long-text] [--steps N]
+          [--step-key ArrowRight] [--storage-state FILE] [--header 'Name: value']
+          [--wait-for SELECTOR] [--tiles 10] URL [URL ...]
+
+   Defaults: phone-s 320x568, phone 390x844, tablet 768x1024, desktop 1440x900.
+   Stress states run at 390px; only sideways scrolling and text overlap block
+   there. Loaded screens also check fixed/sticky occlusion at both page ends.
 
    Each finding has a severity. "block" is a clear fault: text overlapping text,
    text touching or spilling out of its box, a box escaping the box it sits in,
@@ -33,22 +39,36 @@ const flag = (name, fallback) => {
   return i === -1 ? fallback : args[i + 1];
 };
 const flagged = new Set();
-for (const n of ["out", "viewports", "tiles"]) {
-  const i = args.indexOf(`--${n}`);
-  if (i !== -1) { flagged.add(i); flagged.add(i + 1); }
+for (let i = 0; i < args.length; i++) {
+  if (["--out", "--viewports", "--tiles", "--states", "--steps", "--step-key", "--storage-state", "--header", "--wait-for"].includes(args[i])) {
+    flagged.add(i); flagged.add(++i);
+  }
 }
 const urls = args.filter((a, i) => !flagged.has(i) && !a.startsWith("--"));
 const outDir = flag("out", null);
 if (!outDir || !urls.length) {
-  console.error("usage: node spacing.mjs --out DIR [--viewports desktop=1280x800,phone=390x844] [--tiles 10] URL [URL ...]");
+  console.error("usage: node spacing.mjs --out DIR [--viewports name=WIDTHxHEIGHT] [--states loaded,loading,error,long-text] URL [URL ...]");
   process.exit(2);
 }
-const viewports = String(flag("viewports", "desktop=1280x800,phone=390x844")).split(",").map((v) => {
+const viewports = String(flag("viewports", "phone-s=320x568,phone=390x844,tablet=768x1024,desktop=1440x900")).split(",").map((v) => {
   const [name, size] = v.split("=");
   const [width, height] = size.split("x").map(Number);
   return { name, width, height };
 });
 const maxTiles = Number(flag("tiles", 10));
+if (args.includes("--landscape") && !viewports.some((v) => v.name === "phone-land")) viewports.push({ name: "phone-land", width: 844, height: 390 });
+const states = [...new Set(flag("states", "loaded,loading,error,long-text").split(","))];
+const steps = Number(flag("steps", 0));
+const options = args.includes("--options-stdin") ? JSON.parse(fs.readFileSync(0, "utf8")) : {
+  storageState: flag("storage-state", undefined) ? JSON.parse(fs.readFileSync(flag("storage-state"), "utf8")) : undefined,
+  waitFor: flag("wait-for", undefined), headers: {},
+};
+for (let i = 0; i < args.length; i++) {
+  if (args[i] !== "--header") continue;
+  const header = args[++i], at = header.indexOf(":");
+  if (at < 1) throw new Error("--header must use Name: value");
+  options.headers[header.slice(0, at).trim()] = header.slice(at + 1).trim();
+}
 fs.mkdirSync(outDir, { recursive: true });
 
 /* Runs inside the page. Must not close over anything. */
@@ -91,12 +111,17 @@ function analyse(o) {
     const r = rectOf(el);
     return r.width >= 2 && r.height >= 2;
   };
+  /* A fixed box that fills the screen is the page (a deck, a full-screen app), not a bar over it. */
+  const screenLike = (el) => {
+    const r = rectOf(el);
+    return r.width >= 0.8 * innerWidth && r.height >= 0.8 * innerHeight;
+  };
   const fixedMemo = new Map();
   const isFixed = (el) => {
     if (!el || el === document.body) return false;
     if (fixedMemo.has(el)) return fixedMemo.get(el);
     const p = cs(el).position;
-    const v = p === "fixed" || p === "sticky" || isFixed(el.parentElement);
+    const v = (p === "fixed" && !screenLike(el)) || p === "sticky" || isFixed(el.parentElement);
     fixedMemo.set(el, v);
     return v;
   };
@@ -220,10 +245,83 @@ function analyse(o) {
     }
   }
 
+  if (o.edge) {
+    const overlays = elements.filter((el) => cs(el).position === "sticky" || cs(el).position === "fixed" && !screenLike(el));
+    const screen = { left: 0, top: 0, right: innerWidth, bottom: innerHeight };
+    const covered = new Set();
+    const painted = (el, x, y) => {
+      const s = cs(el);
+      return alpha(s.backgroundColor) > 0.05 || s.backgroundImage !== "none" || MEDIA.has(el.tagName)
+        || texts.some((t) => el === t.el && x >= t.r.left && x <= t.r.right && y >= t.r.top && y <= t.r.bottom);
+    };
+    const cover = (A, B, r) => {
+      const overlap = clamp(r, rectOf(B));
+      const seen = overlap && clamp(overlap, screen);
+      if (!seen || seen.width * seen.height < 4) return false;
+      const points = [0.2, 0.5, 0.8].map((f) => [seen.left + seen.width * f, seen.top + seen.height / 2]);
+      return points.some(([x, y]) => {
+        for (const hit of document.elementsFromPoint(x, y)) {
+          if (hit === A || A.contains(hit)) return false;
+          if ((hit === B || B.contains(hit)) && painted(hit, x, y)) return true;
+        }
+        return false;
+      });
+    };
+    const inFlow = (el) => {
+      for (let p = el; p && p !== document.body; p = p.parentElement) {
+        if (cs(p).position === "absolute" || cs(p).position === "fixed" && !screenLike(p)) return false;
+      }
+      return !isFixed(el);
+    };
+    const candidates = texts.filter((t) => inFlow(t.el))
+      .map((t) => ({ el: t.el, r: clamp(ink(t.r), clipOf(t.el)) }))
+      .concat(elements.filter((el) => inFlow(el) && el.matches("button, input, select, textarea, [role=button], [role=tab]"))
+        .map((el) => ({ el, r: clamp(rectOf(el), clipOf(el)) })));
+    for (const B of overlays) {
+      const br = rectOf(B);
+      if (o.scrollable && (o.edge === "top" && br.top > 0 || o.edge === "bottom" && br.bottom < innerHeight)) continue;
+      for (const { el, r } of candidates) {
+        if (!r || B.contains(el) || el.contains(B)) continue;
+        const key = describe(el) + "|" + describe(B);
+        if (covered.has(key) || !cover(el, B, r)) continue;
+        covered.add(key);
+        add("fixed-sticky-occlusion", "block", el, `covered by ${describe(B)} at the ${o.edge} of the page`, r);
+      }
+    }
+    for (let i = 0; i < overlays.length; i++) {
+      for (const B of overlays.slice(i + 1)) {
+        const A = overlays[i];
+        if (A.contains(B) || B.contains(A)) continue;
+        if (cover(A, B, rectOf(A)) || cover(B, A, rectOf(B))) {
+          add("fixed-elements-overlap", "review", A, `overlaps ${describe(B)} at the ${o.edge} of the page`, rectOf(A));
+        }
+      }
+    }
+    return { findings: out, counts };
+  }
+
+  for (const canvas of elements.filter((el) => el.tagName === "CANVAS")) {
+    const clipped = clamp(rectOf(canvas), clipOf(canvas));
+    const seen = clipped && clamp(clipped, { left: 0, top: 0, right: vw, bottom: vh });
+    if (seen && area(seen) > 0.6 * vw * vh) {
+      add("canvas-page", "review", canvas, "canvas page: geometry only sees the HTML over the canvas; judge the canvas from the screenshots", rectOf(canvas));
+      break;
+    }
+  }
+  if (o.state === "error") {
+    const raw = /Traceback|at Object\.|TypeError|\[object Object\]|\bundefined\b|\bNaN\b|Internal Server Error|(?:^|\n)\s*at\s+\S+.*:\d+(?::\d+)?/;
+    const seen = new Set();
+    for (const t of texts) {
+      if (seen.has(t.el) || !clamp(t.r, clipOf(t.el)) || !raw.test(t.node.data)) continue;
+      seen.add(t.el);
+      add("raw-failure-text", "review", t.el, `raw failure text: ${t.node.data.trim().replace(/\s+/g, " ").slice(0, 120)}`, t.r);
+    }
+  }
+
   /* ---------- page fits the screen ---------- */
   const sw = document.documentElement.scrollWidth;
   if (sw > vw + 1) {
-    add("page-scrolls-sideways", "block", null, `the page is ${sw}px wide in a ${vw}px viewport, so it scrolls sideways`, null);
+    add("page-scrolls-sideways", "block", document.body, `the page is ${sw}px wide in a ${vw}px viewport, so it scrolls sideways`, rectOf(document.body));
     let n = 0;
     for (const el of elements) {
       const r = rectOf(el);
@@ -267,7 +365,18 @@ function analyse(o) {
       left: br.left + px(s.borderLeftWidth), right: br.right - px(s.borderRightWidth),
       top: br.top + px(s.borderTopWidth), bottom: br.bottom - px(s.borderBottomWidth),
     };
-    const i = ink(t.r);
+    let content = t.r;
+    for (let p = t.el; p && p !== B && content; p = p.parentElement) {
+      const s = cs(p), r = rectOf(p);
+      content = clamp(content, {
+        left: s.overflowX === "visible" ? -1e9 : r.left,
+        right: s.overflowX === "visible" ? 1e9 : r.right,
+        top: s.overflowY === "visible" ? -1e9 : r.top,
+        bottom: s.overflowY === "visible" ? 1e9 : r.bottom,
+      });
+    }
+    if (!content) continue;
+    const i = ink(content);
     const seen = clamp(t.r, clipOf(t.el));
     const v = seen && ink(seen);
     const g = perBox.get(B) || { left: Infinity, right: Infinity, top: Infinity, bottom: Infinity,
@@ -342,7 +451,8 @@ function analyse(o) {
       add("lopsided-inset", "review", X, `${Math.round(gaps.left)}px from the left of ${describe(B)}, ${Math.round(gaps.right)}px from the right`, xr);
     }
     const control = B.tagName === "BUTTON" || B.tagName === "A" || B.getAttribute("role") === "button";
-    if (control && (X.tagName === "svg" || X.tagName === "IMG") && Math.min(gaps.left, gaps.right) < 4 && br.width < 64) {
+    const glyph = X.tagName === "svg" || X.tagName === "IMG" || (["I", "SPAN"].includes(X.tagName) && !X.textContent.trim());
+    if (control && glyph && Math.min(gaps.left, gaps.right) < 4 && br.width < 64) {
       add("control-cramped", "review", B, `icon has ${Math.round(gaps.left)}px and ${Math.round(gaps.right)}px either side`, br);
     }
   }
@@ -356,7 +466,8 @@ function analyse(o) {
   const textSample = sorted.length > 3000 ? sorted.filter((_, k) => k % 2 === 0) : sorted;
   const touchSeen = new Set();
   for (const X of flowBoxes) {
-    const xr = rectOf(X);
+    const xr = clamp(rectOf(X), clipOf(X));   // a card scrolled under a bar is clipped, not covered
+    if (!xr) continue;
     for (const T of textSample) {
       if (X.contains(T.el) || T.el.contains(X)) continue;
       const { dx, dy } = sep(xr, T.i);
@@ -387,6 +498,70 @@ function analyse(o) {
       }
     }
   }
+  /* An icon-only control squeezed narrower than it is tall: a flex row shrank it. */
+  for (const B of elements.filter((el) => el.matches("button, a, [role=button]") && !el.textContent.trim())) {
+    const r = rectOf(B);
+    if (r.height >= 20 && r.height <= 64 && r.width < 0.8 * r.height && B.querySelector("svg, img, i, span")) {
+      add("icon-button-squeezed", "block", B, `icon button is ${Math.round(r.width)}px wide and ${Math.round(r.height)}px tall: give it room either side of the icon`, r);
+    }
+  }
+
+  /* A cut-out image (a mascot, a product shot on transparency) touches text with its
+     painted pixels, not its box: measure from the text's ink to the nearest opaque cell. */
+  for (const X of elements.filter((el) => el.tagName === "IMG" && el.complete && el.naturalWidth > 0)) {
+    const xr = rectOf(X);
+    if (xr.width < 24 || xr.height < 24) continue;
+    const near = textSample.filter((T) => {
+      if (X.contains(T.el) || !clamp(T.i, clipOf(T.el))) return false;
+      const { dx, dy } = sep(xr, T.i);
+      return dx < 12 && dy < 12;
+    });
+    if (!near.length) continue;
+    const cell = Math.max(1, Math.ceil(Math.max(xr.width, xr.height) / 240));
+    const cols = Math.ceil(xr.width / cell), rows = Math.ceil(xr.height / cell);
+    let data;
+    try {
+      const c = document.createElement("canvas");
+      c.width = cols; c.height = rows;
+      const g = c.getContext("2d", { willReadFrequently: true });
+      const fit = cs(X).objectFit, nw = X.naturalWidth, nh = X.naturalHeight;
+      let w = cols, h = rows;
+      if (fit === "contain" || fit === "scale-down") { const k = Math.min(cols / nw, rows / nh); w = nw * k; h = nh * k; }
+      else if (fit === "cover") { const k = Math.max(cols / nw, rows / nh); w = nw * k; h = nh * k; }
+      else if (fit === "none") { w = nw / cell; h = nh / cell; }
+      g.drawImage(X, (cols - w) / 2, (rows - h) / 2, w, h);
+      data = g.getImageData(0, 0, cols, rows).data;
+    } catch { continue; }   // a cross-origin image taints the canvas: the box checks still apply
+    let clear = 0;
+    for (let k = 3; k < data.length; k += 4) if (data[k] < 16) clear++;
+    if (clear < 0.05 * cols * rows) continue;   // an opaque photo: its box is its ink
+    for (const T of near) {
+      const key = describe(X) + "|ink|" + describe(T.el);
+      if (touchSeen.has(key)) continue;
+      let gap = Infinity;
+      for (let row = 0; row < rows && gap > -1; row++) {
+        const top = xr.top + row * cell, bottom = top + cell;
+        const dy = Math.max(top - T.i.bottom, T.i.top - bottom);
+        if (dy >= gap) continue;
+        for (let col = 0; col < cols; col++) {
+          if (data[(row * cols + col) * 4 + 3] < 64) continue;
+          const left = xr.left + col * cell;
+          const d = Math.max(left - T.i.right, T.i.left - (left + cell), dy);
+          if (d < gap) gap = d;
+        }
+      }
+      // Air scales with the type: 8px beside body text reads as touching beside an 80px title.
+      const size = px(cs(T.el).fontSize);
+      const touching = Math.max(4, 0.25 * size), close = Math.max(8, 0.5 * size);
+      if (gap >= close) continue;
+      touchSeen.add(key);
+      if (gap < 0) add("text-over-image", "review", T.el, `sits on the painted pixels of ${describe(X)}`, T.r);
+      else if (gap < touching) add("text-touches-image", placedUp(T.el) && !placedUp(X) ? "review" : "block", T.el,
+        `${gap.toFixed(0)}px from the painted edge of ${describe(X)}, under a quarter of its ${size}px type`, T.r);
+      else add("text-near-image", "review", T.el, `${gap.toFixed(0)}px from the painted edge of ${describe(X)}; give ${Math.ceil(close)}px beside ${size}px type`, T.r);
+    }
+  }
+
   for (let a = 0; a < flowBoxes.length; a++) {
     const A = flowBoxes[a];
     const ar = rectOf(A);
@@ -506,7 +681,7 @@ function analyse(o) {
   const bandMin = Math.max(240, 0.5 * vh);
   for (const [t, b] of spans) {
     if (t - reach > bandMin) {
-      add("empty-band", "review", null, `${Math.round(t - reach)}px with nothing in it, from y=${Math.round(reach)} to y=${Math.round(t)}`,
+      add("empty-band", "review", document.body, `${Math.round(t - reach)}px with nothing in it, from y=${Math.round(reach)} to y=${Math.round(t)}`,
         { left: 0, top: reach - scrollY, width: vw, height: t - reach });
     }
     reach = Math.max(reach, b);
@@ -526,27 +701,141 @@ function analyse(o) {
 
   /* ---------- landmarks, for comparing sibling screens ---------- */
   const landmarks = {};
+  const landmarkSamples = {};
   for (const q of ["header", "nav", "h1", "main", "footer", "[role=banner]", "[role=navigation]"]) {
     const el = [...document.querySelectorAll(q)].find((e) => visible(e) && !skipped(e));
-    if (el) landmarks[q] = doc(rectOf(el));
+    if (el) { landmarks[q] = doc(rectOf(el)); landmarkSamples[q] = describe(el); }
   }
+  const title = elements.find((el) => el.matches("h1, h2, h3, h4, h5, h6, [role=heading]"));
+  if (title) { landmarks["screen-title"] = doc(rectOf(title)); landmarkSamples["screen-title"] = describe(title); }
+  const selector = (el) => {
+    if (el.id) return "#" + CSS.escape(el.id);
+    if (!el.parentElement || el === document.body) return "body";
+    const peers = [...el.parentElement.children].filter((e) => e.tagName === el.tagName);
+    return selector(el.parentElement) + ">" + el.tagName.toLowerCase() + `:nth-of-type(${peers.indexOf(el) + 1})`;
+  };
+  const anchors = elements.filter((el) => !isFixed(el) && el.matches("h1, h2, h3, p, button, label, [role=heading]"))
+    .slice(0, 300).map((el) => ({ selector: selector(el), sample: el.textContent.trim().replace(/\s+/g, " ").slice(0, 40), rect: doc(rectOf(el)) }));
+  const layout = o.layout ? [document.body, ...elements].slice(0, 6000).map((el) => {
+    if (el === document.body) return { selector: "body", sample: describe(el), rect: doc(rectOf(el)) };
+    const parts = [];
+    for (let p = el, depth = 0; p && p !== document.body && depth < 10; p = p.parentElement, depth++) {
+      if (p.id) { parts.unshift("#" + CSS.escape(p.id)); break; }
+      const classes = [...p.classList].filter((c) => !c.startsWith("impeccable-")).slice(0, 2);
+      let part = p.tagName.toLowerCase() + classes.map((c) => "." + CSS.escape(c)).join("");
+      if (p.parentElement.querySelectorAll(":scope > " + part).length > 1) {
+        const peers = [...p.parentElement.children].filter((e) => e.tagName === p.tagName);
+        part += `:nth-of-type(${peers.indexOf(p) + 1})`;
+      }
+      parts.unshift(part);
+      if (document.querySelectorAll(parts.join(" > ")).length === 1) break;
+    }
+    return { selector: parts.join(" > "), sample: describe(el), rect: doc(rectOf(el)) };
+  }) : undefined;
   return {
-    findings: out, counts, landmarks,
+    findings: out, counts, landmarks, landmarkSamples, anchors, layout,
     measured: { elements: elements.length, boxes: boxes.length, textRects: texts.length },
     cls: Math.round((window.__glevelsCls || 0) * 1000) / 1000,
     pageHeight: document.documentElement.scrollHeight,
   };
 }
 
+async function longText(page) {
+  await page.addStyleTag({ content: `
+    * { line-height: 1.5 !important; letter-spacing: 0.12em !important; word-spacing: 0.16em !important; }
+    p { margin-bottom: 2em !important; }
+  ` });
+  await page.evaluate(() => {
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    const nodes = [];
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      const text = n.data.trim();
+      if (!text || text.length > 40 || !n.parentElement.closest("button, a, h1, h2, h3, h4, h5, h6, th, label, [class*=badge], [role=tab], [role=heading]")) continue;
+      if (n.parentElement.closest("script, style, noscript, template, svg")) continue;
+      nodes.push(n);
+    }
+    for (const n of nodes) {
+      const target = Math.ceil(n.data.trim().length * 0.4);
+      let extra = "";
+      const words = [" more", " words", " here"];
+      for (let k = 0; extra.length < target; k++) extra += words[k % words.length];
+      n.data += extra;
+    }
+  });
+}
+
+async function measure(page, entry, vp) {
+  const touch = vp.width < 720;
+  const reach = await page.evaluate(() => document.documentElement.scrollHeight);
+  for (let y = vp.height; y < Math.min(reach, maxTiles * vp.height); y += vp.height) {
+    await page.evaluate((top) => window.scrollTo(0, top), y);
+    await page.waitForTimeout(150);
+  }
+  await page.waitForFunction(() => [...document.images].every((i) => i.complete), null, { timeout: 4000 }).catch(() => {});
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(300);
+  entry.rhythm = await measureRhythm(page);
+  entry.rhythm.rows = entry.rhythm.rows.slice(0, 8);
+  Object.assign(entry, await page.evaluate(analyse, { cap: 25, touch, vw: vp.width, state: entry.state,
+    layout: entry.render === "loaded" && (["phone", "desktop"].includes(vp.name) || [390, 1440].includes(vp.width)) }));
+  const maxScroll = await page.evaluate(() => Math.max(0, document.documentElement.scrollHeight - innerHeight));
+  for (const [edge, y] of maxScroll > 0 ? [["top", 0], ["bottom", maxScroll]] : [["top/bottom", 0]]) {
+    await page.evaluate((top) => window.scrollTo(0, top), y);
+    await page.waitForTimeout(150);
+    const found = await page.evaluate(analyse, { cap: 25, vw: vp.width, edge, scrollable: maxScroll > 0 });
+    entry.findings.push(...found.findings);
+    for (const [check, n] of Object.entries(found.counts)) entry.counts[check] = (entry.counts[check] || 0) + n;
+  }
+  if (entry.state !== "loaded") {
+    for (const f of entry.findings) {
+      if (!["page-scrolls-sideways", "text-overlaps-text"].includes(f.check)) f.severity = "review";
+    }
+  }
+  const slug = `${results.length}-${vp.name}-${entry.render.replaceAll(" ", "-")}`;
+  const last = Math.max(0, entry.pageHeight - vp.height);
+  const positions = new Set(maxTiles > 1 ? [0, last] : [0]);
+  for (const f of entry.findings) {
+    if (f.severity === "block" && f.rect && positions.size < maxTiles) {
+      positions.add(Math.max(0, Math.min(last, Math.floor(f.rect[1] / vp.height) * vp.height)));
+    }
+  }
+  for (let y = 0; y < entry.pageHeight && positions.size < maxTiles; y += vp.height) positions.add(Math.min(y, last));
+  entry.screenshots = [];
+  entry.tiles = [];
+  for (const [k, y] of [...positions].sort((a, b) => a - b).entries()) {
+    await page.evaluate((top) => window.scrollTo(0, top), y);
+    await page.waitForTimeout(100);
+    const file = path.join(outDir, `${slug}-${k}.png`);
+    await page.screenshot({ path: file, animations: "disabled" });
+    entry.screenshots.push(file);
+    entry.tiles.push({ path: file, y });
+  }
+  if (entry.pageHeight > maxTiles * vp.height) entry.notShown = entry.pageHeight - maxTiles * vp.height;
+  await page.evaluate(() => window.scrollTo(0, 0));
+}
+
 const browser = await chromium.launch();
 const results = [];
 try {
   for (const url of urls) {
-    for (const vp of viewports) {
+    const phone = viewports.find((vp) => vp.width === 390) || { name: "phone", width: 390, height: 844 };
+    const jobs = states.includes("loaded") ? viewports.map((vp) => ({ vp, state: "loaded" })) : [];
+    jobs.push(...states.filter((state) => state !== "loaded").map((state) => ({ vp: phone, state })));
+    let noRequestsNoted = false;
+    for (const { vp, state } of jobs) {
+      const reference = results.find((r) => r.url === url && r.vp === phone.name && r.render === "loaded");
+      if (["loading", "error"].includes(state) && reference && !reference.error && !reference.requests) {
+        if (!noRequestsNoted) {
+          (reference.notes ||= []).push("loading/error skipped: the page made no fetch/XHR requests");
+          noRequestsNoted = true;
+        }
+        continue;
+      }
       const touch = vp.width < 720;
       const context = await browser.newContext({
         viewport: { width: vp.width, height: vp.height }, deviceScaleFactor: 1,
-        reducedMotion: "reduce", isMobile: touch, hasTouch: touch,
+        reducedMotion: "reduce", isMobile: false, hasTouch: touch, serviceWorkers: "block",
+        extraHTTPHeaders: options.headers, storageState: options.storageState,
       });
       await context.addInitScript(() => {
         window.__glevelsCls = 0;
@@ -557,44 +846,63 @@ try {
         } catch {}
       });
       const page = await context.newPage();
+      let requests = 0;
       const errors = [];
+      page.on("request", (request) => { if (["fetch", "xhr"].includes(request.resourceType())) requests++; });
       page.on("pageerror", (e) => errors.push(String(e).slice(0, 200)));
       page.on("console", (m) => m.type() === "error" && errors.push(m.text().slice(0, 200)));
-      const entry = { url, viewport: `${vp.name} ${vp.width}x${vp.height}`, vp: vp.name, consoleErrors: errors };
+      if (["loading", "error"].includes(state)) {
+        await page.route("**/*", async (route) => {
+          if (!["fetch", "xhr"].includes(route.request().resourceType())) return route.continue();
+          if (state === "error") return route.fulfill({ status: 500, json: { error: "Internal Server Error" } });
+          // Leaving the route unresolved holds it until context.close(), after the screenshots.
+        });
+      }
+      let entry = { url, viewport: `${vp.name} ${vp.width}x${vp.height}`, vp: vp.name, state, render: state === "long-text" ? "long text" : state, consoleErrors: errors };
       try {
-        const resp = await page.goto(url, { waitUntil: "load", timeout: 30000 });
+        const resp = await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
         entry.status = resp ? resp.status() : null;
-        await page.waitForLoadState("networkidle", { timeout: 6000 }).catch(() => {});
+        if (state !== "loading") await page.waitForLoadState("networkidle", { timeout: 6000 }).catch(() => {});
         await page.evaluate(() => document.fonts.ready);
         await page.waitForTimeout(800);
+        if (options.waitFor) await page.waitForSelector(options.waitFor, { state: "visible", timeout: 10000 });
+        if (state === "long-text") await longText(page);
+        if (["loading", "error"].includes(state) && !requests) {
+          if (!noRequestsNoted) {
+            const r = reference || results.find((r) => r.url === url);
+            if (r) (r.notes ||= []).push("loading/error skipped: the page made no fetch/XHR requests");
+            else {
+              entry.notes = ["loading/error skipped: the page made no fetch/XHR requests"];
+              entry.skipped = true;
+              results.push(entry);
+            }
+            noRequestsNoted = true;
+          }
+          continue;
+        }
         const loadCls = await page.evaluate(() => window.__glevelsCls || 0);
-        // walk the page once so lazy images load before anything is measured or shot
-        const reach = await page.evaluate(() => document.documentElement.scrollHeight);
-        for (let y = vp.height; y < Math.min(reach, maxTiles * vp.height); y += vp.height) {
-          await page.evaluate((top) => window.scrollTo(0, top), y);
-          await page.waitForTimeout(150);
+        await measure(page, entry, vp);
+        entry.cls = Math.round(loadCls * 1000) / 1000;
+        entry.requests = requests;
+        results.push(entry);
+        if (state === "loaded") {
+          for (let k = 1; k <= steps; k++) {
+            entry = { url, viewport: `${vp.name} ${vp.width}x${vp.height}`, vp: vp.name, state, render: `step ${k}`, step: k, status: entry.status, consoleErrors: errors };
+            await page.keyboard.press(flag("step-key", "ArrowRight"));
+            await page.waitForTimeout(600);
+            if (options.waitFor) await page.waitForSelector(options.waitFor, { state: "visible", timeout: 10000 });
+            await measure(page, entry, vp);
+            entry.cls = 0;
+            entry.requests = requests;
+            results.push(entry);
+          }
         }
-        await page.waitForFunction(() => [...document.images].every((i) => i.complete), null, { timeout: 4000 }).catch(() => {});
-        await page.evaluate(() => window.scrollTo(0, 0));
-        await page.waitForTimeout(300);
-        entry.rhythm = await measureRhythm(page);
-        entry.rhythm.rows = entry.rhythm.rows.slice(0, 8);
-        Object.assign(entry, await page.evaluate(analyse, { cap: 25, touch, vw: vp.width }));
-        entry.cls = Math.round(loadCls * 1000) / 1000;   // shifts while loading, not the ones the walk above set off
-        const slug = `${results.length}-${vp.name}`;
-        const h = Math.min(entry.pageHeight, maxTiles * vp.height);
-        entry.screenshots = [];
-        for (let y = 0, k = 0; y < h; y += vp.height, k++) {
-          const file = path.join(outDir, `${slug}-${k}.png`);
-          await page.screenshot({ path: file, fullPage: true, clip: { x: 0, y, width: vp.width, height: Math.min(vp.height, entry.pageHeight - y) } });
-          entry.screenshots.push(file);
-        }
-        if (entry.pageHeight > h) entry.notShown = entry.pageHeight - h;
       } catch (e) {
         entry.error = String(e).slice(0, 300);
+        if (!results.includes(entry)) results.push(entry);
+      } finally {
+        await context.close();
       }
-      results.push(entry);
-      await context.close();
     }
   }
 } finally {

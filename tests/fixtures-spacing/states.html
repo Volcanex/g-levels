@@ -1,0 +1,16 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unreserved results</title><style>
+* { box-sizing: border-box; } body { margin: 0; padding: 24px; font: 16px/24px sans-serif; }
+h1 { margin: 0 0 24px; font-size: 24px; } ul { margin: 0; padding: 0 0 0 24px; }
+li { padding: 4px 0; } p { margin: 24px 0; }
+button { display: block; width: 110px; height: 44px; padding: 8px; font: inherit; white-space: nowrap; }
+</style><h1>Saved reports</h1><div id="results"></div><p id="after">Choose a report to continue.</p><button>Open report</button>
+<script>
+fetch('/data.json').then(async response => {
+  if (!response.ok) throw new Error('Internal Server Error');
+  const data = await response.json();
+  const list = document.createElement('ul');
+  for (const name of data.items) { const item = document.createElement('li'); item.textContent = name; list.append(item); }
+  document.querySelector('#results').append(list);
+}).catch(error => { document.querySelector('#results').textContent = error.message; });
+</script></html>

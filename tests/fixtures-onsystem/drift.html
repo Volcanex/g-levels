@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Service settings</title>
+<link rel="stylesheet" href="g.css">
+<style>
+:root { --local-gap: 12px; }
+body { padding: var(--sp-4); }
+.local-button { background-color: var(--contrast-fill); color: var(--contrast-fg); padding: 14px; border: 1px solid currentColor; border-radius: 17px; font-family: var(--font-ui); }
+.local-card { background-color: #1234ab; padding: 14px; margin: 9px; border: 1px solid #abcdef; border-radius: 17px; box-shadow: 0 3px 7px #222; }
+.raw { font-size: 19px; font-weight: 600; color: var(--never-defined); gap: var(--local-gap); }
+.error-list { height: 1100px; padding: var(--sp-3); border: 1px solid var(--border); }
+</style>
+</head>
+<body>
+<main>
+<p>Latest service details appear right here.</p>
+<p>Latest service details appear right here.</p>
+<button class="local-button">Save changes</button>
+<button class="local-button">Publish service</button>
+<div class="local-card"><h2>Service details</h2><p class="raw">The server is ready.</p></div>
+<p>The service settings shown on this screen apply to the current workspace. Changes affect every connected service in the workspace once you save them. Review the service name, region and domain before saving. If you need to change more than one service, open each service and update its settings separately. You can also review the recent activity for a service, check its current status, inspect its configuration and compare the settings with the previous saved version. Each saved version remains available in the service history for later review.</p>
+<ul class="error-list"><li>Could not connect to the service. Check the address and try again.</li></ul>
+</main>
+</body>
+</html>

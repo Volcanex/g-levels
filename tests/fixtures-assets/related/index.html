@@ -1,0 +1,18 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Related asset faults</title>
+<style>body{padding:24px}img,div,canvas,svg,video{display:block;margin:16px 0}.slot{width:160px;height:90px;background:#999}.background{width:320px;height:180px;background:center / cover url("../small.png")}.ph{width:64px;height:64px}</style>
+<h1>Related asset faults</h1>
+<link rel="preload" as="image" href="../small.png">
+<div id="empty-slot" class="slot"></div>
+<div id="background" class="background" aria-label="Enlarged background"></div>
+<img id="missing-image" src="missing.png" width="80" height="80" alt="Missing portrait">
+<img id="loaded-primitives" src="simple.svg" width="96" height="96" alt="Box and line">
+<video id="broken-video" src="missing.webm" width="160" height="90" preload="auto"></video>
+<canvas id="canvas" width="100" height="80" aria-label="Canvas study"></canvas>
+<svg id="inline-crafted" width="64" height="64" viewBox="0 0 64 64"><path d="M3 32C10 2 50 2 61 32S10 62 3 32Z"/></svg>
+<img id="data-image" width="100" height="60" alt="Embedded material">
+<img id="blob-image" width="100" height="60" alt="Blob material">
+<ul><li>🚀 Marker</li></ul>
+<button id="pseudo-emoji">Launch</button><style>#pseudo-emoji::before{content:"🚀"}</style>
+<div id="corrupt-background" style="width:96px;height:96px;background-image:url('corrupt.png')" aria-label="Undecodable image"></div>
+<script>fetch('../small.png').then(r=>r.blob()).then(b=>{document.querySelector('#blob-image').src=URL.createObjectURL(b);const reader=new FileReader();reader.onload=()=>document.querySelector('#data-image').src=reader.result;reader.readAsDataURL(b)});fetch('object.glb');</script>
+</html>

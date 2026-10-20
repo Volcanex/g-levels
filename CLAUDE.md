@@ -17,6 +17,10 @@ produce. The theory is in Volcanex/g-research
 - `glevels/export.py`: a read-only JSON snapshot of the registry, results, backlog and level
   summary, for gcommand's /levels page; `project_view` exposes project charter and gate states.
   Grading still goes through `glevels grade`.
+- `glevels/spacing.py`, `onsystem.py` (with `systems.json`, the house systems) and `assets.py`:
+  the look sensors, each a Python CLI driving a `.mjs` Playwright half. They share spacing's
+  page resolution, browser lock and memory guard. `vendor.py` pins and installs the maintained
+  tools they marry (Impeccable, stylelint-declaration-strict-value) under `~/.cache/glevels/node`.
 - `var/results.jsonl`: the results log. Gitignored, because notes can carry private
   incident detail. Set `GLEVELS_LOG` to write elsewhere.
 

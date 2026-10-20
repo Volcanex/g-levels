@@ -1,29 +1,30 @@
 id = "correct.ui.spacing"
-version = 1
+version = 2
 kind = "correcting"
 trigger = "every-run"
 skill = "g-spacing"
-principle = "A page looks laid out with care at a glance. Nothing touches, overlaps, pokes out, gets cut off or floats by accident, gaps are even, things that look aligned are aligned, and shared elements hold their place across sibling screens."
-guidance = "Load g-design and g-spacing before building. Before reporting, run the mechanical half yourself, `python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/spacing.py <page or URL> [sibling screens]`, and fix every blocking finding. Then look at its screenshots at both widths with the g-spacing checklist. Someone else does the review."
-pass = "met: the sensor reports no blocking finding, and the reviewer can point at no checklist fault in the screenshots, or each one left is shown to be intended. attempted: clear faults are fixed but the reviewer names judged faults or leads that hold up, each with its screenshot, place and checklist number."
-remediation = "Work the blocking list first: each line names the element, the fault and where it is in page pixels. Fix the layout, not the measurement. No data-audit-skip on real content, no nudging a value until the sensor goes quiet. Then fix what the reviewer named and rerun both halves."
-written_against = { model = "claude-opus-5-5", date = "2026-10-18" }
+principle = "A page looks laid out with care at a glance, at every width and in every state. Nothing touches, overlaps, pokes out, gets cut off, hides under a fixed bar or floats by accident, gaps are even, things that look aligned are aligned, and shared elements hold their place across sibling screens and slides."
+guidance = "Load g-design and g-spacing before building. Before reporting, run the mechanical half yourself, `python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/spacing.py <page, file or URL> [sibling screens]`, on any web UI: g-site pages, Baseline pages and decks, apps on localhost. Add `--steps N` for a deck or wizard, `--landscape` for anything held sideways, `--storage-state` for a logged-in app. Fix every blocking finding at 320, 390, 768 and 1440 wide and in the loading, error and long-text states. Then look at its screenshots with the g-spacing checklist. Someone else does the review."
+pass = "met: the sensor reports no blocking finding, and the reviewer can point at no checklist fault in the screenshots at any width, state or step, or each one left is shown to be intended. attempted: clear faults are fixed but the reviewer names judged faults or leads that hold up, each with its screenshot, place and checklist number."
+remediation = "Work the blocking list first: each line names the render (width, state or step), the element, the fault and where it is in page pixels. Fix the layout, not the measurement: reserve slot sizes for loading, let labels wrap or truncate on purpose, pad content clear of fixed bars. No data-audit-skip on real content, no nudging a value until the sensor goes quiet, no dropping a width, state or step from the run. Then fix what the reviewer named and rerun both halves."
+written_against = { model = "claude-opus-5-5", date = "2026-10-20" }
 
 [sensor]
-# Two halves. `run` is the mechanical half: Playwright geometry at 1280x800 and 390x844,
-# exit 1 on clear faults, 2 when it cannot run. glevels check runs it and logs a catch, then
-# prints the rubric, the review half, for an independent reviewer.
+# Two halves. `run` is the mechanical half: Playwright geometry at 320, 390, 768 and 1440 wide,
+# the loading, error and long-text states at 390, fixed-bar occlusion, and Impeccable's layout
+# detectors as leads. Exit 1 on clear faults, 2 when it cannot run. glevels check runs it and logs
+# a catch, then prints the rubric, the review half, for an independent reviewer.
 type = "review"
 run = "python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/spacing.py {file}"
 cannot_run_exit = 2
 rubric = """
-You did not build this page. Judge it against the g-spacing checklist.
-1. Run `python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/spacing.py <the page file or URL>`, passing sibling screens together if the work has them. Exit 2 means it could not run: record impossible with its reason. Exit 1 lists clear faults. Each is a fault unless the screenshot shows it is a deliberate layer (a stamp, a map pin, a fill under a label): say which in your note.
-2. Open every screenshot it prints, desktop and phone, and look before you read the leads. Ask of each tile: does any text touch its box or a neighbour? Does anything overlap, poke out of its card, or get cut off? Does the phone tile fit without sideways scroll? Are insets even on both sides? Are gaps between same-kind things equal? Do things that look aligned line up exactly? Do titles, menus and columns hold one place across sibling panels and screens? Are same-kind icons, badges and buttons one size? Is there a big empty band or a largely blank screen? Is anything oversized for its job, or a section missing its title? Does the page feel like less is more?
-3. Read the leads under 'for the reviewer' and keep only the ones the screenshots bear out. Off-grid counts are a trend, not a fault on their own.
-4. Record met only if nothing blocking is left and you can point at no fault. Otherwise record attempted and name each fault by screenshot file, place and checklist number, so the worker can fix it without asking.
+You did not build this page, and you are not the agent that did. Judge it against the g-spacing checklist. You need a model with an eye: Opus at medium effort or better (Fable when your verdict and the worker's disagree). Sonnet and Sol are not enough for this judgement.
+1. Run `python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/spacing.py <the page file or URL>` with the flags the work needs (sibling screens together, `--steps N` for a deck or wizard, `--landscape` for anything held sideways). Exit 2 means it could not run: record impossible with its reason. Exit 1 lists clear faults. Each is a fault unless the screenshot shows it is a deliberate layer (a stamp, a map pin, a fill under a label): say which in your note.
+2. Open every screenshot tile it prints, one by one, at full resolution: every width, every state, every step. Never judge from a contact sheet, a montage or a downscaled copy; a glitch a contact sheet hides is still a fault. Look before you read the leads. Ask of each tile: does any text touch its box or a neighbour? Does anything overlap, poke out of its card, sit under a fixed bar, or get cut off? Does the phone tile fit without sideways scroll at 320 and 390? Are insets even on both sides? Are gaps between same-kind things equal? Do things that look aligned line up exactly? Do titles, menus and columns hold one place across sibling screens and slides? Are same-kind icons, badges and buttons one size? Is there a big empty band, a slide with all its space above, or a largely blank screen? Does the loading state hold its shape, does the error state read as a designed message, does long text wrap or truncate on purpose? Is anything oversized for its job, or a section missing its title? Does the page feel like less is more?
+3. Read the leads under 'for the reviewer' and keep only the ones the screenshots bear out. Off-grid counts and Impeccable's layout notes are a trend, not a fault on their own.
+4. Every finding you record quotes its evidence: the tile file, a box in that tile (x, y, w, h in pixels), the text or element you see there, and the checklist number. A met verdict names how many tiles you opened (it must equal the count the sensor printed) and the one place that came closest to a fault. Record met only if nothing blocking is left and you can point at no fault. Otherwise record attempted with each fault, so the worker can fix it without asking.
 """
 
 [origin]
 date = "2026-10-18"
-incident = "Gabriel kept catching spacing faults by eye across Baseline, g-site, poker and NOAD: cards touching text, a mascot flush against copy, charts poking out of their box, squeezed icon buttons, badges with no padding, overlapping text, pages that did not fit a phone, uneven gaps and titles that moved between sibling screens."
+incident = "Gabriel kept catching spacing faults by eye across Baseline, g-site, poker and NOAD: cards touching text (23 Sep, 'why do agents working on baseline keep generating cards touching text'), a mascot flush against a deck title (15 Oct, 'the george is touching this text'), charts poking out of their box (23 Sep), squeezed icon buttons in gcommand (15 Oct), a poker game that did not fit a phone (5 Oct, 'It doesn't fit on the page'). v2 (20 Oct, 'So spacing is NO 1'): v1 only saw two widths in the loaded state and only g-site and Wing pages, so it widens to 320/390/768/1440, loading, error and long-text states, fixed-bar occlusion, slide steps and any web UI."

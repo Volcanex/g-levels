@@ -1,15 +1,24 @@
 """Sensor: spacing and layout faults a person spots at a glance. Gate correct.ui.spacing.
 
-    python3 spacing.py [--out DIR] [--json] TARGET [TARGET ...]
+    python3 spacing.py [--out DIR] [--json] [--landscape] TARGET [TARGET ...]
+                       [--viewports phone=390x844,desktop=1440x900]
+                       [--states loaded,loading,error,long-text]
+                       [--steps N] [--step-key ArrowRight] [--wait-for SELECTOR]
+                       [--storage-state FILE] [--header 'Name: value']
 
 A TARGET is a URL, an HTML file, or a g-site page (`pages/<dir>/content.html`). A g-site
 page is compiled fresh into a temp dir and served through a small proxy in front of the
 running g-site server (GSPACING_BASE, default http://127.0.0.1:8096), so the check sees
 the edit, not the last deploy, and the page's own /api calls and assets still resolve.
-A plain HTML file is served from its own directory. Several targets are read as sibling
+A plain HTML file is served with its relative assets. Several targets are read as sibling
 screens: their shared landmarks (header, nav, h1, main, footer) are compared.
 
-Every target renders at desktop 1280x800 and phone 390x844 in one Chromium (spacing.mjs).
+Defaults: phone-s 320x568, phone 390x844, tablet 768x1024, desktop 1440x900.
+--landscape adds phone-land 844x390. Loading (held fetch/XHR), error (HTTP 500) and
+long-text (WCAG text spacing and longer labels) run at 390px only. --states loaded
+selects just the ordinary page. --steps measures each key press as a sibling screen.
+One Chromium renders them in turn. Fixed/sticky occlusion at the page ends blocks;
+stress-state faults are leads except sideways scrolling and text overlapping text.
 Screenshots and findings.json land in --out (default: a temp dir, printed at the end).
 
 Exit 0: no clear faults. Exit 1: clear faults, listed under "blocking". Exit 2: could not
@@ -18,6 +27,7 @@ judgement are listed under "for the reviewer" and never fail the run on their ow
 """
 import argparse
 import fcntl
+import html.parser
 import http.server
 import json
 import os
@@ -28,14 +38,25 @@ import tempfile
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
+
+try:
+    from . import vendor
+except ImportError:
+    import vendor
 
 HERE = Path(__file__).resolve().parent
 BASE = os.environ.get("GSPACING_BASE", "http://127.0.0.1:8096").rstrip("/")
 MIN_FREE_MB = int(os.environ.get("GSPACING_MIN_FREE_MB", "600"))
 LOCK = Path(os.environ.get("GSPACING_LOCK", "/tmp/glevels-spacing.lock"))
 HOP = {"connection", "keep-alive", "transfer-encoding", "content-encoding", "content-length", "upgrade"}
+IMPECCABLE_LAYOUT = {
+    "text-overflow", "text-occlusion", "clipped-overflow-container", "edge-flush-cards",
+    "heading-rhythm", "first-viewport-column-overflow", "monotonous-spacing", "nested-cards",
+    "line-length", "cramped-padding", "body-text-viewport-edge", "numbered-section-labels",
+}
 
 
 def impossible(msg):
@@ -166,9 +187,24 @@ def resolve(targets, tmp):
         f = Path(t).resolve()
         if f.suffix not in (".html", ".htm"):
             impossible(f"{t} is not a page: give a URL, an HTML file or a g-site pages/<dir>/content.html")
-        srv, base = serve({}, f.parent)
+        root = f.parent
+
+        class Assets(html.parser.HTMLParser):
+            def handle_starttag(self, tag, attrs):
+                nonlocal root
+                attrs = dict(attrs)
+                key = "href" if tag == "link" else "src" if tag in ("script", "img", "source", "video", "audio", "iframe") else None
+                ref = urllib.parse.urlsplit(attrs.get(key, ""))
+                if ref.scheme or ref.netloc or not ref.path or ref.path.startswith("/"):
+                    return
+                asset = (f.parent / urllib.parse.unquote(ref.path)).resolve()
+                if asset.is_file():
+                    root = Path(os.path.commonpath((root, asset.parent)))
+
+        Assets().feed(f.read_text(errors="replace"))
+        srv, base = serve({}, root)
         servers.append(srv)
-        urls.append(f"{base}/{f.name}")
+        urls.append(f"{base}/{f.relative_to(root).as_posix()}")
     if gsite:
         try:
             urllib.request.urlopen(BASE + "/", timeout=5)
@@ -181,65 +217,138 @@ def resolve(targets, tmp):
 
 
 def compare_landmarks(results):
-    """Sibling screens: the same landmark should sit in the same place on each."""
-    out = []
-    by_vp = {}
+    """Compare sibling screens, keeping stress states out of ordinary comparisons."""
+    out, by_vp = [], {}
     for r in results:
-        if r.get("landmarks"):
+        if r.get("landmarks") and r.get("state", "loaded") == "loaded":
             by_vp.setdefault(r["vp"], []).append(r)
     for vp, rs in by_vp.items():
-        if len(rs) < 2:
-            continue
-        for key in ("header", "nav", "[role=navigation]", "[role=banner]", "h1", "main", "footer"):
-            have = [(r["url"], r["landmarks"][key]) for r in rs if key in r["landmarks"]]
-            if len(have) < 2:
-                continue
-            x0, y0, w0, _ = have[0][1]
-            worst = max(max(abs(x - x0), abs(w - w0), abs(y - y0) if key != "footer" else 0) for _, (x, y, w, _) in have)
-            if worst <= 2:
-                continue
-            chrome = key in ("header", "nav", "[role=navigation]", "[role=banner]")
-            sev = "block" if (chrome and worst > 4) or (key == "h1" and worst >= 48) else "review"
-            where = ", ".join(f"{u.rsplit('/', 1)[-1] or u} at x={x} y={y} w={w}" for u, (x, y, w, _) in have)
-            out.append({"check": "landmark-moves-between-screens", "severity": sev, "viewport": vp,
-                        "selector": key, "detail": f"{key} moves up to {worst}px across sibling screens: {where}"})
+        for key in ("header", "nav", "[role=navigation]", "[role=banner]", "h1", "main", "footer", "screen-title"):
+            groups = {}
+            for r in rs:
+                if key in r["landmarks"]:
+                    groups.setdefault(r["url"] if key == "screen-title" else None, []).append((r, r["landmarks"][key]))
+            for have in groups.values():
+                if key == "screen-title" and not any(r.get("step") for r, _ in have):
+                    continue
+                if len(have) < 2:
+                    continue
+                first, (x0, y0, w0, _) = have[0]
+                for r, rect in have[1:]:
+                    x, y, w, _ = rect
+                    worst = max(abs(x - x0), abs(w - w0) if key not in ("h1", "screen-title") else 0,
+                                abs(y - y0) if key != "footer" else 0)
+                    if worst <= 2:
+                        continue
+                    chrome = key in ("header", "nav", "[role=navigation]", "[role=banner]")
+                    # Slides and wizard steps change layout on purpose (a cover, a section, a split), so
+                    # a title moving between steps is a lead; between sibling pages it is a fault.
+                    stepped = r.get("step") or first.get("step")
+                    sev = "block" if (chrome and worst > 4) or (key in ("h1", "screen-title") and worst >= 48
+                                                                and not stepped) else "review"
+                    title = key == "screen-title"
+                    out.append({"check": "titles-move-between-siblings" if title else "landmark-moves-between-screens",
+                                "severity": sev, "viewport": vp, "url": r["url"], "render": r.get("render", "loaded"),
+                                "selector": r.get("landmarkSamples", {}).get(key, key), "rect": rect,
+                                "detail": f"{key} moves up to {worst}px across sibling screens: "
+                                          f"{first['url']} {first.get('render', 'loaded')} at x={x0} y={y0} w={w0}; "
+                                          f"{r.get('render', 'loaded')} at x={x} y={y} w={w}"})
     return out
 
 
-def report(results, extra, out_dir):
-    block, review = [], []
+def compare_states(results):
     for r in results:
-        tag = f"{r['url']}  {r['viewport']}"
-        if r.get("error"):
-            block.append(f"{tag}\n    did not render: {r['error']}")
+        if r.get("state") not in ("loading", "error"):
             continue
-        if r.get("status") and r["status"] >= 400:
-            block.append(f"{tag}\n    HTTP {r['status']}")
+        loaded = next((x for x in results if x["url"] == r["url"] and x["vp"] == r["vp"]
+                       and x.get("render") == "loaded"), None)
+        if not loaded:
+            continue
+        before = {a["selector"]: a for a in loaded.get("anchors", [])}
+        for a in r.get("anchors", []):
+            b = before.get(a["selector"])
+            if not b or a["sample"] != b["sample"] or abs(a["rect"][1] - b["rect"][1]) <= 4:
+                continue
+            r["findings"].append({"check": "state-layout-changes", "severity": "review",
+                                  "selector": f"{a['selector']} \"{a['sample']}\"", "rect": a["rect"],
+                                  "detail": f"y={a['rect'][1]} in {r['render']}, y={b['rect'][1]} when loaded; "
+                                            "check that the data slot reserves its space"})
+            if sum(f["check"] == "state-layout-changes" for f in r["findings"]) >= 3:
+                break
+
+
+def impeccable(results, authenticated=False):
+    """A second opinion, after our browser closes and while the servers and lock live."""
+    noted = False
+    for r in results:
+        if r.get("render") != "loaded" or r.get("error") or (r.get("vp") not in ("phone", "desktop")
+                and r["viewport"].split()[-1].split("x")[0] not in ("390", "1440")):
+            continue
+        try:
+            if authenticated:
+                findings, why = None, "the optional detector cannot inherit --header or --storage-state"
+            elif free_mb() < MIN_FREE_MB:
+                findings, why = None, "not enough free memory for the optional browser"
+            else:
+                findings, why = vendor.impeccable(r["url"], r["viewport"].split()[-1])
+        except Exception as e:
+            findings, why = None, f"{type(e).__name__} while running the optional detector"
+        if why:
+            if not noted:
+                r.setdefault("notes", []).append(f"impeccable: did not run: {why}")
+                noted = True
+            continue
+        for f in findings or []:
+            rule = f.get("antipattern")
+            if rule not in IMPECCABLE_LAYOUT:
+                continue
+            location = next((x for x in r.get("layout", []) if x["selector"] == f.get("selector", "body")), {})
+            r["findings"].append({"check": f"impeccable: {rule}", "severity": "review",
+                                  "selector": location.get("sample") or f.get("selector") or "body",
+                                  "detail": f.get("snippet") or f.get("message") or f.get("name") or rule,
+                                  "rect": location.get("rect") or f.get("rect")})
+
+
+def report(results, extra, out_dir):
+    block, review, failed = [], [], []
+    for r in results:
+        tag = f"{r['url']}  {r['viewport']}  {r.get('render', 'loaded')}"
+        if r.get("error"):
+            failed.append(f"{tag}: {r['error']}")
+            continue
+        bs, rs = [], []
+        if r.get("status", 0) and r["status"] >= 400:
+            bs.append(f"HTTP {r['status']}")
         groups = {}
-        for f in r.get("findings", []):
+        fs = r.get("findings", []) + [f for f in extra if f.get("url") == r["url"]
+              and f["viewport"] == r["vp"] and f.get("render") == r.get("render", "loaded")]
+        for f in fs:
             groups.setdefault((f["severity"], f["check"]), []).append(f)
         for (sev, check), fs in groups.items():
-            n = r.get("counts", {}).get(check, len(fs)) if len(groups) else len(fs)
-            lines = [f"{tag}\n    {check}" + (f" ({n} found, first 3)" if len(fs) > 3 else "") + ":"]
+            n = r.get("counts", {}).get(check, len(fs))
+            lines = [check + (f" ({n} found, first 3)" if len(fs) > 3 else "") + ":"]
             for f in fs[:3]:
-                lines.append(f"      {f['selector']} {f['detail']}" + (f"  at {f['rect']}" if f.get("rect") else ""))
-            (block if sev == "block" else review).append("\n".join(lines))
+                lines.append(f"  {f['selector']} {f['detail']}" + (f"  at {f['rect']}" if f.get("rect") else ""))
+            (bs if sev == "block" else rs).append("\n    ".join(lines))
         rh = r.get("rhythm")
         if rh:
             rows = "; ".join(f"{x['selector']} ({x['sample']})" for x in rh["rows"][:4])
-            review.append(f"{tag}\n    grid: {rh['local']} of {rh['edgesChecked']} edges off the 4px grid in their container, "
-                          f"{rh['half']} on half pixels, {rh['gaps']} of {rh['gapPairs']} stacked gaps off the spacing scale"
-                          + (f". Worst: {rows}" if rows else ""))
-        if r.get("cls", 0) > 0.25:   # web.dev's "poor", and g-design's reserved-slot rule
-            block.append(f"{tag}\n    layout-shift: {r['cls']} while loading, so things already on screen moved. "
-                         "Reserve each slot's size before its data arrives")
-        elif r.get("cls", 0) > 0.05:
-            review.append(f"{tag}\n    layout-shift: {r['cls']} while loading (things already on screen moved)")
+            rs.append(f"grid: {rh['local']} of {rh['edgesChecked']} edges off the 4px grid in their container, "
+                      f"{rh['half']} on half pixels, {rh['gaps']} of {rh['gapPairs']} stacked gaps off the spacing scale"
+                      + (f". Worst: {rows}" if rows else ""))
+        if r.get("cls", 0) > 0.05:
+            line = f"layout-shift: {r['cls']} while loading (things already on screen moved)"
+            (bs if r["cls"] > 0.25 and r.get("state") == "loaded" else rs).append(line)
         if r.get("consoleErrors"):
-            review.append(f"{tag}\n    console errors: " + " | ".join(r["consoleErrors"][:3]))
-    for f in extra:
-        (block if f["severity"] == "block" else review).append(f"sibling screens  {f['viewport']}\n    {f['check']}: {f['detail']}")
+            rs.append("console errors: " + " | ".join(r["consoleErrors"][:3]))
+        rs.extend(r.get("notes", []))
+        if bs:
+            block.append(tag + "\n    " + "\n    ".join(bs))
+        if rs:
+            review.append(tag + "\n    " + "\n    ".join(rs))
 
+    for error in failed:
+        print(f"impossible: {error}")
     print(f"spacing: {len(results)} renders, {len(block)} blocking, {len(review)} for the reviewer")
     if block:
         print("\nblocking (clear faults, fix these):")
@@ -252,12 +361,12 @@ def report(results, extra, out_dir):
     print("\nscreenshots, for the review half of the gate:")
     for r in results:
         shots = r.get("screenshots", [])
-        more = f", {r['notShown']}px below not shown" if r.get("notShown") else ""
-        print(f"  {r['url']}  {r['viewport']}: {len(shots)} tiles{more}")
+        more = f", {r['notShown']}px not shown" if r.get("notShown") else ""
+        print(f"  {r['url']}  {r['viewport']}  {r.get('render', 'loaded')}: {len(shots)} tiles{more}")
         for s in shots:
             print(f"    {s}")
     print(f"\nfindings: {out_dir}/findings.json")
-    return 1 if block else 0
+    return 2 if failed else 1 if block else 0
 
 
 def main():
@@ -265,37 +374,101 @@ def main():
     ap.add_argument("targets", nargs="+")
     ap.add_argument("--out", help="where screenshots and findings.json go (default: a new temp dir)")
     ap.add_argument("--json", action="store_true", help="print findings.json instead of the report")
-    ap.add_argument("--viewports", default="desktop=1280x800,phone=390x844")
+    ap.add_argument("--viewports", default="phone-s=320x568,phone=390x844,tablet=768x1024,desktop=1440x900")
+    ap.add_argument("--landscape", action="store_true", help="also render phone-land 844x390")
+    ap.add_argument("--states", default="loaded,loading,error,long-text", help="comma-separated states; stress at 390px only")
+    ap.add_argument("--steps", type=int, default=0, help="measure after each of N key presses")
+    ap.add_argument("--step-key", default="ArrowRight")
+    ap.add_argument("--storage-state", help="Playwright storage state JSON")
+    ap.add_argument("--header", action="append", default=[], help="Name: value (repeatable; values are never printed)")
+    ap.add_argument("--wait-for", help="wait for a visible selector before measuring")
     a = ap.parse_args()
+    if a.steps < 0:
+        impossible("--steps must be zero or greater")
+    if not a.states or any(s not in ("loaded", "loading", "error", "long-text") for s in a.states.split(",")):
+        impossible("--states must choose loaded,loading,error,long-text")
+    try:
+        for v in a.viewports.split(","):
+            name, size = v.split("=")
+            w, h = map(int, size.split("x"))
+            if not name or min(w, h) < 1:
+                raise ValueError()
+    except ValueError:
+        impossible("--viewports must use name=WIDTHxHEIGHT, separated by commas")
+    if a.landscape and "phone-land=" not in a.viewports:
+        a.viewports += ",phone-land=844x390"
+    headers, secrets = {}, []
+    for header in a.header:
+        name, sep, value = header.partition(":")
+        if not sep or not name.strip() or any(c in header for c in "\r\n"):
+            impossible("--header must use Name: value")
+        headers[name.strip()] = value.strip()
+        if value.strip():
+            secrets.append(value.strip())
+    options = {"headers": headers, "waitFor": a.wait_for}
+    if a.storage_state:
+        try:
+            options["storageState"] = json.loads(Path(a.storage_state).read_text())
+            secrets += [x["value"] for x in options["storageState"].get("cookies", []) if x.get("value")]
+            secrets += [x["value"] for origin in options["storageState"].get("origins", [])
+                        for x in origin.get("localStorage", []) if x.get("value")]
+        except (OSError, ValueError, TypeError, AttributeError):
+            impossible("could not read --storage-state as Playwright JSON")
+
+    def redact(value):
+        if isinstance(value, str):
+            for secret in secrets:
+                value = value.replace(secret, "[redacted]")
+            return value
+        if isinstance(value, list):
+            return [redact(v) for v in value]
+        if isinstance(value, dict):
+            return {k: redact(v) for k, v in value.items()}
+        return value
 
     if shutil.which("node") is None:
         impossible("node is not installed")
     out_dir = Path(a.out or tempfile.mkdtemp(prefix="glevels-spacing-")).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="glevels-spacing-build-") as tmp, open(LOCK, "a") as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX)   # one browser at a time on this host
+        fcntl.flock(lock, fcntl.LOCK_EX)
         mb = free_mb()
         if mb < MIN_FREE_MB:
             impossible(f"only {mb} MB of memory free, a browser needs {MIN_FREE_MB}. Try again when the host is quieter")
         urls, servers = resolve(a.targets, Path(tmp))
         t0 = time.time()
-        p = subprocess.run(["node", str(HERE / "spacing.mjs"), "--out", str(out_dir), "--viewports", a.viewports, *urls],
-                           capture_output=True, text=True, timeout=600)
-        for s in servers:
-            s.shutdown()
-        if p.returncode:
-            impossible(f"the browser run failed: {(p.stderr or p.stdout).strip()[-600:]}")
-    results = json.loads((out_dir / "findings.json").read_text())
-    # name the targets as the caller gave them, not by the proxy port
+        try:
+            cmd = ["node", str(HERE / "spacing.mjs"), "--out", str(out_dir), "--viewports", a.viewports,
+                   "--states", a.states, "--steps", str(a.steps), "--step-key", a.step_key, "--options-stdin", *urls]
+            try:
+                p = subprocess.run(cmd, input=json.dumps(options), capture_output=True, text=True, timeout=600)
+            except subprocess.TimeoutExpired:
+                impossible("the browser run timed out after 600s")
+            if p.returncode:
+                impossible(redact(f"the browser run failed: {(p.stderr or p.stdout).strip()[-600:]}"))
+            results = json.loads((out_dir / "findings.json").read_text())
+            impeccable(results, authenticated=bool(headers or a.storage_state))
+        finally:
+            for s in servers:
+                s.shutdown()
+    compare_states(results)
     for r in results:
-        i = urls.index(r["url"])
-        r["url"] = a.targets[i]
+        r.pop("layout", None)
+        r["url"] = a.targets[urls.index(r["url"])]
+    results = redact(results)
     extra = compare_landmarks(results)
+    for r in results:
+        r.setdefault("findings", []).extend(f for f in extra if f.get("url") == r["url"]
+            and f["viewport"] == r["vp"] and f.get("render") == r.get("render", "loaded"))
+    (out_dir / "findings.json").write_text(json.dumps(results, indent=2) + "\n")
     if a.json:
         print(json.dumps({"renders": results, "siblings": extra, "seconds": round(time.time() - t0, 1)}, indent=2))
-        sys.exit(1 if any(f["severity"] == "block" for r in results for f in r.get("findings", [])) or
-                 any(f["severity"] == "block" for f in extra) else 0)
-    sys.exit(report(results, extra, out_dir))
+        failed = any(r.get("error") for r in results)
+        blocked = any(f["severity"] == "block" for r in results for f in r.get("findings", [])) or any(
+            r.get("status", 0) and r["status"] >= 400 or r.get("state") == "loaded" and r.get("cls", 0) > 0.25 for r in results
+        ) or any(f["severity"] == "block" for f in extra)
+        sys.exit(2 if failed else 1 if blocked else 0)
+    sys.exit(report(results, [], out_dir))
 
 
 if __name__ == "__main__":

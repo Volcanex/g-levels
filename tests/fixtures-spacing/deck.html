@@ -1,0 +1,14 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Three slides</title><style>
+* { box-sizing: border-box; } body { margin: 0; font: 16px/24px sans-serif; }
+.slide { min-height: 100vh; padding: 32px; } .slide[hidden] { display: none; }
+h1 { font: 24px/32px sans-serif; margin: 0; } p { margin-top: 32px; }
+.intro { display: flex; align-items: center; gap: 0; } .intro h1 { flex: none; }
+.slide:nth-child(2) h1 { margin-top: 96px; }
+</style><section class="slide"><div class="intro"><h1>First slide</h1><img alt="Mascot" width="32" height="32" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Crect width='32' height='32' fill='%23567'/%3E%3C/svg%3E"></div><p>A title touching its mascot.</p></section>
+<section class="slide" hidden><h1>Second slide</h1><p>The title has moved down.</p></section>
+<section class="slide" hidden><h1>Third slide</h1><p>The title returns to its starting position.</p></section>
+<script>
+let slide = 0; const slides = [...document.querySelectorAll('.slide')];
+document.addEventListener('keydown', event => { if (event.key !== 'ArrowRight') return; event.preventDefault(); slides[slide].hidden = true; slide = (slide + 1) % slides.length; slides[slide].hidden = false; });
+</script></html>
