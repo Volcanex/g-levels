@@ -1,0 +1,13 @@
+[[asset]]
+match = "crafted.svg"
+kind = "icon"
+method = "crafted"
+source = "Own curved emblem, tests/fixtures-assets/clean/crafted.svg"
+licence = "own"
+
+[[asset]]
+match = "photo.png"
+kind = "photo"
+method = "pipeline"
+source = "Deterministic synthetic noise test material, Python random seed 412, zlib PNG encoder; not a real photograph"
+licence = "CC0-1.0"

@@ -1,0 +1,23 @@
+{
+  "gdesign": {
+    "stylesheets": ["/home/gabriel/g-design/dist/tokens.css", "/home/gabriel/g-design/dist/g.css"],
+    "sheetNames": ["g.css", "tokens.css"],
+    "recogniseSheets": ["g.css"],
+    "tokens": ["--sp-1", "--text-primary"],
+    "families": ["InterVariable", "Inter", "Space Grotesk", "JetBrains Mono"],
+    "fallbacks": ["Inter Fallback"],
+    "mono": ["JetBrains Mono"],
+    "maxWeight": 500,
+    "referenceRoot": "/home/gabriel/g-design/apps/docs",
+    "references": ["components/buttons.card.html", "components/forms.card.html", "components/data.card.html", "guidelines/type.card.html"]
+  },
+  "baseline": {
+    "stylesheets": ["https://baselinelabs.ai/css/baseline.css"],
+    "sheetNames": ["baseline.css"],
+    "recogniseSheets": ["baseline.css"],
+    "tokens": ["--c-bg", "--c-text", "--ff-product"],
+    "families": ["Plus Jakarta Sans", "JetBrains Mono"],
+    "mono": ["JetBrains Mono"],
+    "references": ["https://baselinelabs.ai/design"]
+  }
+}

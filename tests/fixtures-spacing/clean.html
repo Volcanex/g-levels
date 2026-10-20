@@ -1,0 +1,20 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reserved layout</title><style>
+* { box-sizing: border-box; } body { margin: 0; font: 16px/24px sans-serif; padding-bottom: 80px; }
+header { position: sticky; top: 0; padding: 16px 24px; background: #ddd; }
+main { padding: 32px 24px; max-width: 700px; margin: auto; } h1 { font-size: 24px; line-height: 32px; margin: 0 0 32px; }
+#results { min-height: 160px; } ul { margin: 0; padding: 0 0 0 24px; } li { padding: 4px 0; }
+p { margin: 24px 0; } button { padding: 12px 24px; font: inherit; max-width: 100%; }
+.clip-card { width: 160px; padding: 16px; border: 1px solid #aaa; margin-top: 24px; }
+.ellipsis { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bottom { position: fixed; bottom: 0; left: 0; right: 0; padding: 16px 24px; background: #ddd; }
+</style><header>Reports</header><main><h1 id="title">Saved reports</h1><div id="results"></div><p id="after">Choose a report to continue.</p><button>Open report</button><div class="clip-card"><span class="ellipsis">A deliberately long filename with an ellipsis</span></div></main><div class="bottom">Account tools</div>
+<script>
+fetch('/data.json').then(async response => {
+  if (!response.ok) throw new Error('unavailable');
+  const data = await response.json(); const list = document.createElement('ul');
+  for (const name of data.items) { const item = document.createElement('li'); item.textContent = name; list.append(item); }
+  document.querySelector('#results').append(list);
+}).catch(() => { document.querySelector('#results').textContent = 'Reports are temporarily unavailable.'; });
+let step = 0; document.addEventListener('keydown', event => { if (event.key === 'ArrowRight') { event.preventDefault(); document.querySelector('#title').textContent = ['Next reports', 'Final reports'][step++ % 2]; } });
+</script></html>

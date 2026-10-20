@@ -1,0 +1,7 @@
+[[asset]]
+match = "icon.png"
+kind = "icon"
+method = "generated"
+source = "gpt-image-1 fixture"
+licence = "own"
+approved_role = "mood board"

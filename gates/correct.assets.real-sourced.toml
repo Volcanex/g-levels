@@ -1,0 +1,35 @@
+id = "correct.assets.real-sourced"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-assets"
+principle = "Every visual is real or crafted and its provenance is known: photos, crafted icons and mascots, textures, models and explanatory figures, each with a source and a licence. Nothing is a placeholder, a grey circle, a primitive shape standing in for a picture, or image-generator output that reads as AI. Emergence over hand-drawn: realism comes from real material through a pipeline (photos to textures, PBR maps, splats, post such as depth of field and dither), never from a model drawing the thing from shapes."
+guidance = """
+Load g-assets before adding any visual. Take assets from the house library first, then from a named open source with a licence that allows it (Poly Haven and ambientCG CC0, Fontsource OFL, Phosphor MIT; George only on Baseline), then craft them (built SVG, a pipeline from real photos). Record every asset in the project's assets.toml with kind, method, source, licence and credit. Image generation is for mood boards and store art, never icons, logos, mascots or figures. Where a concept needs explaining, draw an explanatory figure, not another data chart. Never ship a placeholder, a grey disc or a shape-drawn stand-in. Before reporting run `python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/assets.py <page, file or URL>` (add `--src <dir>` for a rendered product) and fix every blocking finding. Someone else does the review.
+"""
+pass = "met: the sensor reports no blocking finding (every asset sourced and licensed, no placeholder, no upscaled raster, no unapproved generated image) and the judge, going asset by asset through full-resolution crops, can point at nothing that reads as AI, placeholder or primitive-drawn. attempted: provenance is complete and placeholders are gone, but the judge names assets that still read as AI, flat or hand-drawn, or a missing explanatory figure, each with its crop."
+remediation = "Replace each blocked asset, do not relabel it: a placeholder becomes a library, sourced or crafted asset, an upscaled raster a higher-resolution source or a vector, a generated icon a built SVG. Add a manifest entry only for what is true about the asset; a made-up source or licence is a catch. For primitive-drawn visuals in a rendered product, feed real material through the pipeline (photo to texture, PBR maps, splat capture) rather than adding more shapes. Rerun both halves."
+written_against = { model = "claude-opus-5-5", date = "2026-10-20" }
+
+[sensor]
+# Two halves. `run` is the mechanical half: every image, media, font and model the page loads
+# checked against assets.toml and the house library, placeholder hosts and names, broken and
+# upscaled rasters, generator provenance metadata (C2PA, IPTC DigitalSourceType, EXIF/PNG text),
+# grey circles and primitive-drawn SVGs as leads, and --src counts primitive draws against
+# real-material loads. It saves a full-resolution crop of every visual for the judge.
+type = "review"
+run = "python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/assets.py {file}"
+cannot_run_exit = 2
+rubric = """
+You did not make these assets, and you are not the agent that did. Judging whether an image reads as AI needs Opus at medium effort or Fable; Sonnet and Sol are not enough. Use Fable for a public face (store art, a banner, a landing page) or when your verdict and the worker's disagree.
+1. Run `python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/assets.py <the page, file or URL>` (with `--src <dir>` for a game or 3D product). Exit 2: record impossible with its reason. Exit 1: each blocking line stands unless you can show the sensor misread it.
+2. Open every asset crop it saved, one by one, at full resolution, and the original file beside it for rasters. Never a contact sheet. Missing metadata proves nothing: judge the pixels.
+3. For each asset ask: is it real (a photo, a capture, a texture from one) or crafted (a built SVG, a drawn mascot, a pipeline output)? Does it read as AI: waxy or glossy surfaces, plastic light from nowhere, melted or smeared detail, nonsense text, over-smooth gradients, a 'gross realistic' render where a flat built icon belongs? Is it a placeholder, a grey disc, a stray dot, a shape-drawn stand-in? Is it sharp at its size and true to the palette? Does the set read as one family? On Baseline, does it follow the imagery ladder (icon, then data vignette, then George)? Is there a concept on the page that needs an explanatory figure and has only a data chart or nothing?
+4. For a rendered product, read the --src counts: realism built from shapes instead of real material is a fault of the principle even when each shape looks tidy.
+5. Each finding quotes its evidence: the crop file, what you see in it, and the manifest's claim about it. A met verdict names how many crops you opened (all of them) and the asset that came closest to failing.
+Record met only if you can point at nothing. Otherwise attempted, each asset named so the worker can replace it without asking.
+"""
+
+[origin]
+date = "2026-10-20"
+incident = "Assets kept reaching Gabriel unsourced, generated or primitive: NOAD hub icons from an image model ('the icon hub codex images are SUPER ai', 'it's doing tha gross realistic', 16 Oct), a generated Baseline LinkedIn banner ('it's crap ... higher def and colours should be right', 8 Oct), particles drawn as 'grey circles' (28 Sep), a placeholder helicopter (28 Sep), a flat phone icon with 'a weird little dot' (8 Oct), a blog post with data charts where a fan-out figure was needed (3 Sep). Newcastle's facades taught emergence over hand-drawn: 'the textures are just the photos on the wall, I wanted these photos processed' (24 Sep)."

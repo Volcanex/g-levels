@@ -1,0 +1,35 @@
+id = "correct.ui.on-system"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-design"
+principle = "A UI looks deliberate and built on the house system: g-design for g projects, Baseline's own /design for Baseline. Its type, colour, components and composition come from that system, not from a generic AI default, and its hierarchy puts the key information at a glance with detail on demand, no noise and nothing said twice."
+guidance = """
+Load g-design (and, on Baseline, read baselinelabs.ai/design and the repo's design rules) before building. Use the system's components before adjusting them, adjust before extending, and never restyle a control locally. Take every font, size, colour, radius and shadow from the system's tokens. Avoid the generic defaults the system does not use: gradient text, purple or cyan glow palettes, side-tab accent borders, bounce easing, badge-over-headline heroes. Decide what the reader needs first and show that at a glance: a one-line summary, then the detail behind a disclosure, errors in a collapsible list rather than across the page, nothing mirrored. Before reporting run `python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/onsystem.py --refs <page, file or URL>`, fix every blocking finding, and put your screenshots next to the reference screens it renders. Someone else does the review.
+"""
+pass = "met: the sensor reports no blocking finding, and the judge, comparing full-resolution screenshots with the house reference screens, can point at nothing that looks generic, off-system or badly prioritised. attempted: clear faults are fixed but the judge names judged faults or leads that hold up, each with its screenshot, place and the reference it departs from."
+remediation = "Fix blocking findings first: a font outside the system, a page that loads no house system, an unambiguous AI tell, raw failure text on screen. Then replace locally styled controls with the house component, raw values with tokens, and invented tokens with real ones. For hierarchy, move detail behind disclosure and collapse long error lists, do not delete it. Never add an Impeccable ignore, a system override or a token alias just to quiet the sensor. Rerun both halves."
+written_against = { model = "claude-opus-5-5", date = "2026-10-20" }
+
+[sensor]
+# Two halves. `run` is the mechanical half: which house system the page loads, fonts, colours,
+# sizes, radii and shadows against the system's own CSS, controls styled locally instead of with
+# house components, stylelint strict-value on the consumer's CSS, Impeccable's anti-generic rules
+# filtered by house taste, and hierarchy leads (mirrored text, walls of text, error dumps).
+# --refs renders the house reference screens beside the work for the judge.
+type = "review"
+run = "python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/onsystem.py --refs {file}"
+cannot_run_exit = 2
+rubric = """
+You did not build this, and you are not the agent that did. Visual taste needs Opus at medium effort or Fable; Sonnet and Sol are not enough. Use Fable when your verdict and the worker's disagree, or when the page is a public face (a landing page, a deck, a client page).
+1. Run `python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/onsystem.py --refs <the page file or URL>`. Exit 2: record impossible with its reason. Exit 1 lists clear faults: each stands unless the screenshot shows the sensor misread the case, and then say how.
+2. Open the reference screens it rendered (g-design docs cards, or baselinelabs.ai/design for Baseline) and every screenshot tile of the work, at full resolution, at the same width. Never a contact sheet or montage. Look before you read the leads.
+3. Ask, tile by tile, with the reference beside it: would this sit in the reference system without looking like a visitor? Are type, colour, radius, density and components the system's own, or a default that crept in (a font bumped up instead of a redesign, underlines everywhere, a corporate template, glow and gradients, a badge above a hero)? Does every control look like the same component on its sibling screens? Is there enough contrast between surfaces (a background the same colour as the boards is a fault)? Hierarchy: can you get the key information at a glance? Is detail on demand rather than either a wall or all hidden? Is anything said twice or mirrored? Do errors or logs take over the page?
+4. Read the leads (off-palette values, locally styled controls, raw values, Impeccable notes, hierarchy leads) and keep only the ones the screenshots bear out.
+5. Each finding quotes its evidence: the tile file, a box in it (x, y, w, h), what is there, and the reference screen and place it departs from. A met verdict names the tiles you opened (all of them) and the place that came closest to looking off-system. If a previous accepted version exists, judge the two blind as A and B before you are told which is new.
+Record met only if you can point at nothing. Otherwise attempted, each fault named so the worker can fix it without asking.
+"""
+
+[origin]
+date = "2026-10-20"
+incident = "Work that ignored the house system kept reaching Gabriel: a Baseline calculator where 'someone just upped the font size and called it a day' (23 Sep), 'all those shitty underlines' on a dashboard redesign (21 Sep), 'way too corporate' for ninasere.com (14 Oct), drifting Baseline admin editors (17 Oct), NOAD boards on a background of the same colour (18 Oct), Wing that 'looks vibe coded' (19 Oct). Information hierarchy folds in here: errors that 'take out the goddamn page' on /traffic (21 Sep), every detail hidden on medieval-mischief (14 Oct), a mirrored statusline value (7 Oct)."
