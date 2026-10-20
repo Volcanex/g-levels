@@ -1,0 +1,9 @@
+id = "g-command-apple"
+title = "G-Command native apps, iPhone and Mac"
+extends = ["delivery", "look"]
+repos = ["g-command-apple"]
+principles = ["The apps draw what the server decides, laid out as the web lays it out, in a native frame."]
+
+[[gates]]
+id = "correct.ui.shared-layout"
+version = 1

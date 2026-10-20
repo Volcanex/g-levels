@@ -57,3 +57,8 @@ id = "correct.engine.feature-isolation"
 version = 1
 paths = ["v2/**"]
 blocking = true
+
+[[gates]]
+id = "correct.render.frame-integrity"
+version = 1
+paths = ["v2/**"]
