@@ -1,6 +1,6 @@
 id = "g-site"
 title = "gabrielpenman.com pages"
-extends = ["g-system"]
+extends = ["g-system", "look"]
 repos = ["g-site"]
 principles = ["Every page a person reads is in Gabriel's voice."]
 
@@ -16,5 +16,24 @@ paths = ["pages/*/content.html"]
 
 [[gates]]
 id = "correct.ui.spacing"
+version = 2
+paths = ["pages/*/content.html"]
+
+[[gates]]
+id = "correct.ui.on-system"
+version = 1
+paths = ["pages/*/content.html"]
+
+[[gates]]
+id = "correct.assets.real-sourced"
+version = 1
+paths = ["pages/**"]
+
+[[gates]]
+id = "correct.delivery.runtime-clean"
+version = 1
+
+[[gates]]
+id = "correct.copy.reader-context"
 version = 1
 paths = ["pages/*/content.html"]

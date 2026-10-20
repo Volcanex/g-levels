@@ -1,0 +1,31 @@
+id = "correct.ui.app-craft"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-spacing"
+principle = "Every app screen looks made with care at phone width, in every polished skin: clear hierarchy, one primary action, consistent components, readable contrast, comfortable targets and designed empty, loading and error states."
+guidance = """
+Load g-design and g-spacing before building. Use the app's shared widgets before making new
+ones. One filled primary button per screen. Secondary actions are tonal or text. Icon-only
+buttons carry a label or tooltip and are at least 44 px. Body text meets WCAG AA contrast on its
+real background, gradients included. One header treatment across sibling screens. An empty
+state is small: a picture or avatar, one line and the action, never a band of bare background.
+Check every polished skin, not only the default. Flutter draws on a canvas, so HTML geometry
+tools see nothing: judge from screenshots of the running app.
+"""
+pass = "met: the reviewer can point at no fault in the screenshots against the rubric, in the default skin and the polished skins. attempted: clear faults are fixed but the reviewer names judged ones, each with its screenshot and place."
+remediation = "Fix what the reviewer named in the shared widget or the skin when the fault repeats across screens, so it is fixed once. Do not special-case one screenshot. Rerun the harness and look again."
+written_against = { model = "claude-opus-5-5", date = "2026-10-19" }
+
+[sensor]
+type = "review"
+run = "cd {repo} && /usr/bin/python3 app/test/screens.py"
+rubric = """
+You did not build this. Run the harness (WING_SCREENS sets the output folder) and open every screenshot it saves. If it cannot run, record impossible with the reason.
+For each screen ask, with the g-spacing checklist beside you: does text touch its box or a neighbour? Anything overlapping, cut off or poking out? Even insets and equal gaps between same-kind things? Is there exactly one obvious primary action? Are buttons, chips, cards and headers the same components as on sibling screens? Is any body text hard to read on its background? Is any target smaller than a fingertip? Is an empty state oversized or bare? Does each polished skin hold up, or does one break contrast or layout?
+Record met only if you can point at nothing. Otherwise attempted, naming each fault by screenshot file, place and checklist question.
+"""
+
+[origin]
+date = "2026-10-19"
+incident = "Gabriel judged Wing's UI quality not good enough. The only UI gate in the charter measured the theory page's HTML and never saw the Flutter app."

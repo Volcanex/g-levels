@@ -1,0 +1,5 @@
+id = "noad"
+title = "NOAD"
+extends = ["delivery", "look"]
+repos = ["noad"]
+principles = ["Laid out with care, on the house system, with real assets."]

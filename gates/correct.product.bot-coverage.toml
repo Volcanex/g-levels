@@ -1,0 +1,27 @@
+id = "correct.product.bot-coverage"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "While real users are few, every place a real user waits on another person has a bot that answers there, inside the product's rules."
+guidance = """
+When a feature makes one person wait on another (an approval, a reply, an accept, a turn, a
+seat, an acknowledgement), add the bot side in the same change: what the bot does, how fast,
+its caps, and a test that drives it with fast bots. Bots act only through the same rules as
+people (for Wing, api/rules.py and the bot-driver token). A bot never pretends to do something
+it cannot, such as keep watch on a date. Keep the coverage list in the bot service's docs true.
+"""
+pass = "met: the bot tests pass and the reviewer finds no waiting state in the change without a bot. attempted: tests pass, but a waiting state is covered only partly (named in the note)."
+remediation = "Name the waiting state, add the bot behaviour in the runner and a fast-bot test for it, and update the bot docs' coverage list. If the API forbids the bot, add a bot-driver route under the same rules rather than a back door."
+written_against = { model = "claude-opus-5-5", date = "2026-10-19" }
+
+[sensor]
+type = "review"
+run = "cd {repo} && .venv/bin/python -m pytest -q -x tests/test_bots.py tests/test_demo_bots.py"
+rubric = """
+You did not build this. Run the bot tests. Then read the diff: list every new place a real user waits on another person (new route, status, button that needs an answer). For each, find the bot code and the test that cover it.
+Record met only if each one is covered. Otherwise attempted, naming the waiting state and the file where the bot side belongs.
+"""
+
+[origin]
+date = "2026-10-19"
+incident = "In Wing's beta a single on her own got no wing, a wing on their own had nobody to set up, bots never opened conversations, and a new man waited up to fifteen minutes for an intro. Gabriel asked for bots to work for more stuff."

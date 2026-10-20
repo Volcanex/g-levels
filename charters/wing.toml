@@ -1,6 +1,6 @@
 id = "wing"
 title = "Wing, the friends-matchmaking dating app"
-extends = ["delivery"]
+extends = ["delivery", "look"]
 repos = ["wing"]
 principles = [
   "The asymmetry is a server rule with tests: in straight matching cis men are chosen, never choosers.",
@@ -26,5 +26,27 @@ paths = ["web/theory/index.html", "content/*.json"]
 
 [[gates]]
 id = "correct.ui.spacing"
-version = 1
+version = 2
 paths = ["web/theory/index.html"]
+
+[[gates]]
+id = "correct.ui.on-system"
+version = 1
+paths = ["app/**", "web/**"]
+
+[[gates]]
+id = "correct.ui.app-craft"
+version = 1
+paths = ["app/**"]
+
+[[gates]]
+id = "correct.ux.first-run"
+version = 1
+
+[[gates]]
+id = "correct.ux.option-tree"
+version = 1
+
+[[gates]]
+id = "correct.product.bot-coverage"
+version = 1
