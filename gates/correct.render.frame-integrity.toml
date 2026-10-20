@@ -1,0 +1,32 @@
+id = "correct.render.frame-integrity"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-motion"
+principle = "Every frame of anything rendered holds together. Watched frame by frame, nothing flickers, pops in or out for one frame, fights with another surface, swims with the camera, shows through, cracks open at a seam, hangs in mid air, rims a hole in black or changes light when nothing moved. A fault a still cannot show is still a fault."
+guidance = "Load g-motion (Part 2) before touching a renderer, a mesh builder, LOD, streaming, materials or a camera path. Before reporting, capture a consecutive frame sequence of the change: a scripted camera path or interaction through the place you changed, at the product's real resolution. Run the mechanical half yourself, `python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/frames.py --repo <repo>` (the repo's `.glevels/frames.json` recipe captures its frames and exports its meshes), or `frames.py SOURCE` on a frame directory, video or URL with `--path` camera script, and `meshcheck.py MESH` on exported geometry. Pass the last good capture as `--baseline` when you have one. Fix every blocking finding, then open its crops at full size. Never judge from a contact sheet or a downscaled frame. Someone else does the review."
+pass = "met: the sensor reports no blocking finding, and the reviewer, having opened every printed crop at full resolution and stepped through the sequence around each lead, can point at no frame fault, or each one left is shown to be a real shadow, a real dark opening or intended. attempted: clear faults are fixed but the reviewer names judged faults that hold up, each with its frame, box and skill rule number."
+remediation = "Fix the cause the skill names, not the measurement. Z-fighting: remove the hidden surface or end it short of the visible one; a depth offset is the last resort. Cracks: put each neighbour's corner into the shared edge, and triangulate rings from a non-collinear corner or ear-clip. Swimming: tie texture and detail to the surface, never the camera; add mipmaps. Popping: hysteresis and a crossfade, swap detail in the frame its group appears. Black rims: give every lit face a real normal and material. Never drop the pose, shorten the path, lower the resolution or blur the frames until the sensor goes quiet. Rerun both halves on the same path."
+written_against = { model = "claude-opus-5-5", date = "2026-10-20" }
+
+[sensor]
+# Two halves. `run` is the mechanical half: frames.py reads the repo's .glevels/frames.json recipe,
+# captures (or reads) consecutive frames, flags one-frame spikes, short pops, shimmer, lighting jumps, invalid
+# frames and unlit exact-black regions (new ones against a baseline first), and runs meshcheck.py on
+# exported geometry for T-junctions, bleed-through faces, coplanar overlaps and floating pieces.
+# Exit 1 on clear faults, 2 when it cannot run (no recipe, no browser, no GPU path). It writes
+# native 1:1 crops and 3x zooms for every printed lead; the rubric below is the judged half.
+type = "review"
+run = "python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/frames.py --repo {repo}"
+cannot_run_exit = 2
+rubric = """
+You did not build this, and you are not the agent that did. Judge the frames against g-motion Part 2 (rules 12 to 20). You need a model with an eye: Opus at medium effort or better, Fable when your verdict and the worker's disagree. Sonnet and Sol are not enough for this judgement.
+1. Run the mechanical half on the same capture the worker used (`frames.py --repo <repo>`, or `frames.py <frames> --baseline <last good capture>`, plus `meshcheck.py` on any exported mesh). Exit 2 means it could not run: record impossible with its reason. Exit 1 lists clear faults: each is a fault unless a crop shows otherwise; say which.
+2. Before reading the leads, step through the sequence itself at full resolution, frame by frame around every moving part: every pose of a shot tour, every frame of a camera path. Never judge from a contact sheet, a montage, a video thumbnail or a downscaled copy: the 20 Oct engine judge passed walls that did not join from a contact sheet. Ask of each frame: does any surface flicker, pop or change between this frame and the next when the camera barely moved? Do two surfaces fight on one plane? Does a texture slide across a surface as the camera moves? Do walls meet without seams, cracks or dotted lines at corners and openings? Can you see through a solid? Is any rim, pane or face pure black or white where it should be lit? Does anything hang in mid air or grow out of a hole? Does an object change shade when it changes state?
+3. Then open every printed crop, the 1:1 and the 3x zoom, and decide each lead: fault, real shadow or opening, or intended. An exact-black region beside lit surfaces is a fault unless the frame shows a real opening or occluded space behind it.
+4. Every finding quotes its evidence: the frame file, a box in that frame (x, y, w, h in pixels), what you see there in words, and the rule number. A met verdict names how many frames and crops you opened (the crops must equal the count the sensor printed) and the one place that came closest to a fault. Record met only if nothing blocking is left and you can point at no fault; otherwise attempted with each fault, so the worker can fix it without asking.
+"""
+
+[origin]
+date = "2026-10-20"
+incident = "g-engine shipped walls that did not join and black rims round holes after a contact-sheet judge passed them (20 Oct, 'DID YOU EVEN TAKE ANY SCREENSHOTS THE WALLS POLYGONS DON'T EVEN JOIN UP - THE FACADE GLTICH IS SITLL THERRE', then 'holes near each other make rims they create terrain'). The same class reached Newcastle in September: facade textures that swam with the camera ('textures shouldnt move w me') and facades flickering in and out as LOD swapped ('building flickering in and out'), each found by Gabriel watching, not by a screenshot. The engine's own gates stay engine-specific; this one holds every renderer to frame-by-frame evidence."

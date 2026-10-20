@@ -1,0 +1,31 @@
+id = "correct.motion.rhythm"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-motion"
+principle = "Motion feels eased and calm. UI feedback is quick and uses the house tokens; anything the viewer is meant to watch (a boot log, a reveal, a camera move, a scroll, a game's time effect) ramps up and ramps down, keeps a natural rhythm and gives time to read. Nothing meant to be seen happens in one frame, nothing snaps at the start or stops dead, nothing ticks like clockwork, and most things do not move at all."
+guidance = "Load g-design and g-motion before building anything that animates. Decide for each motion whether it is UI feedback or narrative, and mark narrative motion `data-motion=\"narrative\"`. Before reporting, run the mechanical half yourself, `python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/motion.py <page, file or URL>`, with `--script` for an interaction (a click, a hover, a scroll) and `--narrative SELECTOR` for watched motion the markup does not mark. Fix every blocking finding, then watch its videos and step through its frame strips at full size. Someone else does the review."
+pass = "met: the sensor reports no blocking finding, and the reviewer, having watched every video and stepped through every frame strip, can point at no rhythm fault: nothing meant to be watched appears in one frame, narrative motion eases in and out with an uneven, readable rhythm, feedback uses the house tokens, and nothing moves that need not. attempted: clear faults are fixed but the reviewer names judged faults that hold up, each with its video or frame, time and skill rule number."
+remediation = "Fix the motion, not the measurement. Feedback: use the shipped `--ease-*`, `--dur-*` and `--spring-*` tokens on transform and opacity. Narrative: give it a real duration and an eased curve at both ends, pace reveals for reading, vary the rhythm in bursts and pauses rather than an even tick, fade rather than snap. Cut animation that only distracts. Never mark feedback as narrative to escape the ceiling, never hide motion behind reduced motion, never shorten the observation window or drop the interaction from the script. Rerun both halves."
+written_against = { model = "claude-opus-5-5", date = "2026-10-20" }
+
+[sensor]
+# Two halves. `run` is the mechanical half: Playwright on the page with and without reduced motion.
+# It reads declared CSS and Web Animations against g-design's tokens (feedback to input at most 300 ms
+# perceived, a sheet 500 ms, narrative at least 400 ms), samples their curves for jumps, missing
+# ramps and dips, and records video for one-frame appearances, cliffs and clockwork rhythm.
+# Exit 1 on clear faults, 2 when it cannot run. It writes per-step videos and unscaled frame strips.
+type = "review"
+run = "python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/motion.py {file}"
+cannot_run_exit = 2
+rubric = """
+You did not build this, and you are not the agent that did. Judge the motion against g-motion Part 1 (rules 1 to 11). You need a model with an eye: Opus at medium effort or better, Fable when your verdict and the worker's disagree. Sonnet and Sol are not enough for this judgement.
+1. Run `python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/motion.py <the page, file or URL>` with the worker's `--script` and `--narrative` flags. Exit 2 means it could not run: record impossible with its reason. Exit 1 lists clear faults: each is a fault unless the frames show otherwise; say which.
+2. Before reading the leads, watch every video it wrote, then step through the frame strips at full resolution around each change. Never judge from a contact sheet, a GIF thumbnail or a downscaled copy. Ask: does anything meant to be watched appear in one frame? Does narrative motion ramp up and ramp down, or snap at the start and stop dead? Does a sequence tick at an even rate like clockwork, or move in bursts and pauses like the real thing? Is there time to read each new piece before the next? Does feedback feel quick and settled, not sluggish and not instant? Does anything dip and recover on its way, overshoot, shake, glow or rotate? Does anything move that need not? Under reduced motion, does it crossfade rather than vanish or jump?
+3. Then read the leads under 'for the reviewer' and keep only those the frames bear out. Token mismatches are a trend, not a fault on their own, and frame pacing on a software renderer is never proof.
+4. Every finding quotes its evidence: the video or frame file, the time in ms or the frame number, the element, what you see in words, and the rule number. A met verdict names how many videos and strips you opened (all the sensor printed) and the one motion that came closest to a fault. Record met only if nothing blocking is left and you can point at no fault; otherwise attempted with each fault, so the worker can fix it without asking.
+"""
+
+[origin]
+date = "2026-10-20"
+incident = "Gabriel kept correcting motion he had to watch to judge: g-site's boot log appeared at once and then ticked evenly (16 Sep, 'Why is it instant I wanna see the boot log slower', 'With the same rhythm as an actual boot sequence', 'rn it goes like clockwork'), a Baseline schema demo was too fast to read (5 Oct, 'a little calmer and fading rather than snappy and fast. It should ... give the user time to read'), a portfolio hover dipped and snapped (23 Sep, 'don't desaturate to re-saturate', 'make the effect smooth and ramp up and ramp down - only like 10% saturation'), and a game's slowdowns hit as sharp cliffs. Screenshots passed each one."

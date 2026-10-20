@@ -1,0 +1,6 @@
+<!doctype html><meta charset="utf-8"><title>Canvas cliff</title>
+<style>body{background:#111}canvas{display:block}</style><canvas id="scene" width="480" height="160" data-motion="narrative"></canvas>
+<script>
+const ctx=scene.getContext('2d');function paint(x){ctx.fillStyle='#111';ctx.fillRect(0,0,480,160);ctx.fillStyle='#eee';ctx.fillRect(30+x,50,48,48)}paint(0);
+if(!matchMedia('(prefers-reduced-motion: reduce)').matches)setTimeout(()=>{const start=performance.now();function frame(t){const p=Math.min(1,(t-start)/1200);paint(300*p);if(p<1)requestAnimationFrame(frame)}requestAnimationFrame(frame)},350);
+</script>
