@@ -34,6 +34,11 @@ id = "correct.staffing.claude-quota"
 version = 1
 blocking = true
 
+[[gates]]
+id = "correct.staffing.job-shape"
+version = 1
+blocking = true
+
 [[exceptions]]
 gate = "correct.hosts.service-file-owner"
 repo = "g-site"
