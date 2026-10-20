@@ -21,6 +21,10 @@ produce. The theory is in Volcanex/g-research
   the look sensors, each a Python CLI driving a `.mjs` Playwright half. They share spacing's
   page resolution, browser lock and memory guard. `vendor.py` pins and installs the maintained
   tools they marry (Impeccable, stylelint-declaration-strict-value) under `~/.cache/glevels/node`.
+- `glevels/motion.py`, `frames.py` and `meshcheck.py`: the moving-picture sensors. `motion.py`
+  (with `motion.mjs`) records a page's animations and reveals; `frames.py` (with `frames.mjs`)
+  reads or captures consecutive frames, or runs a repo's `.glevels/frames.json` recipe;
+  `meshcheck.py` checks exported geometry. `adapters/` holds per-project mesh exporters.
 - `var/results.jsonl`: the results log. Gitignored, because notes can carry private
   incident detail. Set `GLEVELS_LOG` to write elsewhere.
 

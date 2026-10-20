@@ -1,0 +1,4 @@
+<!doctype html><meta charset="utf-8"><title>Instant boot log</title>
+<style>body{background:#111;color:#eee;font:20px monospace}#log{margin:30px;line-height:32px}</style>
+<div id="log" data-motion="narrative">Booting…</div>
+<script>setTimeout(()=>{for(let i=0;i<8;i++){const line=document.createElement('div');line.textContent='Loaded module '+i;log.append(line)}},350)</script>

@@ -1,0 +1,4 @@
+<!doctype html><meta charset="utf-8"><title>Paced boot log</title>
+<style>body{background:#111;color:#eee;font:20px monospace}#log{margin:30px;line-height:32px}#log div{animation:fade 600ms ease-in-out both}@keyframes fade{from{opacity:0}to{opacity:1}}@media(prefers-reduced-motion:reduce){#log div{animation:none}}</style>
+<div id="log" data-motion="narrative">Booting…</div>
+<script>for(const [i,time] of [250,350,450,550,650,750,850,4540].entries())setTimeout(()=>{const line=document.createElement('div');line.textContent='Loaded module '+i;log.append(line)},time)</script>
