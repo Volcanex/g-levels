@@ -19,3 +19,11 @@ version = 1
 [[gates]]
 id = "correct.assets.real-sourced"
 version = 1
+
+[[gates]]
+id = "correct.motion.rhythm"
+version = 1
+
+[[gates]]
+id = "correct.render.frame-integrity"
+version = 1
