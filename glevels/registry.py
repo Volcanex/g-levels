@@ -47,6 +47,17 @@ def repo_of(path):
         return path if path.is_dir() else path.parent
 
 
+def main_name(repo):
+    """A linked worktree's charter is its main repo's: wing-wt-aero is wing."""
+    try:
+        common = subprocess.run(["git", "-C", str(repo), "rev-parse", "--path-format=absolute", "--git-common-dir"],
+                                capture_output=True, text=True, check=True).stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return repo.name
+    common = Path(common)
+    return common.parent.name if common.name == ".git" else repo.name
+
+
 def chain(charter_id, charters):
     """The charter and everything it extends, broadest first."""
     out, seen = [], set()
@@ -88,7 +99,7 @@ def covers(rel, globs):
 
 def in_scope(repo, rel, charters):
     """Gate entries that apply at repo/rel, with the narrowest charter winning per gate."""
-    cid = charter_for(repo.name, charters)
+    cid = charter_for(main_name(repo), charters)
     if cid is None:
         return None, []
     entries = {}
