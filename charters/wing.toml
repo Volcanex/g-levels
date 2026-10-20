@@ -5,7 +5,7 @@ repos = ["wing"]
 principles = [
   "The asymmetry is a server rule with tests: in straight matching cis men are chosen, never choosers.",
   "Every word a person reads in the app sounds like a person, not an app.",
-  "Every skin is night with soft lighting and is laid out with care at phone width.",
+  "Aero, a daylight Frutiger Aero skin, is the default; the other skins are night with soft lighting. Every skin is laid out with care at phone width.",
 ]
 
 [[gates]]
