@@ -1,0 +1,34 @@
+id = "correct.ui.shared-layout"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-design"
+principle = "A page that several clients draw is laid out from one source. G-Command's dashes take their placement from config.json layout, and the web and the Mac app show the same columns, the same order and the same proportions at the same window size."
+guidance = """
+A dash's placement lives only in its config.json `layout` (g-command-web core/panels/CLAUDE.md,
+Layout). The web compiles it, the manifest serves it, and the Mac app lays it out natively. To move
+a panel, change the layout, never content.html, panel CSS or Swift. A client never names a panel to
+place it. A surface no web page has (the Mac menu bar panel) marks its list with
+`// layout-exception: <reason>`. After changing layout code on either side, run
+`python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/shared_layout.py <repo>`, regenerate the apple
+fixtures with Scripts/make_fixtures.py when the server's layouts change, and put a Mac screenshot of
+each dash beside the web at the same window size before reporting.
+"""
+pass = "met: the sensor passes on both repos and the reviewer finds each Mac dash matches the web dash at the same size: columns, order, rows side by side, which panels fill and which keep their natural height. attempted: the sensor passes but the reviewer names a dash or size where the Mac drifts, with both screenshots."
+remediation = "Fix the client that drifted, through the layout renderer, not a per-page special case. If the server layout itself is wrong, change config.json and let both clients follow. A fixture that differs from the server is regenerated, never edited by hand."
+written_against = { model = "claude-opus-5-5", date = "2026-10-20" }
+
+[sensor]
+type = "review"
+run = "python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/shared_layout.py {repo}"
+cannot_run_exit = 2
+rubric = """
+You did not build this. Run the mechanical half on g-command-web and g-command-apple. Exit 2: record impossible with the reason.
+Then open the Mac fixture shots of full-dash, home and ops (g-command-apple `python3 Scripts/mac_build.py --verify`, copied to /home/gabriel/g-command-apple-shots) beside the web dash at the same window size with the same fixture panels.
+For each dash ask: same number of columns in the same proportions? Same panels in each column, in the same order? Panels the web puts side by side also side by side? Do the panels that fill on the web fill on the Mac, and the ones that keep their natural height keep it? Does any panel go missing, get cut off without scrolling, or sit below the fold that the web keeps above it? Narrow both windows under 900 wide: one column in the same reading order on both?
+Record met only if you can point at no drift. Otherwise attempted, naming the dash, the size and the drift.
+"""
+
+[origin]
+date = "2026-10-20"
+incident = "The native Mac G-Command drew every dash as one long column while the web placed the same panels in columns from hand-written content.html; the apps only got a panel order, so the two drifted by construction."
