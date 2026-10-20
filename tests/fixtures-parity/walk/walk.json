@@ -1,0 +1,5 @@
+{"states": [
+  {"id": "visibility", "controls": [{"tag": "button", "text": "Run audit"}, {"tag": "select", "label": "Depth"}], "headings": ["Results"], "text": "text/visibility.txt"},
+  {"id": "brand", "controls": [{"tag": "button", "text": "Run audits (2)"}], "headings": ["Results"], "text": "text/brand.txt"},
+  {"id": "pr", "controls": [{"tag": "button", "text": "Run audit"}], "headings": ["Results"], "text": "text/pr.txt"}
+]}

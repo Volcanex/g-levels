@@ -1,0 +1,6 @@
+[
+  {"name": "Unattributed fare", "price": 24, "as_of": "2026-10-19"},
+  {"title": "Undated quote", "cost": 18, "source": "https://example.test/quote"},
+  {"name": "Source and date missing", "rating": 4.5},
+  {"name": "Plain entity"}
+]

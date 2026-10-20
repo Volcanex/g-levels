@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Frozen runtime</title>
+<link rel="icon" href="data:,">
+<h1>Frozen page</h1>
+<script>
+addEventListener('load', () => setTimeout(() => {
+  const end = performance.now() + 30000;
+  while (performance.now() < end) {}
+}, 0));
+</script>
+</html>

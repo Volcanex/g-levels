@@ -1,0 +1,49 @@
+id = "correct.ux.option-tree"
+version = 1
+kind = "correcting"
+trigger = "milestone"
+skill = "g-product"
+principle = "Every option a person is told about, or would expect, exists and can be found from where they are. Defaults are what most people want, no path ends in an error or a screen with nothing to do, branching is as shallow as it can be, and a newcomer can tell how to get in."
+guidance = """
+Load g-product before building a flow. Draw the option tree first: every screen, what a person
+can do there and where it leads. Then check it from the user's side, not the code's.
+- Every option the copy mentions or implies has a control on that screen or one obvious step
+  away. A switch read from the URL (?analytics=1) is not an option a user has: give it a control,
+  or make it the default.
+- Defaults are what most users want on day one. Ask "would they turn it on?" and if yes, it is on.
+- No dead ends: every empty state, error and finished task offers the next thing to do. A control
+  that does nothing, or does something the person's role can't do, is removed or explained.
+- Fewer branches: one path for the common case. Ask about edge cases later, in context.
+- How do they get in? From the entry page, a newcomer of each role can name the next step
+  without help.
+Before reporting, run the walk yourself and fix every blocking finding:
+`python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/optiontree.py --src <repo> <url of the running app>`.
+With --src and no url it scans the source only: switches read from the URL and flags that are
+off unless the request asks (analytics: bool = Query(False)). The crawl tries the page's own controls
+before its menus and links away, and stops at --max-states or eight minutes, naming what went untried.
+Someone else does the persona walk.
+"""
+pass = "met: the crawl reports nothing blocking, and the persona judge reached every task from the entry with no step where they were stuck, plus no lead they confirm (implied option missing, bad default, dead end, hidden switch). attempted: nothing blocking is left, but the judge names friction or confirmed leads, each with the step, screenshot and quoted words."
+remediation = "Work the blocking list first: each line names the screen, the control and what happened. Fix the flow, not the crawl: no hiding controls from the walker, no skipping states. Then take each confirmed lead: add the missing control, change the default, give the dead end a next step, or cut the branch. Walk again, and send the persona judge back in fresh."
+written_against = { model = "claude-opus-5-5", date = "2026-10-20" }
+
+[sensor]
+# Two halves. `run` crawls the running app's option graph (glevels/walk.mjs tree mode, safe
+# mode on any non-local origin) and exits 1 on errors behind a click, dead controls and
+# unreachable routes, 2 when it cannot run. The rubric is the persona walk.
+type = "review"
+run = "python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/optiontree.py --src {repo}"
+cannot_run_exit = 2
+rubric = """
+Two agents. Neither built the work.
+A. The walker (any agent) runs `python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/optiontree.py --src <repo> --persona <persona file> <entry url>` against the running app (GLEVELS_URL when no url is given). Exit 2 means it could not run: record impossible with the reason. It writes tree.md, findings.json, full-resolution screenshots and persona.md.
+B. The persona judge is a separate agent (Opus medium) given ONLY persona.md: the entry URL, who they are and their tasks in their own words ("get into the pub", "connect Google Analytics", "change how deep a report goes"). No source, no worker report, no tree.md until step 3.
+1. For each task, start at the entry URL and do it the way this person would, driving a real browser (webapp-testing). Save a full-resolution screenshot at every step. Never a contact sheet.
+2. Report each task as reached or stuck: the step, the screenshot file, and the exact on-screen words that misled you or that were missing.
+3. Only then read tree.md and the leads (implied options, defaults, hidden switches, dead ends, deep branches). Confirm or reject each one, quoting the screen.
+4. Record met only if nothing is blocking, every task was reached and no lead holds up. Otherwise attempted, naming each fault by task, step, screenshot and quote.
+"""
+
+[origin]
+date = "2026-10-20"
+incident = "43 corrections from 17 Aug to 20 Oct, with no gate covering them. Analytics hidden behind a URL parameter instead of on by default (21 Sep). No way to change a report's depth: 'when I click run, it just runs' (22 Sep). An add-task button that led only to 'Unexpected error' (5 Oct). Onboarding with too many branches (14 Oct). Wing: 'how do guys even get in the pub? I have no idea and i'm the dev' (20 Oct)."

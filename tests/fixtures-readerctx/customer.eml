@@ -1,0 +1,13 @@
+From: bookings@example.test
+To: customer@example.test
+Subject: Your Friday delivery
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+
+Hi Sam,
+
+Your order will arrive on Friday between 10am and noon.
+Reply to this email if you need a different time.
+
+Thanks,
+Jo

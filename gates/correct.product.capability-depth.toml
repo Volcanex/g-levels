@@ -1,0 +1,45 @@
+id = "correct.product.capability-depth"
+version = 1
+kind = "correcting"
+trigger = "milestone"
+skill = "g-product"
+principle = "A capability one surface has, its siblings have too, unless there is a reason they don't. Results come interpreted: what they mean for this user and what to do next, not only a list."
+guidance = """
+Load g-product. When you add a control, option or view to one surface, list its siblings (every
+audit, every report type, every page of the same kind) and add it there in the same change, or
+write down why that sibling should not have it.
+When a surface shows results, lead with what they mean for this user and what they should do,
+then the detail. A table or a list of chips with no sentence of meaning is half a feature.
+Run `python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/parity.py --require "<what you added>" [--except <file>] <sibling pages or walk dirs>`.
+--require names the capability every sibling must have (alternative labels with |, as in
+"add a question|add another keyword"); a sibling without it blocks. Every other gap and lone
+control is a lead, because siblings differ for good reasons: read them and close the ones a user
+would miss. Add --source when the targets are component source whose forms ship hidden until
+data loads. Controls mounted by script appear only in a walk dir of the running app.
+From `glevels check`, the siblings come from GLEVELS_SIBLINGS and the required capabilities
+from GLEVELS_CAPABILITIES.
+New ideas for what the product could do are design.product.feature-ideas, not this gate.
+"""
+pass = "met: parity reports nothing blocking (or every gap is excepted with a reason the reviewer accepts), and the reviewer finds every results view in the change says what the results mean and what to do next. attempted: parity is clean, but some results views are bare lists, named in the note."
+remediation = "For a gap or lone capability, add it to the missing siblings through the shared component, so it can't drift again, or except it with a reason. For a bare results view, add the interpretation: one line on what this means for the user, one on what to do, then the detail."
+written_against = { model = "claude-opus-5-5", date = "2026-10-20" }
+
+[sensor]
+# Mechanical half: parity.py compares sibling surfaces' controls and section headings.
+# Exit 1 when a sibling lacks a capability named with --require (or GLEVELS_CAPABILITIES),
+# unless excepted. Other gaps, lone controls and bare result lists are leads for the reviewer:
+# on the #594 editors, blocking on every unmatched label buried the one real gap under 25 others.
+type = "review"
+run = "python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/parity.py"
+cannot_run_exit = 2
+rubric = """
+You did not build this.
+1. From the diff, name the kind of surface the change touched and list every sibling of that kind in the product (every audit type, report, deck). Missing one is the usual fault.
+2. Name the capability the change added, then run `python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/parity.py --require "<it>" [--except <file>] <all siblings>` on walk dirs of the running app (or --source on the component files). Exit 2: record impossible. Read every lead: is it a gap a user would miss? Judge each exception's reason: does a user lose something real?
+3. Open every results view the change touched, at full size. Does it say what the result means for this user and what to do next, in the words of their job? Quote the line, or say there is none.
+4. Record met only if no gap is left and every results view interprets. Otherwise attempted, naming the surface, the missing capability or the bare view.
+"""
+
+[origin]
+date = "2026-10-20"
+incident = "12 feature-richness corrections, 27 Aug to 20 Oct: only one audit type had manual control ('is visibility seriously the only one?', 29 Sep), sampling shown as chips and explainers that 'just aren't good enough' (22 Sep), decks that were 'just reports' with no useful insight (15 Oct), and a sweep whose 109 ideas never became tools (20 Oct)."

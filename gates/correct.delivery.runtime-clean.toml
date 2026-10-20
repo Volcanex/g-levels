@@ -1,0 +1,49 @@
+id = "correct.delivery.runtime-clean"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-product"
+principle = "What ships runs on the user's real path: it loads, it does not crash, freeze or throw, the server answers without 5xx, every feature it shows works, and nothing that worked before has stopped working."
+guidance = """
+Load g-product. Before you say it works, open it the way the user will: the real URL or the
+built page, in a real browser, after your last edit. Not the dev server you happened to have
+open, not a unit test.
+- Write the user's journey down as steps (open, click, fill, expect) in a journey file and keep
+  it with the code, so the next run walks the same path.
+- Run `python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/runtime.py --journey <file> <url or page>`
+  and fix every blocking line: uncaught exceptions, console errors, 5xx, missing scripts or data,
+  error text on screen, a blank or frozen page, a step whose click does nothing.
+- For a change to something that already worked, keep the last good run and pass it with
+  `--compare <old run dir>`, so regressions show as NEW.
+- Games and canvases: a frozen frame counter or a blank canvas is a crash, even with no error.
+  The sensor flags a canvas that drew nothing for a second as a lead; you say whether it should move.
+  A game that loads heavily needs a journey with a wait ({"wait": 40000}) long enough to get past
+  loading, or a crash after load is never seen. A main thread silent for 20 s is a freeze and
+  blocks; one that answers after 5 to 20 s is a slow-load lead (software WebGL on a busy host).
+- From `glevels check`, the charter names the target: GLEVELS_URL (and GLEVELS_JOURNEY for the
+  journey file). With neither, the sensor reports impossible rather than guessing a URL.
+- Third-party noise is not yours to fix, but say what it is.
+"""
+pass = "met: the smoke journey runs with nothing blocking on the target the user uses, after the last edit, with no NEW finding against the last good run, and the reviewer's look at the screenshots shows the features working. attempted: nothing blocking, but the reviewer names a feature that looks dead or wrong in the screenshots, or leads (warnings, slow frames, long tasks) were left unexplained."
+remediation = "Read the blocking list: each line names the page, the step and the error with its first stack line or URL. Reproduce it in the browser, find the cause (systematic-debugging), fix it, and rerun the same journey. Never delete the journey step, catch-and-ignore the error, or silence the console to pass. A NEW finding with --compare is a regression: fix it before anything else."
+written_against = { model = "claude-opus-5-5", date = "2026-10-20" }
+
+[sensor]
+# Mechanical half: glevels/walk.mjs smoke mode, console, page errors, every response status,
+# failed requests, on-screen error text, blank and frozen pages, dead journey clicks.
+# Exit 1 on clear faults, 2 when it cannot run (no URL, no browser, too little memory).
+type = "review"
+run = "python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/runtime.py"
+cannot_run_exit = 2
+rubric = """
+You did not build this.
+1. Run `python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/runtime.py --journey <the journey file> <the URL the user uses>` (GLEVELS_URL when none is given), with `--compare <last good run>` when one exists. Exit 2: record impossible with its reason. Check the URL is the real target (production, staging or the built page), not a stray dev server.
+2. Every blocking line is a fault. A NEW one under --compare is a regression and fails the gate.
+3. Open each step's screenshot at full size. Does the feature the step names visibly work: data shown, the button's result on screen, the game moving? A blank panel, a spinner that never ends or a placeholder where data belongs is a dead feature even with a clean console.
+4. Judge the leads: are the warnings, slow frames or third-party failures harmless? Say why.
+5. Record met only with nothing blocking and nothing dead in the screenshots. Otherwise attempted, naming each fault by step, screenshot and the error text.
+"""
+
+[origin]
+date = "2026-10-20"
+incident = "42 runtime breakages reached Gabriel from 20 Aug to 20 Oct: a game 'frozen and broken on load' after the browser check was skipped (25 Sep), a racer that still drove itself in controller mode (5 Oct), a sandbox that froze on a relay error (15 Oct), a dashboard that went down (17 Oct) and a findings deck that was 'entirely broken' (19 Oct). A runtime-error gate was proposed in the backlog and never registered."

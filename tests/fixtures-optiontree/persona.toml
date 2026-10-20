@@ -1,0 +1,4 @@
+reader = "A new team member"
+background = "Has never used the task app"
+tasks = ["Add my first task", "See what analytics are available"]
+entry = "http://127.0.0.1:8000/"

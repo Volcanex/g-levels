@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Option tree</title>
+<link rel="icon" href="data:,">
+<h1 id="heading">Home</h1>
+<nav><a href="settings.html">Settings</a> <a href="empty.html">Quiet page</a></nav>
+<button id="throws" onclick="throw new Error('fixture click exploded')">Break on click</button>
+<a href="?delete=account">Delete account</a>
+<a href="mailto:nobody@example.test">Email</a>
+<a href="https://example.invalid/">External link</a>
+<button onclick="location.href='https://example.invalid/'">External button</button>
+<form id="profile" action="empty.html"><label>Name <input name="name" required></label><button>Send profile</button></form>
+<script>
+if (new URLSearchParams(location.search).get('panel') === 'analytics') {
+  document.querySelector('#heading').textContent = 'Analytics';
+  document.querySelector('nav').innerHTML = '<a href="index.html">Home</a>';
+}
+</script>
+</html>

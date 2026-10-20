@@ -1,0 +1,48 @@
+id = "correct.product.data-truth"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-product"
+principle = "Every number, price, entity, ranking or claim a product shows is measured, correct and current. It says where it came from and over what window, and it means what its label says."
+guidance = """
+Load g-product. A number on screen is a claim to the user.
+- Measured, not guessed: each figure comes from a query, a fetch or a record you can point at.
+  A price, fare or "free" carries its source link and the date it was checked.
+- Labelled: a metric names its window (last 30 days, this week) and its population (people, not
+  bots). A trend names what it compares with. A ranking names its basis.
+- Correct entity: the business, place or person is the one the user meant (same country, same
+  domain). If matching is fuzzy, show the match so the user can catch it.
+- Recomputed when the method changes: change how a scan counts, and every derived figure that
+  reads it (breadth, depth, scores, trends) is recomputed and checked in the same change.
+- Reconciled: for each figure you added or changed, check it once against an independent
+  source (the raw table, the provider's own console, a hand count) and write down the result.
+- Broken values never reach the screen: NaN, undefined, 0 of 0, future "updated" dates.
+Run `python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/claims.py [--data <records>] <page or url>` and fix every blocking line.
+Research write-ups are covered by correct.research.evidence-trace. This gate is for what a product shows.
+"""
+pass = "met: nothing blocking, and the reviewer reconciled a sample of the figures the change touched against an independent source, each matching, labelled with its window and source, and about the right entity. attempted: nothing blocking, but some figures are unreconciled or unlabelled, named in the note."
+remediation = "Work the blocking lines first: each names the value, where it sits and why it is broken. Fix the computation or the data, not the display (no hiding NaN behind a dash). Then for each figure the reviewer could not reconcile, find why: wrong population, wrong window, stale derived value, wrong entity. Fix it at the source, recompute, and show the reconciliation in the report."
+written_against = { model = "claude-opus-5-5", date = "2026-10-20" }
+
+[sensor]
+# Mechanical half: claims.py reads the rendered page (or a walk dump) and any backing records.
+# It blocks on broken values, impossible shares, negative counts, future as-of dates, a named
+# metric (visitors, sessions, score...) with two values in one window, and records with a price
+# or count but no source or date (fields matched by word: availability_evidence, checked_on).
+# Other labels with two values are leads: on two real decks they were axis ticks, all false.
+type = "review"
+run = "python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/claims.py {file}"
+cannot_run_exit = 2
+rubric = """
+You did not build this. Reconcile, don't read.
+1. Run `python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/claims.py [--data <backing records>] <page, url or walk dir>`. Exit 2: record impossible with the reason. Every blocking line is a fault.
+2. From the diff, list every figure, price, ranking, entity or claim the change adds or alters on screen. Pick at least five (all, if fewer).
+3. For each, get the same figure independently: run the raw query, open the provider's own dashboard or API, open the cited source, or count by hand. Write both values and where you got yours.
+4. Check each has its window, population and source on screen, and is about the entity the user meant (country, domain, name).
+5. Judge the leads (no window, unsourced superlative, odd one out entity, repeated value).
+6. Record met only if every sampled figure matches and is labelled. Otherwise attempted, naming each figure, the two values and the cause if known.
+"""
+
+[origin]
+date = "2026-10-20"
+incident = "37 corrections from 22 Aug to 20 Oct, mostly analytics in a client product: trends that turned out meaningless (22 Sep), anonymous and bot traffic counted as visitors (22 Sep), a reputation audit that matched a business in the wrong country (4 Oct), breadth and depth left stale after scans changed (5 Oct), and unconfirmed venues, 'free' claims and untrusted train fares on a trip planner (14 Oct). The research gates cover research write-ups, not what a product shows."

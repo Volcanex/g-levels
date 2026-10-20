@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Broken runtime</title>
+<link rel="icon" href="data:,">
+<h1>Unexpected error</h1>
+<script>
+fetch('./data.json');
+throw new Error('fixture load exploded');
+</script>
+</html>
