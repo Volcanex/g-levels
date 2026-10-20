@@ -1,0 +1,18 @@
+id = "correct.engine.stutter"
+version = 1
+kind = "correcting"
+trigger = "milestone"
+principle = "The range plays smoothly on the reference device: blasts slow time if they must, but frames never hitch."
+guidance = "Measure on the M3 through the runner queue, interleaved against main under the standard cool-down; headless timings never count. Discard raced second attempts."
+pass = "met: the scripted range sequence on the M3 has no frame over 50 ms and p99 at or under 25 ms, over at least four interleaved runs, and is no worse than main. attempted: runs complete but a threshold is missed, with numbers."
+remediation = "The sensor prints the worst frames with what ran in them. Move that work off the frame or to build time."
+written_against = { model = "claude-opus-5-5", date = "2026-10-20" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && node v2/tests/range/gate.mjs stutter"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-10-20"
+incident = "The sandbox still stuttered and glitched under fire after weeks of throughput work."

@@ -1,0 +1,18 @@
+id = "correct.engine.break-latency"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "A wall visibly breaks on the frame the blast lands. The picture never shows an intact wall while its pieces fly."
+guidance = "The break must be drawn from ready data. Prefer moving work to build time (precut) over making runtime meshing faster."
+pass = "met: on every range blast bay the hit wall's breach is drawn within two frames of the blast and its mesh-gap ticks are zero. attempted: gaps or late frames remain, with counts per bay."
+remediation = "The sensor prints late frames and gap ticks per bay and which job was pending. Find what was not ready and move it earlier."
+written_against = { model = "claude-opus-5-5", date = "2026-10-20" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && node v2/tests/range/gate.mjs break-latency"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-10-20"
+incident = "Walls were seen breaking slowly for a month; mesh gaps were cut 47% but never to zero."

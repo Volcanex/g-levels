@@ -1,0 +1,18 @@
+id = "correct.engine.range-default"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "The engine is judged on its own debug range, not on one city. The sandbox opens on a synthetic range world built by the normal world pipeline, and nothing in the stage depends on a particular game's data."
+guidance = "The range is a world like any other: write a small synthetic source (flat ground, labelled bays, chosen building types, freestanding walls per material, parked cars, peds) and build it with the same converter that builds Newcastle. Do not special-case the range in the stage. Remove hardcoded game constants from the stage (house ids, view poses, car spawn) and take them from the world. Newcastle stays reachable behind ?world=newcastle and is never the default."
+pass = "met: the default sandbox query loads the range manifest, the range was produced by the normal converter from a synthetic source, and the stage has no game-specific constants. attempted: the range loads by default but some stage constant is still game-specific, named in the note."
+remediation = "The sensor names the constant or path that still assumes a game. Move it into the world data or the game's own config, not into a range special case."
+written_against = { model = "claude-opus-5-5", date = "2026-10-20" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && node v2/tests/range/gate.mjs range-default"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-10-20"
+incident = "The sandbox could only load two Newcastle cells with a hardcoded house id, so for a month every destruction change was judged on the same street and the street looked the same."

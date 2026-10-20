@@ -1,0 +1,18 @@
+id = "correct.engine.floors"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "Structure is supported. Remove what holds a floor up and the floor comes down."
+guidance = "Decide support at build time where possible (precut support graph) and only evaluate it at runtime. Report impossible with the reason if no support rule exists yet, rather than faking a collapse."
+pass = "met: removing a building's ground-floor walls drops the floor above in a sim test and in the range floors bay. attempted: a partial rule (some floors fall, some float), named in the note."
+remediation = "The test prints which pieces stayed up and what supports them. Fix the support graph, not the test geometry."
+written_against = { model = "claude-opus-5-5", date = "2026-10-20" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && node v2/tests/range/gate.mjs floors"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-10-20"
+incident = "No collapse rule was found in the engine; floors could hang in the air with their walls gone."
