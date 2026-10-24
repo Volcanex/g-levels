@@ -1,0 +1,38 @@
+id = "correct.product.publish-integrity"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "Publishing a live site never half-applies. Someone else's change is surfaced as a conflict, never overwritten. A failed build rolls every file back. Every publish can be undone from history."
+guidance = """
+Publish under the tenant lock and refuse while another live build runs. Before writing, compare
+each changed file's live hash with the hash the draft started from: a difference is a conflict
+returned to the person, file by file, with keep-mine and keep-theirs. Record the before and
+after content of every file first, then apply each file atomically (temp, fsync, rename,
+mode and owner preserved). Run the live build; if it fails, restore every file from its before
+content, rebuild, mark the publish failed with the log and keep the draft. Revert writes the
+inverse into the draft for review; it never publishes by itself.
+Test each failure point, not only the happy path: a conflict from an outside edit, a build that
+fails after half the files are written, a crash between apply and build, two publishes at
+once, a revert of a revert, a binary file and a deleted file. After each, assert live is
+byte-identical to either the old or the new state, never a mix. Name these tests so
+`-k "publish or revert or conflict or history"` selects them in the unit and API suites.
+"""
+pass = "met: the publish tests pass with nothing skipped, and the reviewer finds a test for each failure point in the guidance and no write to live outside the publish path. attempted: tests pass but a failure point has no test, named in the note."
+remediation = "Read the failing case and what live looked like after it. Fix the ordering in the publish path: record before you write, write atomically, restore on any failure. Never catch the build failure and report success, and never skip the conflict check for admins or the agent."
+written_against = { model = "claude-opus-5-5", date = "2026-10-24" }
+
+[sensor]
+type = "review"
+run = '''cd {repo} && out=$(PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q -rs -p no:cacheprovider -k "publish or revert or conflict or history" tests/unit tests/api 2>&1); rc=$?; printf '%s\n' "$out" | tail -n 40; if [ $rc -eq 0 ] && printf '%s\n' "$out" | grep -Eq '[0-9]+ skipped'; then echo 'publish-integrity: a publish test was skipped'; exit 1; fi; exit $rc'''
+rubric = """
+You did not build this.
+1. Read the mechanical half's result. A failure, skip or "no tests collected" is a catch.
+2. Read the publish path (g-sites: gsites/publish.py). Is the history record written before any live file? Is each file written atomically with mode and owner kept? Does every exception after the first write restore every file and rebuild? Is the conflict check done for every caller, admin and agent included?
+3. Search the code for any other write to the live source tree (open for write, shutil, rename, subprocess with a live path). Each must be the publish path or an importer run by an admin.
+4. For each failure point in the guidance, name the test that covers it, or say it has none.
+5. Record met only if the path is ordered safely and every failure point is tested. Otherwise attempted, naming each gap.
+"""
+
+[origin]
+date = "2026-10-24"
+incident = "g-sites build: clients publish straight to live sites that others may also have changed, so a half-applied or overwriting publish would break a real site."

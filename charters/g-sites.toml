@@ -1,0 +1,125 @@
+id = "g-sites"
+title = "g-sites, the studio where clients edit their own websites"
+extends = ["g-system", "look", "delivery"]
+repos = ["g-sites"]
+principles = [
+  "A client can edit their own site safely, and nothing else.",
+  "Every surface (web, MCP, agent, terminal) enforces the same rules on the server, through one service layer.",
+  "Live sites never half-change: a publish applies whole or not at all, and history can undo it.",
+  "The studio is obvious to a non-technical artist who arrives alone.",
+]
+
+# Security: the reason this charter exists. Each blocks.
+
+[[gates]]
+id = "correct.security.tenant-isolation"
+version = 1
+paths = ["gsites/**", "sandbox/**", "tests/**"]
+blocking = true
+
+[[gates]]
+id = "correct.security.path-confinement"
+version = 1
+paths = ["gsites/**", "tests/**"]
+blocking = true
+
+[[gates]]
+id = "correct.security.sandbox-escape"
+version = 1
+paths = ["sandbox/**", "gsites/terminal.py", "tests/sandbox/**"]
+blocking = true
+
+[[gates]]
+id = "correct.security.agent-tool-boundary"
+version = 1
+paths = ["gsites/**", "tests/**"]
+blocking = true
+
+[[gates]]
+id = "correct.product.server-enforced-rules"
+version = 1
+paths = ["gsites/**", "tests/**"]
+
+# Product: live sites and the paths people take.
+
+[[gates]]
+id = "correct.product.publish-integrity"
+version = 1
+paths = ["gsites/**", "tests/**"]
+blocking = true
+
+[[gates]]
+id = "correct.product.preview-parity"
+version = 1
+paths = ["gsites/**", "tests/parity/**"]
+
+[[gates]]
+id = "correct.product.e2e-journeys"
+version = 1
+
+[[gates]]
+id = "correct.product.capability-depth"
+version = 1
+paths = ["web/src/**", "gsites/**"]
+
+[[gates]]
+id = "correct.product.data-truth"
+version = 1
+paths = ["web/src/**"]
+
+[[gates]]
+id = "correct.ux.first-run"
+version = 1
+paths = ["web/src/**", "web/inject/**"]
+
+[[gates]]
+id = "correct.ux.option-tree"
+version = 1
+paths = ["web/src/**", "web/inject/**"]
+
+[[gates]]
+id = "correct.delivery.runtime-clean"
+version = 1
+
+[[gates]]
+id = "correct.delivery.verify-before-claiming-done"
+version = 1
+blocking = true
+
+# Look: the studio app and the editor injected into previews.
+
+[[gates]]
+id = "correct.ui.spacing"
+version = 2
+paths = ["web/src/**", "web/inject/**"]
+
+[[gates]]
+id = "correct.ui.on-system"
+version = 1
+paths = ["web/src/**", "web/inject/**"]
+
+[[gates]]
+id = "correct.ui.app-craft"
+version = 1
+paths = ["web/src/**", "web/inject/**"]
+
+[[gates]]
+id = "correct.motion.rhythm"
+version = 1
+paths = ["web/src/**", "web/inject/**"]
+
+[[gates]]
+id = "correct.render.frame-integrity"
+version = 1
+paths = ["web/src/**", "web/inject/**"]
+
+[[gates]]
+id = "correct.assets.real-sourced"
+version = 1
+paths = ["web/src/**", "web/inject/**"]
+
+# Host: the service runs as a non-root user beside a container that breaks on root-owned files.
+
+[[gates]]
+id = "correct.hosts.service-file-owner"
+version = 1

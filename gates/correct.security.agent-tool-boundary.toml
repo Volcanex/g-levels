@@ -1,0 +1,38 @@
+id = "correct.security.agent-tool-boundary"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "An AI agent acting for a person can do only what that person can do, only on their own draft, and nothing an attacker plants in page content can widen that. It has no shell, no network and no way to publish by itself."
+guidance = """
+Every agent tool is a thin wrapper over a service function, called with the requesting
+person's own context (via="agent"), so the same rule and confinement checks apply. The tenant
+id comes from the session, never from the model's arguments. The tool list holds no shell,
+no network fetch, no publish and no member or token management. Writes go to the draft, which
+the person reviews before publishing. Tool results are truncated, and page text is data, not
+instructions.
+Red-team it: a fixture page carries injected instructions (read another tenant, write a
+protected file, publish, exfiltrate a secret through a URL, call a tool that does not exist).
+With a stub provider that follows them, every attempt is refused, the other tenant and live
+are unchanged, and the draft holds at most edits the person could have made. Run the same
+attempts as an editor, a developer and a narrowed token. Name these tests so `-k agent`
+selects them in the security suite (or put them in tests/agent).
+"""
+pass = "met: the agent red-team tests pass with nothing skipped, and the reviewer reading the tool module finds every tool calls a service function with the requester's context, no tool takes a tenant id from the model, and no tool can publish, run a shell or reach the network. attempted: tests pass but the reviewer names a tool that bypasses or widens, quoting it."
+remediation = "Read the failing attempt: which tool, as whom, and what it reached. Rewrite the tool as a call to the service function with the requester's context, take the tenant from the session, or remove the tool. Never filter the injected text and call the boundary fixed: the boundary is the permissions, not the prompt."
+written_against = { model = "claude-opus-5-5", date = "2026-10-24" }
+
+[sensor]
+type = "review"
+run = '''cd {repo} && out=$(PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q -rs -p no:cacheprovider -k agent tests/security $(test -d tests/agent && echo tests/agent) 2>&1); rc=$?; printf '%s\n' "$out" | tail -n 40; if [ $rc -eq 0 ] && printf '%s\n' "$out" | grep -Eq '[0-9]+ skipped'; then echo 'agent-tool-boundary: a red-team test was skipped'; exit 1; fi; exit $rc'''
+rubric = """
+You did not build this.
+1. Read the mechanical half's result. A failure, skip or "no tests collected" is a catch.
+2. Open the agent's tool module (g-sites: gsites/agent/tools.py) and the loop that dispatches tools. For each tool: which service function does it call, with whose context, and where does its tenant id come from? Quote any line that opens a file, runs a process, makes a request or touches the database directly.
+3. Is there any tool for publish, shell, network, members, tokens or settings outside content? Can the model name a tool that is not in the list and have it run?
+4. Do the red-team tests cover a hostile page for each of: other tenant, protected file, publish, exfiltration, unknown tool, as more than one role?
+5. Record met only if every tool is a scoped service call and the red team covers each attack. Otherwise attempted, quoting the tool or naming the missing attack.
+"""
+
+[origin]
+date = "2026-10-24"
+incident = "g-sites build: an AI that edits client sites reads page content anyone can write, so a planted instruction must not be able to act beyond the person who asked."

@@ -1,0 +1,32 @@
+id = "correct.security.tenant-isolation"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "In a multi-tenant product, a person acting on one tenant can never read or change another. Every route, tool and socket that takes a tenant id refuses anyone without a role there, and the refusal leaves every byte of state as it was."
+guidance = """
+One rule function decides access (for g-sites, rules.require in the service layer), and every
+surface (web API, MCP tools, agent tools, CLI, terminal bridge) reaches data only through
+service functions that call it first. No surface touches the filesystem or database directly.
+A non-member gets not-found, not forbidden, so tenant ids don't leak.
+Test it as a matrix generated from the app's own route table and tool list, not a hand list:
+for every route and tool, a member of tenant A calls it with tenant B's id (and B's file paths,
+item ids, token ids, publish ids) and gets 403 or 404, and a snapshot of B's draft, live tree
+and database rows is byte-identical afterwards. The matrix fails when a route or tool exists
+that it does not cover, so a new route can't ship untested. Include disabled users, revoked
+sessions, archived tenants, narrowed tokens and an admin impersonating someone (who acts as
+that person, not as admin).
+The sensor runs the security suite with bytecode and cache writes off. A skipped test fails
+the gate: a skipped isolation test is an untested surface.
+"""
+pass = "met: the security suite passes with nothing skipped, and its matrix covers every route and tool in the app's table (the coverage test is part of the suite). attempted is not available here: a tenant that can reach another is a catch."
+remediation = "Read the failing case: it names the route or tool, the acting tenant and what changed or leaked. Route the surface through the service function that calls the rule, or add the missing rule call there. Never special-case the test user, loosen the snapshot or add the route to an ignore list. A route the matrix reports as uncovered gets a matrix entry (its tenant id parameter), not an exclusion."
+written_against = { model = "claude-opus-5-5", date = "2026-10-24" }
+
+[sensor]
+# Exit 0 only when every collected test passed and none was skipped.
+type = "command"
+run = "cd {repo} && out=$(PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q -rs -p no:cacheprovider tests/security 2>&1); rc=$?; printf '%s\\n' \"$out\" | tail -n 40; if [ $rc -eq 0 ] && printf '%s\\n' \"$out\" | grep -Eq '[0-9]+ skipped'; then echo 'tenant-isolation: a security test was skipped, which leaves a surface untested'; exit 1; fi; exit $rc"
+
+[origin]
+date = "2026-10-24"
+incident = "g-sites build: a studio where many clients edit their own sites from one service, over web, MCP, agent and terminal surfaces, needed proof that no surface lets one client reach another."

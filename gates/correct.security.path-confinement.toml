@@ -1,0 +1,41 @@
+id = "correct.security.path-confinement"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "Every surface that takes a file path keeps it inside the tenant's own root. Traversal, absolute paths, NUL bytes, backslashes, unicode look-alikes and symlinks that point out of the root are refused, and protected files stay invisible to people who may not see them."
+guidance = """
+Put confinement in one function every path passes through before any read, write, list,
+rename, upload or delete (for g-sites, safe_rel in the draft overlay). It refuses absolute
+paths, `..` components, NUL, backslash and empty components, normalises unicode (NFC) before
+it checks, and resolves symlinks inside the live tree, refusing any whose target leaves the
+root. Rename checks both ends. Protected paths (secrets, VCS dirs, generated or server-side
+code) are left out of listings and refused on read and write, not just hidden in the UI.
+Uploads take a sanitised name, never the client's path.
+Fuzz it from the outside: for every file-taking route and tool, send the hostile set
+(`../`, `..%2f`, `/etc/passwd`, `a/../../b`, `a\\..\\b`, `a\\x00b`, full-width and
+combining-character dots, a symlink in a fixture site pointing at /etc and at a sibling tenant)
+and assert a refusal and no change on disk.
+Name the confinement tests so `-k confine` selects them (a module test_confinement.py, or
+test_confine_* functions in the overlay and security suites); the sensor runs exactly those.
+"""
+pass = "met: the confinement tests pass with nothing skipped, and the reviewer finds every file-taking surface routes through the confinement function and appears in the fuzz. attempted: tests pass, but the reviewer names a surface or hostile case the fuzz does not reach."
+remediation = "Read the failing case: surface, input and what happened. Fix the confinement function or route the surface through it. Never strip the hostile input before the check and call that a pass, or catch the error and serve a default file. A surface the reviewer found outside the fuzz goes into it."
+written_against = { model = "claude-opus-5-5", date = "2026-10-24" }
+
+[sensor]
+# Mechanical half: the tests selected by -k confine in the unit and security suites. Exit 5
+# (none collected) is a catch: the gate needs those tests to exist. A skip is a catch too.
+type = "review"
+run = '''cd {repo} && out=$(PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q -rs -p no:cacheprovider -k confine tests/unit tests/security 2>&1); rc=$?; printf '%s\n' "$out" | tail -n 40; if [ $rc -eq 0 ] && printf '%s\n' "$out" | grep -Eq '[0-9]+ skipped'; then echo 'path-confinement: a confinement test was skipped'; exit 1; fi; exit $rc'''
+rubric = """
+You did not build this.
+1. Read the mechanical half's result. A failure or a skip is a catch; record nothing until it passes.
+2. List every surface that takes a path or a filename: REST routes, MCP tools, agent tools, upload and media handlers, the terminal sync, preview serving, importers. Search the code for open(, Path(, os.path, shutil, send_file and FileResponse outside the confinement module: each hit must take an already-confined path.
+3. Read the confinement function. Does it normalise before it checks, resolve symlinks against the real root, check both ends of a rename, and refuse rather than repair?
+4. Check the fuzz reaches every surface from step 2 with the full hostile set, including a symlink escape and a sibling tenant's path.
+5. Record met only if every surface is confined and fuzzed. Otherwise attempted, naming the surface and the missing case.
+"""
+
+[origin]
+date = "2026-10-24"
+incident = "g-sites build: clients edit files of live sites through web, MCP, agent and terminal surfaces on a host that also holds every other client's site and the server's secrets."

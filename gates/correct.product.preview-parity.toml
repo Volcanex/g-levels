@@ -1,0 +1,28 @@
+id = "correct.product.preview-parity"
+version = 1
+kind = "correcting"
+trigger = "milestone"
+principle = "A preview with no changes is exactly the live site. If an untouched preview differs from live, every preview lies, and people publish changes they never saw."
+guidance = """
+The preview builds with the same build the live site uses, from the same source, through the
+draft overlay with an empty draft. Keep a parity suite, marked `parity`, that for every real
+site builds the empty-draft preview into a temp dir and compares it file by file with the live
+output: same file set, same bytes, ignoring only volatile lines you list by pattern with a
+reason (a build timestamp, a cache-busting hash). It reads real sites and writes only to temp.
+The ignore list stays short: each new entry is a reason the preview might drift, so it needs a
+comment saying why it cannot differ in a way a person would see.
+When a host has no real sites the suite skips with the reason, and the sensor reports
+impossible, not met.
+"""
+pass = "met: every real site's empty-draft preview matches live, nothing skipped. impossible: no real sites on this host or a site skipped, with the reason. attempted: all sites match, but the ignore list grew in this change without a reason a reviewer would accept, named in the note."
+remediation = "Read the first differing file for the failing site and diff it. Fix the preview build (a missing step, a different input, an absolute URL, a symlink served differently), not the comparison. Never add a pattern to the ignore list to make a real difference go away."
+written_against = { model = "claude-opus-5-5", date = "2026-10-24" }
+
+[sensor]
+type = "command"
+run = '''cd {repo} && out=$(PYTHONDONTWRITEBYTECODE=1 timeout 2400 .venv/bin/python -m pytest -q -rs -p no:cacheprovider -m parity tests/parity 2>&1); rc=$?; printf '%s\n' "$out" | tail -n 40; if [ $rc -eq 0 ] && printf '%s\n' "$out" | grep -Eq '[0-9]+ skipped'; then echo 'preview-parity: sites were skipped, so parity is unproven here'; exit 75; fi; exit $rc'''
+cannot_run_exit = 75
+
+[origin]
+date = "2026-10-24"
+incident = "g-sites build: clients approve edits on a preview of their live site, so a preview that drifts from live would hide what publishing does."

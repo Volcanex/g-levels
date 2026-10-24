@@ -1,0 +1,35 @@
+id = "correct.security.sandbox-escape"
+version = 1
+kind = "correcting"
+trigger = "milestone"
+principle = "A shell given to a client runs in a hardened sandbox on a copy of their own work. From inside it they cannot reach the network, the host, the container runtime, other tenants or the live site, and cannot exhaust the host."
+guidance = """
+The sandbox runs as an unprivileged user with no network, every capability dropped,
+no-new-privileges, a read-only root with small tmpfs scratch, pid, memory, swap, cpu and disk
+caps, an idle timeout and a host-wide concurrency cap. It works on the draft through an
+overlay, never on live files, and changes come back through the normal service layer, so
+confinement and protected paths still apply. The broker that owns the container runtime
+accepts only a fixed protocol and validates every directory against an allow-list before
+mounting it; it never takes a path from a request on trust.
+Keep a probe suite that runs inside the container and tries to escape: open a socket, resolve
+a name, list host mounts, write /proc/sys and /sys, find the runtime socket, read host paths
+and other tenants' dirs, gain root through setuid, fork-bomb, fill the disk, outlive the idle
+timeout. Every attempt must fail and the host must be unharmed after. Mark the suite
+`sandbox` and skip it, with a reason, when the container runtime is missing.
+The sensor reports impossible, not met, when docker is missing or any probe skipped, because
+an escape suite that did not run proves nothing.
+"""
+pass = "met: every probe in the sandbox suite ran and every escape attempt failed, with nothing skipped. impossible: docker unavailable or a probe skipped, with the reason. attempted is not available: one working escape is a catch."
+remediation = "Read the probe that succeeded: what it reached and how. Close it in the container flags, the image, the broker's allow-list or the overlay, then rerun the whole suite. Never delete or weaken a probe, mark it xfail, or loosen a limit to make a probe pass."
+written_against = { model = "claude-opus-5-5", date = "2026-10-24" }
+
+[sensor]
+# 75 (EX_TEMPFAIL) means the suite could not run here: no docker, or a skip. Pytest's own codes
+# keep their meaning: 1 a probe escaped or a test failed, 2 collection errors, 5 no probe suite.
+type = "command"
+run = '''cd {repo} && { command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1 || { echo 'sandbox-escape: docker unavailable, the probe suite cannot run'; exit 75; }; } && out=$(PYTHONDONTWRITEBYTECODE=1 timeout 1800 .venv/bin/python -m pytest -q -rs -p no:cacheprovider -m sandbox tests/sandbox 2>&1); rc=$?; printf '%s\n' "$out" | tail -n 40; if [ $rc -eq 0 ] && printf '%s\n' "$out" | grep -Eq '[0-9]+ skipped'; then echo 'sandbox-escape: probes were skipped, so the suite proves nothing here'; exit 75; fi; exit $rc'''
+cannot_run_exit = 75
+
+[origin]
+date = "2026-10-24"
+incident = "g-sites build: technical clients get a terminal on the same host that serves every other client's live site."
