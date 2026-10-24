@@ -1,0 +1,23 @@
+id = "correct.voice.turn-taking"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "The Voice waits for the person to finish, not for a fixed silence. A thinking pause mid-sentence does not trigger a reply, and a finished question does, quickly."
+guidance = """
+Turn detection is Silero VAD for speech and the smart-turn model for whether the turn is over,
+judged on the audio, not on a transcript. Short silences ask smart-turn, longer ones re-ask, and a
+hard ceiling ends the turn anyway. Test on rendered speech fixtures: a complete question, a
+sentence with a mid-clause pause, a trailing "and um", and noise. Keep the model files pinned by
+sha256.
+"""
+pass = "met: the turn, live-call and realtime relay tests pass, including the fixture cases. attempted: a fixture case is marked xfail with the reason."
+remediation = "Run the named test file and read which fixture misfired and at what probability. Change the endpointer's windows or thresholds only with a fixture that shows why, and keep the old fixtures passing."
+written_against = { model = "claude-opus-5-5", date = "2026-10-24" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && PYTHONPATH=${GLEVELS_PYTEST:-/home/gabriel/.cache/glevels/pytest} .venv/bin/python -m pytest -q tests/test_voice_turn.py tests/test_voice_live.py tests/test_voice_realtime.py"
+
+[origin]
+date = "2026-10-24"
+incident = "Fixed-silence endpointing either cuts people off mid-thought or leaves a dead second after every question. Both make a call feel like a walkie-talkie."

@@ -1,0 +1,24 @@
+id = "correct.voice.barge-in"
+version = 1
+kind = "correcting"
+trigger = "milestone"
+principle = "Talking over the Voice stops it at once, and it answers what was just said. It remembers only the part of its reply the person heard."
+guidance = """
+Cut on confirmed speech from the turn detector, not on a single loud frame, so a cough or the
+Voice's own echo does not stop it. On a cut, tell the client to drop its queued audio by reply id,
+cancel generation, and keep in history only the words that played. If the person carries on before
+the reply has started speaking, merge both parts into one turn and ask again instead of answering
+half a sentence.
+"""
+pass = "met: the bench's speech onset to flush is at most 800 ms, no reply audio for the cut reply arrives after the flush, and the next reply answers the interruption. attempted: the flush is late or stray audio arrives, with the timings."
+remediation = "The bench prints onset to speech_confirmed to flush. A late confirm is the detector's confirm window. A late flush after the confirm is the server loop (blocking work on the event loop). Stray audio after a flush means a send path skips the reply's cut flag."
+written_against = { model = "claude-opus-5-5", date = "2026-10-24" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && .venv/bin/python -m voice.live_bench --reuse 900 --gate barge-in"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-10-24"
+incident = "The first spoken mode only stopped once speech recognition had two words that differed from the bot's own reply, so interrupting it took seconds and often failed."

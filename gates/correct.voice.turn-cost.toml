@@ -1,0 +1,27 @@
+id = "correct.voice.turn-cost"
+version = 1
+kind = "correcting"
+trigger = "milestone"
+principle = "A live call costs well under a pound an hour and nothing while idle. The default engine is a pay-per-use API, never a rented GPU or a per-minute plan that bills silence."
+guidance = """
+Take cost from the provider's own usage figures (OpenRouter returns usage.cost with
+usage.include), not from list prices. Count the caption transcription and tool loops in the turn.
+gpt-audio-mini gets no prompt caching through OpenRouter (measured 2026-10-24: cached_tokens 0 on
+identical repeats), so every model call pays for the whole system prompt, brief and tool schemas,
+about 3,250 tokens or $0.002. A tool turn makes two calls. Grow the prompt only when it earns it.
+Never resend audio that was already answered: history carries the transcript, not the audio.
+Fillers and greetings are cached, not regenerated per call. A per-minute engine (xAI, OpenAI
+realtime) is opt-in by key and named as such.
+"""
+pass = "met: the bench's mean cost per turn is at most $0.004 (about 75p an hour at four turns a minute) and its whole default run under $0.05, from provider-reported usage, including the cut-off counting reply, whose cost the server looks up after the barge-in. attempted: over, with the turns and stages that cost the most."
+remediation = "The bench prints cost per turn split by stage where the server reports it. Look for history growth, tool loops, a caption model that got dearer, or audio being resent."
+written_against = { model = "claude-opus-5-5", date = "2026-10-24" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && .venv/bin/python -m voice.live_bench --reuse 900 --gate cost"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-10-24"
+incident = "The owner asked for a proper spoken conversation that does not cost a fortune. Hosted CSM or a warm GPU bills by the hour whether or not anyone talks."

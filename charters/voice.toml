@@ -1,0 +1,36 @@
+id = "voice"
+title = "Brain Voice, the live call"
+extends = ["delivery"]
+repos = ["g-brain"]
+principles = [
+  "A call with the Voice feels like a conversation: it answers within a beat, stops when talked over, and waits for the person to finish.",
+  "It costs pennies an hour and nothing while idle.",
+  "It talks like a person on the phone.",
+]
+
+[[gates]]
+id = "correct.voice.turn-taking"
+version = 1
+paths = ["voice/**", "tests/test_voice_*"]
+blocking = true
+
+[[gates]]
+id = "correct.voice.turn-latency"
+version = 1
+paths = ["voice/**"]
+
+[[gates]]
+id = "correct.voice.barge-in"
+version = 1
+paths = ["voice/**"]
+blocking = true
+
+[[gates]]
+id = "correct.voice.turn-cost"
+version = 1
+paths = ["voice/**"]
+
+[[gates]]
+id = "correct.voice.spoken-register"
+version = 1
+paths = ["voice/**"]

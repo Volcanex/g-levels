@@ -1,0 +1,33 @@
+id = "correct.voice.spoken-register"
+version = 1
+kind = "correcting"
+trigger = "milestone"
+skill = "anti-ai-voice"
+principle = "On a call the Voice talks like a person on the phone: short, answer first, then it stops. It never reads out markup, lists, ids or links."
+guidance = """
+The live prompt adds a spoken-call section to the shared system prompt: one or two short
+sentences, the answer first, British English, plain words for times and dates, no markdown, no
+URLs, file paths, slugs or ids, a short "sorry, say that again?" for noise, and tool calls made
+straight away without announcing them (the server plays a cached "one sec").
+"""
+pass = "met: the reviewer finds no reply in the bench run that breaks the rubric. attempted: faults are named with the reply text."
+remediation = "Change the LIVE prompt section in voice/live.py, not individual replies. Rerun the bench and review again."
+written_against = { model = "claude-opus-5-5", date = "2026-10-24" }
+
+[sensor]
+type = "review"
+run = "cd {repo} && .venv/bin/python -m voice.live_bench --reuse 900 --gate none"
+cannot_run_exit = 2
+rubric = """
+You did not build this. Read every reply the bench printed, with the question it answered.
+For each ask: is it short enough to say in one breath or two? Does it answer first? Does it read
+out anything a person would not say aloud (markdown, bullets, a URL, a path, a slug, an id, a
+raw ISO date)? Does it announce a tool ("Let me check my tools") instead of just answering? Does
+it sound like a chatbot ("Certainly!", "Great question", "As an AI") or like a friend on the
+phone? Is the spelling British? Did the greeting fit the time of day without listing features?
+Record met only if you can point at nothing. Otherwise attempted, quoting each fault.
+"""
+
+[origin]
+date = "2026-10-24"
+incident = "Text replies written for the chat page were read aloud on the first spoken mode, slugs and bullet points included."

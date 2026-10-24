@@ -1,0 +1,25 @@
+id = "correct.voice.turn-latency"
+version = 1
+kind = "correcting"
+trigger = "milestone"
+principle = "A live call answers within a beat. The Voice starts speaking soon after the person stops, the way a person on the phone would."
+guidance = """
+Measure from the end of the person's speech to the first reply audio at the client, not from the
+request. The budget goes on turn detection (smart-turn decides a finished turn after a short
+silence), the speech model's time to first audio, and nothing else: transcription for captions
+runs beside the reply, never before it. Stream reply audio as it arrives. Keep the prompt prefix
+stable so the provider's cache covers it. Never trade the turn detector's accuracy for speed by
+cutting the silence window: a reply that cuts the person off is worse than a slow one.
+"""
+pass = "met: the bench's p50 end-of-speech to first audio is at most 1500 ms and p90 at most 2500 ms over its default script, greeting included separately. attempted: one of the two is over, with per-turn numbers and the stage that took the time."
+remediation = "The bench prints eos_ms per turn beside the server's ttfa_ms. If ttfa_ms dominates, the model or provider is slow (try another provider order or model). If eos_ms minus ttfa_ms dominates, turn detection or the client is slow. Fix the stage, do not loosen the threshold."
+written_against = { model = "claude-opus-5-5", date = "2026-10-24" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && .venv/bin/python -m voice.live_bench --reuse 900 --gate latency"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-10-24"
+incident = "The first spoken mode chained browser speech recognition, a text model and sentence TTS. It worked, but a reply took several seconds and it never felt like a conversation."
