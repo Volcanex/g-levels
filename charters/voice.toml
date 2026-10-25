@@ -34,3 +34,9 @@ paths = ["voice/**"]
 id = "correct.voice.spoken-register"
 version = 1
 paths = ["voice/**"]
+
+[[gates]]
+id = "correct.voice.echo"
+version = 1
+paths = ["voice/**"]
+blocking = true

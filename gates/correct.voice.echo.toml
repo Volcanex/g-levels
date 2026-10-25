@@ -1,0 +1,25 @@
+id = "correct.voice.echo"
+version = 1
+kind = "correcting"
+trigger = "milestone"
+principle = "The Voice never hears itself. Its own reply coming back through speakers and mic must not cut it off or be answered as a new turn."
+guidance = """
+Browser and phone echo cancellation leave residue, worst on laptop and phone speakers. The server's
+guard (EchoGuard in voice/live.py) compares the mic with the reply it is playing, learns the
+speaker-to-mic coupling only from frames that match the reply's waveform, and turns echo-only
+frames into silence before turn detection. Keep it ahead of VAD and preroll, keep learning frozen
+while the person speaks, and source every constant from a measurement. A guard that also eats a
+quiet real interruption is worse than none: barge-in must still pass.
+"""
+pass = "met: the bench at --echo -30 and --echo -20 reports zero self-interruptions, and barge-in (flush, interruption answered) still passes in the same runs. attempted: one or two self-interruptions at -20 only, with the ids and what the guard decided on those frames."
+remediation = "The bench lists each self-interruption with its turn id. Replay the recording offline and print the guard's correlation, learned gain and mic-to-reference ratio per frame. A late echo means the lag window is short. A rejected interruption means the margin or the learned gain is too high. Fix the guard, never lower the echo level in the run."
+written_against = { model = "claude-opus-5-5", date = "2026-10-25" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && .venv/bin/python -m voice.live_bench --echo -30 --gate all && .venv/bin/python -m voice.live_bench --echo -20 --gate all"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-10-24"
+incident = "The bench mixed the reply back into the mic about 61 ms late. At -30 dB the call interrupted itself 9 times and answered its own voice as new turns, at -20 dB 4 times. Smart Turn scored the echo 0.87 to 0.98 as a finished turn."
