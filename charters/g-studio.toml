@@ -51,13 +51,13 @@ paths = ["sandbox/egress-defaults.json"]
 blocking = true
 
 # What a client's Claude or the studio's own agent reads: the MCP instructions, the agent's
-# prompts, the view client and the sandbox login text. Add the home instructions
-# (/etc/claude-code/CLAUDE.md in every home) here when they land.
+# prompts, the view client, the sandbox login text and the home instructions, mounted as
+# /etc/claude-code/CLAUDE.md in every home (feat/homes, contracts.md "Homes").
 
 [[gates]]
 id = "correct.studio.client-nerves"
 version = 2
-paths = ["gstudio/mcp_server.py", "gstudio/agent/prompts.py", "gstudio/project_static/**", "sandbox/image/motd"]
+paths = ["gstudio/mcp_server.py", "gstudio/agent/prompts.py", "gstudio/project_static/**", "sandbox/image/motd", "sandbox/home/instructions.md"]
 blocking = true
 
 # Product: live sites and the paths people take.

@@ -188,5 +188,5 @@ def test_the_studio_pins_its_own_egress_nerves_and_copy():
     ids = {e["id"]: e for e in scoped}
     assert cid == "g-studio"
     assert ids[EGRESS]["paths"] == ["sandbox/egress-defaults.json"] and ids[EGRESS]["blocking"]
-    assert "gstudio/mcp_server.py" in ids[NERVES]["paths"]
+    assert {"gstudio/mcp_server.py", "sandbox/home/instructions.md"} <= set(ids[NERVES]["paths"])
     assert "correct.copy.reader-context" in ids and CONTRACT not in ids
