@@ -63,16 +63,26 @@ def test_nerves_catch_machinery_copied_into_a_project(tmp_path):
     assert result == "caught" and "brain_note" in out and "CLAUDE.md" in out
 
 
-def test_nerves_catch_the_pulse_and_tickets_in_nested_and_dot_claude_files(tmp_path):
+def test_nerves_catch_the_pulse_and_the_spine_in_nested_and_dot_claude_files(tmp_path):
     files = {
         **CLEAN_NERVES,
-        "core/api/AGENTS.md": "Read the pulse first, then file problems with create_ticket.\n",
+        "core/api/AGENTS.md": "Read the pulse first, then log what changed with pulse_note.\n",
         ".claude/rules/alerts.md": "Infra faults go to Gabriel's spine.\n",
     }
     result, out = sense(NERVES, repo(tmp_path, files))
     assert result == "caught"
-    assert "core/api/AGENTS.md" in out and "the pulse" in out and "create_ticket" in out
+    assert "core/api/AGENTS.md" in out and "the pulse" in out and "pulse_note" in out
     assert ".claude/rules/alerts.md" in out
+
+
+def test_nerves_let_the_studios_own_create_ticket_through_but_not_brain_tools(tmp_path):
+    # The studio MCP's create_ticket is how a client's Claude reaches Gabriel, so naming it is right.
+    ticket = "Problems you cannot fix from your home: file them with create_ticket, for=\"gabriel\".\n"
+    assert sense(NERVES, repo(tmp_path / "ok", {**CLEAN_NERVES, "CLAUDE.md": ticket})) == ("met", "4 files")
+    brain = ticket + "Then record the fix with brain_note.\n"
+    result, out = sense(NERVES, repo(tmp_path / "leak", {**CLEAN_NERVES, "CLAUDE.md": brain}))
+    # One catch, on the brain_note line, and none for create_ticket.
+    assert result == "caught" and out.count(": names ") == 1 and "(brain_note)" in out
 
 
 def test_nerves_pass_clean_project_nerves(tmp_path):

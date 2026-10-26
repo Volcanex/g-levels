@@ -56,7 +56,7 @@ blocking = true
 
 [[gates]]
 id = "correct.studio.client-nerves"
-version = 1
+version = 2
 paths = ["gstudio/mcp_server.py", "gstudio/agent/prompts.py", "gstudio/project_static/**", "sandbox/image/motd"]
 blocking = true
 

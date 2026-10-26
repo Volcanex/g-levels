@@ -12,7 +12,7 @@ principles = [
 
 [[gates]]
 id = "correct.studio.client-nerves"
-version = 1
+version = 2
 paths = ["CLAUDE.md", "AGENTS.md", "*/CLAUDE.md", "*/AGENTS.md", ".claude/*"]
 blocking = true
 

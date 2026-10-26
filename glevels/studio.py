@@ -17,12 +17,13 @@ from pathlib import Path
 
 # correct.studio.client-nerves: Brain, the pulse, the spine and their tools are Gabriel's alone.
 # "pulse" and "spine" alone are ordinary words in a web project, so only the system's own
-# phrases and tool names count.
+# phrases and tool names count. create_ticket is not one of them: the studio's own MCP has a
+# create_ticket tool, and the home instructions name it.
 MACHINERY = [
     (re.compile(r"\bbrain\b", re.I), "Brain"),
     (re.compile(r"\bthe pulse\b|\bpulse page\b", re.I), "the pulse"),
     (re.compile(r"\bthe (?:alert )?spine\b|\b\w+'s spine\b", re.I), "the spine"),
-    (re.compile(r"\b(?:brain|pulse|spine)_[a-z_]+\b|\bcreate_ticket\b", re.I), "a Brain tool"),
+    (re.compile(r"\b(?:brain|pulse|spine)_[a-z_]+\b", re.I), "a Brain tool"),
 ]
 
 # correct.security.egress-closed. A wildcard is open in practice when anyone can register or
