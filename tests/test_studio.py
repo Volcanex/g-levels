@@ -171,3 +171,12 @@ def test_g_seed_binds_to_the_client_charter_and_gsp_repos_do_not_yet():
     assert cid == "gsp" and {NERVES, EGRESS, CONTRACT, "correct.secrets.git-history"} <= ids
     # Charters bind by exact name. When patterns land, bind gsp-* and change this line.
     assert registry.charter_for("gsp-rose", CHARTERS) == "g-system"
+
+
+def test_the_studio_pins_its_own_egress_nerves_and_copy():
+    cid, scoped = registry.in_scope(Path("/x/g-studio"), "", CHARTERS)
+    ids = {e["id"]: e for e in scoped}
+    assert cid == "g-studio"
+    assert ids[EGRESS]["paths"] == ["sandbox/egress-defaults.json"] and ids[EGRESS]["blocking"]
+    assert "gstudio/mcp_server.py" in ids[NERVES]["paths"]
+    assert "correct.copy.reader-context" in ids and CONTRACT not in ids

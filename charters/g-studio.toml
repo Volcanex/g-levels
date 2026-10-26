@@ -7,6 +7,8 @@ principles = [
   "Every surface (web, MCP, agent, terminal, SSH, custom views) enforces the same rules on the server, through one service layer.",
   "Live sites never half-change: a publish applies whole or not at all, and history can undo it.",
   "The studio is obvious to a non-technical person who arrives alone.",
+  "Outbound access is an allow-list that never becomes open, so nothing a person's Claude reads can send their keys away.",
+  "Studio borrows the G-System's conventions, not its machinery: nothing a client's Claude reads names Brain, the pulse or the spine.",
 ]
 
 # Security: the reason this charter exists. Each blocks.
@@ -41,6 +43,22 @@ blocking = true
 id = "correct.product.server-enforced-rules"
 version = 1
 paths = ["gstudio/**", "tests/**"]
+
+[[gates]]
+id = "correct.security.egress-closed"
+version = 1
+paths = ["sandbox/egress-defaults.json"]
+blocking = true
+
+# What a client's Claude or the studio's own agent reads: the MCP instructions, the agent's
+# prompts, the view client and the sandbox login text. Add the home instructions
+# (/etc/claude-code/CLAUDE.md in every home) here when they land.
+
+[[gates]]
+id = "correct.studio.client-nerves"
+version = 1
+paths = ["gstudio/mcp_server.py", "gstudio/agent/prompts.py", "gstudio/project_static/**", "sandbox/image/motd"]
+blocking = true
 
 # Product: live sites and the paths people take.
 
@@ -91,6 +109,15 @@ version = 1
 id = "correct.delivery.verify-before-claiming-done"
 version = 1
 blocking = true
+
+# Copy on the screens people read. The screens are JavaScript, which readerctx cannot read, so
+# its mechanical half reports impossible, as the look sensors do here. The reviewer runs
+# readerctx --render on the studio URL.
+
+[[gates]]
+id = "correct.copy.reader-context"
+version = 1
+paths = ["web/src/**", "web/inject/**"]
 
 # Look: the studio app and the editor injected into previews.
 
