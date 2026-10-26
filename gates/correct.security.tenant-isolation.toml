@@ -4,7 +4,7 @@ kind = "correcting"
 trigger = "every-run"
 principle = "In a multi-tenant product, a person acting on one tenant can never read or change another. Every route, tool and socket that takes a tenant id refuses anyone without a role there, and the refusal leaves every byte of state as it was."
 guidance = """
-One rule function decides access (for g-sites, rules.require in the service layer), and every
+One rule function decides access (for g-studio, rules.require in the service layer), and every
 surface (web API, MCP tools, agent tools, CLI, terminal bridge) reaches data only through
 service functions that call it first. No surface touches the filesystem or database directly.
 A non-member gets not-found, not forbidden, so tenant ids don't leak.

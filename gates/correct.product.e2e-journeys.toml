@@ -5,7 +5,7 @@ trigger = "milestone"
 skill = "webapp-testing"
 principle = "The paths real people take through the product pass end to end in a real browser against the real service, at phone and desktop widths, before a milestone ships. A unit suite that passes while a journey is broken is not done."
 guidance = """
-Keep an end-to-end suite, marked `e2e`, that starts the real server (for g-sites, uvicorn on a
+Keep an end-to-end suite, marked `e2e`, that starts the real server (for g-studio, uvicorn on a
 free port with fixture sites and a temp state dir) and drives it with Playwright as a person
 would. Each journey runs at a phone width (390) and a desktop width (1440) and checks the
 visible result, not only a status code. For a site editor the journeys are: sign in, edit text

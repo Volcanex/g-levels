@@ -87,3 +87,11 @@ def test_glyph_sensor_ignores_code(tmp_path):
     assert run() == 0
     page.write_text("<p>Fees from £40 · online only</p>")
     assert run() == 1
+
+
+def test_studio_charter_binds_the_renamed_repo():
+    cid, scoped = registry.in_scope(Path("/x/g-studio"), "gstudio/publish.py", CHARTERS)
+    ids = {e["id"] for e in scoped}
+    assert cid == "g-studio"
+    assert {"correct.product.publish-integrity", "correct.security.tenant-isolation"} <= ids
+    assert registry.charter_for("g-sites", CHARTERS) == "g-system"

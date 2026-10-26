@@ -27,7 +27,7 @@ run = '''cd {repo} && out=$(PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest
 rubric = """
 You did not build this.
 1. Read the mechanical half's result. A failure, skip or "no tests collected" is a catch.
-2. Read the publish path (g-sites: gsites/publish.py). Is the history record written before any live file? Is each file written atomically with mode and owner kept? Does every exception after the first write restore every file and rebuild? Is the conflict check done for every caller, admin and agent included?
+2. Read the publish path (g-studio: gstudio/publish.py). Is the history record written before any live file? Is each file written atomically with mode and owner kept? Does every exception after the first write restore every file and rebuild? Is the conflict check done for every caller, admin and agent included?
 3. Search the code for any other write to the live source tree (open for write, shutil, rename, subprocess with a live path). Each must be the publish path or an importer run by an admin.
 4. For each failure point in the guidance, name the test that covers it, or say it has none.
 5. Record met only if the path is ordered safely and every failure point is tested. Otherwise attempted, naming each gap.

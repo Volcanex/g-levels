@@ -5,7 +5,7 @@ trigger = "every-run"
 principle = "Every surface that takes a file path keeps it inside the tenant's own root. Traversal, absolute paths, NUL bytes, backslashes, unicode look-alikes and symlinks that point out of the root are refused, and protected files stay invisible to people who may not see them."
 guidance = """
 Put confinement in one function every path passes through before any read, write, list,
-rename, upload or delete (for g-sites, safe_rel in the draft overlay). It refuses absolute
+rename, upload or delete (for g-studio, safe_rel in the draft overlay). It refuses absolute
 paths, `..` components, NUL, backslash and empty components, normalises unicode (NFC) before
 it checks, and resolves symlinks inside the live tree, refusing any whose target leaves the
 root. Rename checks both ends. Protected paths (secrets, VCS dirs, generated or server-side

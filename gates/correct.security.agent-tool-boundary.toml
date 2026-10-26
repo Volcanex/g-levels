@@ -27,7 +27,7 @@ run = '''cd {repo} && out=$(PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest
 rubric = """
 You did not build this.
 1. Read the mechanical half's result. A failure, skip or "no tests collected" is a catch.
-2. Open the agent's tool module (g-sites: gsites/agent/tools.py) and the loop that dispatches tools. For each tool: which service function does it call, with whose context, and where does its tenant id come from? Quote any line that opens a file, runs a process, makes a request or touches the database directly.
+2. Open the agent's tool module (g-studio: gstudio/agent/tools.py) and the loop that dispatches tools. For each tool: which service function does it call, with whose context, and where does its tenant id come from? Quote any line that opens a file, runs a process, makes a request or touches the database directly.
 3. Is there any tool for publish, shell, network, members, tokens or settings outside content? Can the model name a tool that is not in the list and have it run?
 4. Do the red-team tests cover a hostile page for each of: other tenant, protected file, publish, exfiltration, unknown tool, as more than one role?
 5. Record met only if every tool is a scoped service call and the red team covers each attack. Otherwise attempted, quoting the tool or naming the missing attack.
