@@ -1,0 +1,29 @@
+id = "gsp"
+title = "Studio client projects: gsp- repos and g-seed, the template they start from"
+extends = ["delivery"]
+# Charters bind repos by exact name, so this binds g-seed only. gsp-<pid> repos are not bound
+# yet: CLAUDE.md (Non-obvious things) says why, and what binding them needs.
+repos = ["g-seed"]
+principles = [
+  "A client project carries what the studio reads: nerves, a studio.json that parses, and /health with declared depends when it has a runtime.",
+  "Nothing a client's Claude reads names Gabriel's own machinery.",
+  "A project's outbound access is a short allow-list, never open.",
+]
+
+[[gates]]
+id = "correct.studio.client-nerves"
+version = 1
+paths = ["CLAUDE.md", "AGENTS.md", "*/CLAUDE.md", "*/AGENTS.md", ".claude/*"]
+blocking = true
+
+[[gates]]
+id = "correct.security.egress-closed"
+version = 1
+paths = ["studio.json"]
+blocking = true
+
+# Not blocking: the plan blocks a push only for what would break the studio, and warns on the rest.
+
+[[gates]]
+id = "correct.studio.project-contract"
+version = 1

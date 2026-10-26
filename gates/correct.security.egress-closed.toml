@@ -1,0 +1,30 @@
+id = "correct.security.egress-closed"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "Outbound access from a sandbox, home or runtime is an allow-list of named hosts and never becomes open: no `*`, and no wildcard so wide that anyone can stand up a host under it."
+guidance = """
+The egress allow-list is the wall against prompt injection. A page a person's Claude reads can
+tell it to send their keys somewhere, and only the list stops it. Name each host the work calls.
+A wildcard is `*.` plus a suffix one organisation controls (`*.example.com`). It is never a
+top-level domain (`*.com`), a registry suffix anyone can register under (`*.co.uk`) or a
+platform anyone can host on (`*.github.io`, `*.workers.dev`, `*.amazonaws.com`). Entries are
+DNS names, never IP literals, ranges or URLs.
+The broker and the proxy refuse some of these when a sandbox starts. This gate catches the
+entry before it ships, including the wide ones the broker lets through.
+If a project truly needs open egress, that is a trust decision for Gabriel, not a wider list.
+"""
+pass = "Every entry in the file's allow-list (`allow` in the studio's egress defaults, `egress` in a project's studio.json) is a host name or a `*.` wildcard under a suffix one organisation controls."
+remediation = "Replace each listed entry with the exact hosts the work calls. If you cannot name them, the work is not ready for egress: ask Gabriel. Never move the entry somewhere the sensor does not read."
+written_against = { model = "claude-opus-5-5", date = "2026-10-26" }
+
+[sensor]
+# Exit 1 lists each open entry. Exit 2 when the file is not JSON: the studio then ignores its
+# egress, and correct.studio.project-contract catches the parse failure.
+type = "command"
+run = "python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/studio.py egress {file}"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-10-26"
+incident = "The Studio plan puts each person's keys in their home, where their Claude reads them, so an injected page could ask it to send them out. The egress allow-list is the wall, and the plan says it never becomes *."

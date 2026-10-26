@@ -1,0 +1,28 @@
+id = "correct.studio.client-nerves"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "Nothing a client's Claude reads names Gabriel's own machinery. Brain, the pulse and the spine are his alone: a Claude that reads about them tries to use them, or tells the client they exist."
+guidance = """
+Studio borrows the G-System's conventions, not its machinery. A client project's nerves
+(CLAUDE.md, AGENTS.md and .claude/ in gsp- repos and in g-seed, which they start from) describe
+the project and the studio: its views, tickets and passport. They never name Brain, the pulse,
+the spine or their tools (brain_note, pulse_note, brain_alert, create_ticket and the rest of the
+brain_ and pulse_ families). Trouble a client's Claude cannot fix from its home goes to Gabriel
+as a studio ticket (Ask Gabriel), never to his spine.
+Text copied from a G-System repo's nerves is the usual way in, so rewrite it for the project.
+The studio's own ticket tool needs a name of its own, or every home's instructions would trip
+this gate.
+"""
+pass = "No file in scope names Brain, the pulse, the spine or one of their tools."
+remediation = "Rewrite each listed line for the project: say what the client's Claude should do through the studio (a ticket, Ask Gabriel, the passport), or cut it. Never respell a word to get past the sensor."
+written_against = { model = "claude-opus-5-5", date = "2026-10-26" }
+
+[sensor]
+type = "command"
+run = "python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/studio.py nerves {file}"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-10-26"
+incident = "The Studio plan keeps Brain, the pulse and the spine Gabriel's alone. On 2026-10-26 none of the twelve nerves files in g-seed named them, and this gate keeps it so."

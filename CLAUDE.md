@@ -25,6 +25,8 @@ produce. The theory is in Volcanex/g-research
   (with `motion.mjs`) records a page's animations and reveals; `frames.py` (with `frames.mjs`)
   reads or captures consecutive frames, or runs a repo's `.glevels/frames.json` recipe;
   `meshcheck.py` checks exported geometry. `adapters/` holds per-project mesh exporters.
+- `glevels/studio.py`: the Studio sensors (client nerves, egress, the project contract), stdlib
+  only. The `g-studio` charter covers the studio itself, `gsp` its client projects and g-seed.
 - `var/results.jsonl`: the results log. Gitignored, because notes can carry private
   incident detail. Set `GLEVELS_LOG` to write elsewhere.
 
@@ -105,3 +107,9 @@ then update the pins in charters.
   range, not on the space being explored. There is no design-gate runner yet.
 - Placeholders are substituted by plain replace, not `str.format`, so shell `${VAR}`
   works in sensor commands.
+- **Studio client projects are not bound yet.** Charters bind repos by exact name or `*`, so
+  `gsp` binds g-seed only. Binding `gsp-*` needs patterns in `repos` (`registry.charter_for`),
+  and more for the studio's own checkouts: they sit at `g-studio/var/repos/<pid>` with their git
+  metadata outside the tree, so `main_name` sees `<pid>`, `git ls-files` lists nothing and every
+  `{file}` gate passes on zero files. Until then run the sensor straight on a checkout:
+  `python3 glevels/studio.py contract <dir>`.
