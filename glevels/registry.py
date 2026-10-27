@@ -6,7 +6,9 @@ import subprocess
 import tomllib
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+# GLEVELS_ROOT points the CLI at another registry with the same layout (gates/, charters/), such as
+# Baseline's b-levels for Sense sweeps.
+ROOT = Path(os.environ.get("GLEVELS_ROOT") or Path(__file__).resolve().parent.parent)
 RESULTS = ("met", "attempted", "waived", "impossible")
 GATE_FIELDS = ("id", "version", "kind", "principle", "guidance", "sensor", "pass", "remediation", "origin", "written_against")
 KINDS = ("correcting", "design")
@@ -37,14 +39,32 @@ def load_charters(root=ROOT):
     return {c["id"]: c for c in (tomllib.loads(p.read_text()) for p in sorted((root / "charters").glob("*.toml")))}
 
 
-def repo_of(path):
+def repo_of(path, charters=None):
+    """The git top of path. Outside git, the directory a charter's dirs glob names (so ~/research/svea/x
+    is the svea sweep under dirs = ["~/research/*"]), else the path itself."""
     path = Path(path).resolve()
     try:
         top = subprocess.run(["git", "-C", str(path if path.is_dir() else path.parent), "rev-parse", "--show-toplevel"],
                              capture_output=True, text=True, check=True).stdout.strip()
         return Path(top)
     except subprocess.CalledProcessError:
-        return path if path.is_dir() else path.parent
+        root = dir_root(path, charters or {})
+        return root or (path if path.is_dir() else path.parent)
+
+
+def _dir_globs(charter):
+    return [Path(os.path.expanduser(d)) for d in charter.get("dirs", [])]
+
+
+def dir_root(path, charters):
+    """The ancestor of path (or path) that some charter's dirs glob matches, one segment per glob part."""
+    parts = Path(path).parts
+    for c in charters.values():
+        for g in _dir_globs(c):
+            n = len(g.parts)
+            if len(parts) >= n and fnmatch.fnmatch(str(Path(*parts[:n])), str(g)):
+                return Path(*parts[:n])
+    return None
 
 
 def main_name(repo):
@@ -74,9 +94,13 @@ def chain(charter_id, charters):
     return out
 
 
-def charter_for(repo_name, charters):
-    """The narrowest charter naming this repo, else one that covers every repo."""
+def charter_for(repo_name, charters, repo=None):
+    """The narrowest charter naming this repo, else one whose dirs name this directory, else one that
+    covers every repo."""
     named = [c for c in charters.values() if repo_name in c.get("repos", [])]
+    if repo is not None:
+        named += [c for c in charters.values() if any(len(g.parts) == len(Path(repo).parts)
+                  and fnmatch.fnmatch(str(repo), str(g)) for g in _dir_globs(c))]
     if named:
         return max(named, key=lambda c: len(chain(c["id"], charters)))["id"]
     wild = [c for c in charters.values() if "*" in c.get("repos", [])]
@@ -99,7 +123,7 @@ def covers(rel, globs):
 
 def in_scope(repo, rel, charters):
     """Gate entries that apply at repo/rel, with the narrowest charter winning per gate."""
-    cid = charter_for(main_name(repo), charters)
+    cid = charter_for(main_name(repo), charters, repo)
     if cid is None:
         return None, []
     entries = {}
@@ -150,6 +174,9 @@ def lint(gates, charters, today=None):
         if gid not in pinned and gates[gid].get("kind") != "design":
             warnings.append(f"gate {gid}: no charter pins it, so it never fires")
     for cid, c in charters.items():
+        for d in c.get("dirs", []):
+            if not isinstance(d, str) or not d.startswith(("/", "~/")):
+                problems.append(f"charter {cid}: dirs entry {d!r} must be an absolute or ~/ path glob")
         for parent in c.get("extends", []):
             if parent not in charters:
                 problems.append(f"charter {cid}: extends unknown {parent}")

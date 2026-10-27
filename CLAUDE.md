@@ -105,3 +105,8 @@ then update the pins in charters.
   range, not on the space being explored. There is no design-gate runner yet.
 - Placeholders are substituted by plain replace, not `str.format`, so shell `${VAR}`
   works in sensor commands.
+- **`GLEVELS_ROOT` points the CLI at another registry** with this layout. Baseline's
+  b-levels (gates for its client research sweeps) runs this CLI that way; the
+  pointer charter `charters/baseline-sense.toml` says where it lives. A charter's
+  `dirs` (absolute or `~/` globs, one path segment per glob part) scopes directories
+  outside git, so `~/research/*` makes each sweep directory its own "repo".

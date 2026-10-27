@@ -41,7 +41,7 @@ def rows():
 
 def target(path):
     path = Path(path).resolve()
-    repo = registry.repo_of(path)
+    repo = registry.repo_of(path, registry.load_charters())
     rel = "" if path == repo else str(path.relative_to(repo))
     return repo, rel
 

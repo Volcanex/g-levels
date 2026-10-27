@@ -87,3 +87,16 @@ def test_glyph_sensor_ignores_code(tmp_path):
     assert run() == 0
     page.write_text("<p>Fees from £40 · online only</p>")
     assert run() == 1
+
+
+def test_dirs_scope_a_non_git_directory(tmp_path):
+    charters = {"g-system": {"id": "g-system", "repos": ["*"]},
+                "sense": {"id": "sense", "repos": [], "dirs": [str(tmp_path / "research" / "*")],
+                          "gates": [{"id": "correct.secrets.argv", "version": 1}]}}
+    sweep = tmp_path / "research" / "simpl"
+    (sweep / "explorers").mkdir(parents=True)
+    assert registry.repo_of(sweep / "explorers", charters) == sweep
+    assert registry.charter_for("simpl", charters, sweep) == "sense"
+    assert registry.charter_for("research", charters, tmp_path / "research") == "g-system"
+    problems, _ = registry.lint({}, {"bad": {"id": "bad", "dirs": ["research/*"]}})
+    assert any("dirs entry" in p for p in problems)

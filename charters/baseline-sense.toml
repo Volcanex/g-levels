@@ -1,0 +1,8 @@
+id = "baseline-sense"
+title = "Pointer: Baseline's Sense sweeps are gated by b-levels, not here"
+registry = "b-levels: core/sweeps/levels/ in the Baseline repo (branch research/super-sweeps), CLI core/sweeps/levels/blevels"
+repos = []
+principles = [
+  "A client research sweep (the Super-engine's Sense side, ~/research/<client>) is gated by b-levels, a clone of this registry with the same TOML format and CLI, run as core/sweeps/levels/blevels.",
+  "Its gates (design.sense.signal-brainstorm, correct.sense.cost-ladder, correct.sense.source-coverage and the sense versions of the four research gates) began as this registry's design.research.campaign-echo and correct.research.* gates.",
+]
