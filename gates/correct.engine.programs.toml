@@ -1,0 +1,21 @@
+id = "correct.engine.programs"
+version = 1
+kind = "correcting"
+trigger = "milestone"
+principle = "The GPU program set is small and complete at ready. Few programs are built before the first frame, and none after it."
+guidance = "Programs come from a small set of material and pass variants known before play, built at load. A new material or effect reuses a variant through data, never a new shader. Count on the M3 runner (?shaderProfile=1), not on SwiftShader. Never compute at runtime what can be computed before."
+pass = "met: on the M3, at most 40 programs at ready and 0 compiled after ready over a range play. attempted: either count is over, with both numbers recorded per build."
+remediation = "The sensor prints the program count at ready and each compile after ready with its material and pass. Fold variants into data-driven uniforms or prebuild the missing variant at load; never move compiles to a later frame to pass."
+written_against = { model = "claude-opus-5-5", date = "2026-10-28" }
+
+[sensor]
+type = "review"
+rubric = """
+1. Take the latest M3 runner session for the build (or run one), with ?shaderProfile=1. On h, record impossible: SwiftShader counts do not stand in for the M3.
+2. Read the program count at ready and every compile after ready (material, pass, frame).
+3. Record met at <= 40 at ready and 0 after ready; otherwise attempted with both numbers.
+"""
+
+[origin]
+date = "2026-10-28"
+incident = "The 2026-10-28 design review measured 225 GPU programs at ready on the M3 and 6 compiled after ready; the owner called the engine laggy. Landed under Gabriel's open mandate of 2026-10-28. No worker builds the program set yet; range-only is fixing the after-ready compiles on gengine/boot."

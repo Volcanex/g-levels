@@ -12,6 +12,8 @@ principles = [
   "Every process ends. Fires burn out, debris sleeps, flows stop.",
   "On g-engine, beauty means the internal design (renderer, physics, optimisation, emergent and data-driven systems), not visual polish. The owner's open bugs come first.",
   "The range is the engine's only level. A game lives in its own repo.",
+  "A settled world costs nothing per tick, and a blast is one record every system reads.",
+  "Each night brief starts from the owner's open bugs, then the top of the design.engine.internals shortlist. These were set under Gabriel's open mandate of 2026-10-28: a beautifully optimised engine.",
 ]
 
 [[gates]]
@@ -144,10 +146,44 @@ blocking = true
 
 [[gates]]
 id = "correct.engine.local-cost"
-version = 1
+version = 2
 paths = ["v2/**"]
 
 [[gates]]
 id = "correct.engine.owner-bugs-first"
 version = 1
 paths = ["v2/**", "agents/**"]
+
+[[gates]]
+id = "correct.engine.quiet-is-free"
+version = 1
+paths = ["v2/**"]
+
+[[gates]]
+id = "correct.engine.every-process-ends"
+version = 1
+paths = ["v2/**"]
+
+[[gates]]
+id = "correct.engine.one-blast-record"
+version = 1
+paths = ["v2/**"]
+
+[[gates]]
+id = "correct.engine.boot"
+version = 1
+paths = ["v2/**"]
+
+[[gates]]
+id = "correct.engine.programs"
+version = 1
+paths = ["v2/**"]
+
+[[gates]]
+id = "correct.engine.bounded-render"
+version = 1
+paths = ["v2/**"]
+
+[[gates]]
+id = "design.engine.internals"
+version = 1

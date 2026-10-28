@@ -1,0 +1,18 @@
+id = "correct.engine.every-process-ends"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "Every process ends. Fields (heat, fire, water, smoke) go back to 0 active tiles, fire ends when its fuel is spent, and a flammable thing that burned away is gone from the world."
+guidance = "A field tile is active only while its value changes; when it settles it leaves the active set and costs nothing. Consumption is data: what burns spends its fuel and, when spent, its body and draw go. Never end a process with a timer or a despawn. This extends correct.engine.finite (fire and debris) to every field and to consumed flammables."
+pass = "met: after the range fire bay and a house fire, every field reports 0 active tiles within the sensor's bound, no flame is left, and each consumed flammable has no body and no draw. attempted: some fields settle and the rest are named with their active tile counts."
+remediation = "The sensor prints per field the active tiles over time and what is still active at the bound, and each consumed flammable still present. Find what keeps a settled tile active or a spent body alive and fix it at its source; do not lower the bound."
+written_against = { model = "claude-opus-5-5", date = "2026-10-28" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && nice -n 19 node --max-old-space-size=900 v2/tests/range/gate.mjs every-process-ends"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-10-28"
+incident = "The owner said fire goes on forever; the 2026-10-28 design review found fields that never return to 0 active tiles and burnt flammables left in the world. Landed under Gabriel's open mandate of 2026-10-28. Sensor being built on gengine/fields-sleep."

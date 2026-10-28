@@ -1,0 +1,18 @@
+id = "correct.engine.quiet-is-free"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "A settled world costs nothing per tick. With nothing awake, the sim rebuilds no poses, scans nothing whole and the renderer does not re-render shadows."
+guidance = "Work is driven by journals of what changed, not by scanning everything each tick. A system with nothing in its journal returns at once. Shadow casters re-render only when a caster moved. Measure in Node for the sim and on the M3 runner for the frame, and say which is which."
+pass = "met: on the settled range with awake 0, the sensor counts 0 pose rebuilds, 0 full scans and 0 shadow re-renders per tick, and the tick cost is at its idle floor. attempted: the counts fell and each remaining source is named with its count."
+remediation = "The sensor names each system that still works on a quiet tick and what it touched. Make it read a journal of changes and return when the journal is empty; never skip ticks or raise the idle floor to pass."
+written_against = { model = "claude-opus-5-5", date = "2026-10-28" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && nice -n 19 node --max-old-space-size=900 v2/tests/range/gate.mjs quiet-is-free"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-10-28"
+incident = "The 2026-10-28 design review measured a settled range still rebuilding poses, scanning whole and re-rendering shadows with nothing awake; the owner called the engine laggy. Landed under Gabriel's open mandate of 2026-10-28. Sensor being built on gengine/journals."

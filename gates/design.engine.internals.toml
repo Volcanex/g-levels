@@ -1,0 +1,44 @@
+id = "design.engine.internals"
+version = 1
+kind = "design"
+trigger = "milestone"
+principle = "Before each night build, the engine's internal design has been explored for improvements until new ideas dry up, so the night works on the best ones. On g-engine, beauty is the internal design: renderer, physics, optimisation, emergent and data-driven systems."
+guidance = """
+Read the engine as it is: v2/CLAUDE.md and the nearest CLAUDE.md files, agents/v2/precut.md, the
+charter's principles (precompute, emergence through data, local and bounded cost, every process
+ends), the open owner bugs (Brain tickets, project g-engine) and the latest measured numbers
+(gate results, Node CPU and heap, M3 runner sessions). Propose internal design improvements, each
+with the measured problem it removes, where in the code it lives (file:line), the principle it
+serves, and how a gate would show it done. Visual polish is not in scope. A fix for an open owner
+bug is not an idea: it is already first in the night brief.
+"""
+framings = [
+  "a physics engine author reading the sim tick for work that is not local or not bounded",
+  "a renderer engineer counting draws, programs, uploads and shadow passes per frame on the M3",
+  "the precut author: what is still computed at runtime that could be cut before play",
+  "a systems designer looking for scenario code and systems that call each other instead of meeting through data",
+  "a memory and GC reviewer reading the boot heap and per-tick allocation",
+  "Gabriel's own taste: elegant internal design, emergent behaviour, a beautifully optimised engine",
+]
+pass = "met: saturation reached within budget and the probe from another model family added at most one idea; the ranked shortlist goes into the night brief straight after the owner's open bugs. attempted: the budget ran out first, or the probe found more."
+remediation = "If the budget ran out before saturation, or the probe added ideas, say so with the counts per round and run again with new framings drawn from what the probe found. Never cut the round count to reach saturation sooner, and never put a shortlist idea ahead of an open owner bug."
+generators = "Strong, taste-capable models only: Claude Opus through g-agent-run, pinned by the runner, blind to each other's ideas. Cheap fan-out saturates on the model's range, not the space."
+judge = "One Claude Opus call per round merges each raw idea into the canonical list or adds it, citing the raw idea; the runner drops anything uncited. A last call ranks by measured cost removed and fit to the charter's principles."
+saturation = "Stop when a round of three generators adds fewer than one new idea after merging."
+probe = "After apparent saturation, one round from a different strong model family (Codex Astra, else Sol at high effort)."
+budget = "At most four rounds, plus the probe."
+written_against = { model = "claude-opus-5-5", date = "2026-10-28" }
+
+[sensor]
+type = "review"
+rubric = """
+1. Write a brief file: the engine's design docs, the charter's principles, the open owner bugs in his words, and the latest measured numbers with where each came from (Node on h, M3 runner).
+2. Run `python3 -m glevels.ideas design.engine.internals --brief <file> --workdir <g-engine tree> --out <dir>` (--dry-run first). It prints new ideas per round, the stop reason and a verdict.
+3. Read shortlist.md. Each idea names its measured problem, its file:line, its principle and the gate that would show it done. Drop visual polish and anything that is only an owner-bug fix (those are already first).
+4. The night brief lists the open owner bugs first, then the shortlist top.
+5. Record met at saturation with a quiet probe, attempted otherwise, with the counts in the note.
+"""
+
+[origin]
+date = "2026-10-28"
+incident = "A night design review found no design gate on g-engine internals while the owner called the engine laggy, said fire goes on forever and asked for a beautifully optimised engine. Landed under Gabriel's open mandate of 2026-10-28."

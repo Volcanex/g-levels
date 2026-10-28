@@ -1,0 +1,18 @@
+id = "correct.engine.boot"
+version = 1
+kind = "correcting"
+trigger = "milestone"
+principle = "Boot loads only what the level uses and does each piece of work once. No fetch is foreign to the level, the mesh graph is compiled once, and the time to ready is tracked on the M3."
+guidance = "Every fetch at boot belongs to the loaded level's manifest. Precompute what can be precomputed; the mesh and node graphs compile once at load, never per object or again after ready. Track ready time on the M3 runner as a number per build; never judge it from SwiftShader on h. This is about how boot works; correct.engine.boots is whether it boots at all."
+pass = "met: the sensor finds 0 fetches outside the level's manifest, the mesh graph compiled exactly once, and the M3 ready time recorded for the build. attempted: the counts are met but the M3 time is not recorded (no Mac runner), or the reverse."
+remediation = "The sensor lists each foreign fetch with its initiator and each repeated graph compile with its caller. Remove the fetch from boot or move the work to build time; never hide a request behind a lazy load to pass."
+written_against = { model = "claude-opus-5-5", date = "2026-10-28" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && node v2/tests/range/gate.mjs boot"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-10-28"
+incident = "The 2026-10-28 design review found boot fetching another level's data and compiling the mesh graph more than once; the owner called the engine laggy. Landed under Gabriel's open mandate of 2026-10-28. Sensor being built on gengine/boot."

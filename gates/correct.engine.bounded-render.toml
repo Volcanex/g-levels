@@ -1,0 +1,23 @@
+id = "correct.engine.bounded-render"
+version = 1
+kind = "correcting"
+trigger = "milestone"
+principle = "Per-frame render cost is bounded by what is visible and what is changing, never by everything that exists or has ever existed."
+guidance = "Cull what is out of view before it is drawn or updated. Pools that grow (particles, instances, decals) give back what has ended, so the drawn count follows what is alive. Measure draws, instances and particles per frame on the M3 runner; read the code paths on h."
+pass = "met: the reviewer finds culling on for every drawn set and every pool's drawn count following its live count over a range play (draws and particles fall back after a blast settles). attempted: some sets cull or shrink and the rest are named with file:line and their counts."
+remediation = "Name each unculled set and each pool whose count only grows, with file:line and the counts. Turn culling on at the source and return ended entries to the pool; never cap the count to pass."
+written_against = { model = "claude-opus-5-5", date = "2026-10-28" }
+
+[sensor]
+type = "review"
+rubric = """
+You did not build this. Read the client's draw paths and pools, then the M3 runner's frame counters for a range play if one exists.
+1. Is frustum or distance culling on for every drawn set (bricks, debris, props, fx)? Known on 2026-10-28: off at v2/tests/sandbox/lib/bricks.mjs:370, the client brick instances.
+2. Does every growing pool shrink back when entries end? Known on 2026-10-28: the fx particle count p.used only grows (v2/client/fx/fx.mjs:222).
+3. After a blast settles, do draws, instances and particles return to their pre-blast counts?
+Record met only if all three hold; otherwise attempted with each fault, file:line and counts.
+"""
+
+[origin]
+date = "2026-10-28"
+incident = "The 2026-10-28 design review found brick culling off and the fx particle pool only ever growing; the owner called the engine laggy. Landed under Gabriel's open mandate of 2026-10-28."

@@ -1,0 +1,18 @@
+id = "correct.engine.one-blast-record"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "A blast is one canonical record. Every consumer (destruction, craters, fire, fx, audio, physics impulse) reads the same record, with no defaults of its own and no deduplication by distance."
+guidance = "The sim writes one blast record (charge, position, surface, material, tick) and every system reads it. A consumer that fills a missing field with its own default, or merges blasts because they are close, is a second source of truth. Add the field to the record instead."
+pass = "met: the sensor finds one blast record type, no consumer-side default for any of its fields and no distance-based dedup of blasts, and a range blast reaches every consumer with the same values. attempted: the record exists and the remaining defaults or dedups are named with file:line."
+remediation = "The sensor names each consumer default and dedup with file:line. Move the value into the canonical record and delete the local copy; never add an allowlist entry to pass."
+written_against = { model = "claude-opus-5-5", date = "2026-10-28" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && node v2/tests/range/gate.mjs one-blast-record"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-10-28"
+incident = "The 2026-10-28 design review found blast data rebuilt per consumer with its own defaults and blasts merged by distance. Landed under Gabriel's open mandate of 2026-10-28. Sensor being built on gengine/blast-record."
