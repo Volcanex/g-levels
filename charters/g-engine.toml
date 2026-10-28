@@ -62,3 +62,9 @@ blocking = true
 id = "correct.render.frame-integrity"
 version = 1
 paths = ["v2/**"]
+
+[[gates]]
+id = "correct.engine.interpolated-id"
+version = 1
+paths = ["v2/**/*.mjs"]
+blocking = true

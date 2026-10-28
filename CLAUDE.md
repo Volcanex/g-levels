@@ -25,6 +25,8 @@ produce. The theory is in Volcanex/g-research
   (with `motion.mjs`) records a page's animations and reveals; `frames.py` (with `frames.mjs`)
   reads or captures consecutive frames, or runs a repo's `.glevels/frames.json` recipe;
   `meshcheck.py` checks exported geometry. `adapters/` holds per-project mesh exporters.
+- `glevels/idcast.py`: the shader-source sensor for `correct.engine.interpolated-id`, an
+  int()/uint() cast of an unrounded vertex attribute in TSL node code.
 - `var/results.jsonl`: the results log. Gitignored, because notes can carry private
   incident detail. Set `GLEVELS_LOG` to write elsewhere.
 

@@ -1,0 +1,18 @@
+id = "correct.engine.interpolated-id"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-motion"
+principle = "An id read in a fragment shader is the id the mesh wrote. A whole number carried on vertices reaches the fragment stage interpolated and can land a hair under itself, so a bare int() cast picks the next id down on scattered pixels."
+guidance = "In TSL node code, round a float attribute that carries an id (layer, kind, body, particle, member) before int() or uint(): attribute('layer','float').round(). An attribute read only by positionNode is exact, so a cast that feeds only the vertex stage may stay bare; mark it `idcast: vertex` on its line or the line above, and be sure no colour, roughness or mask node reads it."
+pass = "met: the sensor lists no cast, and every `idcast: vertex` mark in the changed files feeds only positionNode or normals. attempted: a listed cast is left with a note saying why it cannot reach the fragment stage."
+remediation = "Round the attribute where it is read (`.round()` on the attribute chain or inside the cast), or, for a cast only positionNode reads, mark it `idcast: vertex`. Never mark a cast that a colorNode, roughnessNode, maskNode or texture lookup reads."
+written_against = { model = "claude-opus-5-5", date = "2026-10-28" }
+
+[sensor]
+type = "command"
+run = "python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/idcast.py {file}"
+
+[origin]
+date = "2026-10-28"
+incident = "Newcastle's pavements, kerbs and roofs were salt-and-pepper speckled in brown: the library material cast its per-vertex layer with int(), interpolation landed some pixels just under the whole number, and they drew the block-paving layer below. Found on the overnight beauty pass; the sensor's first run found the same class in debris particle colours (debris-particles.mjs index)."
