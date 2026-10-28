@@ -1,0 +1,33 @@
+id = "correct.cowork.module-plug"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "Coworking is one studio-level layer. Every module joins it through the one plug (the workspace surface, content anchors, focus, registered document kinds) and none builds its own sockets, pointers, carets or comments."
+guidance = """
+Read the "Coworking" section of agents/contracts.md before touching a module. A module view
+renders inside the workspace's CoworkSurface (a dialog that holds its own content opens a nested
+surface with a sub-view key). Every item a person can point at, open or comment on carries
+data-anchor="<kind>:<id>" and a human data-anchor-label. Opening an item calls useFocus. A module
+that edits shared content registers a DocKind on the server and opens it with useCoworkDoc; it
+never opens its own websocket, never draws its own pointers or carets, never stores its own
+comments. A new module is not done until it is plugged in.
+"""
+pass = "met: the plug test passes and the reviewer finds no module-local socket, pointer, caret or comment code. attempted: the test passes but a module has items without anchors or labels, named in the note."
+remediation = "Name the module and the missing piece (surface, anchor, label, focus, DocKind). Wire it through lib/cowork.js and gstudio/cowork_docs.py. Never add an exception to the plug test's module list to make it pass."
+written_against = { model = "claude-opus-5-5", date = "2026-10-28" }
+
+[sensor]
+type = "review"
+run = '''cd {repo} && PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q -p no:cacheprovider tests/unit/test_cowork_plug.py 2>&1 | tail -n 30'''
+rubric = """
+You did not build this.
+1. Read the mechanical half's result. A failure or "no tests collected" is a catch.
+2. List the workspace modules (gstudio/modules.py and the rail in web/src/screens/site/workspace.js). For each, open its screen: is its content inside the surface, do its items carry data-anchor and data-anchor-label, does opening an item call useFocus?
+3. Search web/src for new WebSocket( outside lib/presence.js and lib/cowork-doc.js, for pointer or caret drawing outside the cowork components, and for comment storage outside gstudio/comments.py. Each is a catch.
+4. For each module that edits shared text, name its DocKind in gstudio/cowork_docs.py.
+5. Record met only if every module is plugged in through the one layer.
+"""
+
+[origin]
+date = "2026-10-28"
+incident = "Gabriel asked for coworking to sit at the studio level with one defined way for every module, present and future, to plug in, after pass 5a's pointers were wired into the workspace by hand."

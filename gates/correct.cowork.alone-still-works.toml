@@ -1,0 +1,24 @@
+id = "correct.cowork.alone-still-works"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "Coworking is additive and reversible. With its sockets refused, slow or dropped, every module still opens, edits and saves on its own, and says so quietly."
+guidance = """
+Every coworking feature degrades to the single-person path that existed before it: an editor
+whose shared document cannot connect within a few seconds edits and saves through the normal
+etag save, and rejoins when it can; pointers, glows and focus simply vanish; comments still load
+over plain HTTP. Never block typing, opening or saving on a socket. Test it in a real browser
+with the coworking websocket routes refused and with a socket dropped mid-edit.
+"""
+pass = "met: the alone tests pass in a real browser with nothing skipped, covering refused and dropped sockets. attempted: one of the two is not covered, named in the note."
+remediation = "Find what waited on the socket (a seed wait, a role wait, a render gate) and give it a timeout that falls back to the single-person path. Never remove the refused-socket case from the test."
+written_against = { model = "claude-opus-5-5", date = "2026-10-28" }
+
+[sensor]
+type = "command"
+run = '''cd {repo} && out=$(PYTHONDONTWRITEBYTECODE=1 timeout 900 .venv/bin/python -m pytest -q -rs -p no:cacheprovider -k "cowork and alone" tests/e2e 2>&1); rc=$?; printf '%s\n' "$out" | tail -n 30; [ $rc -eq 0 ] || exit $rc; if printf '%s\n' "$out" | grep -Eq '[0-9]+ skipped|no tests ran'; then echo 'alone-still-works: skipped or missing'; exit 75; fi'''
+cannot_run_exit = 75
+
+[origin]
+date = "2026-10-28"
+incident = "Gabriel granted coworking an open mandate because the layer is reversible; that only holds if switching it off or losing it leaves every module working alone."

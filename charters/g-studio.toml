@@ -90,6 +90,25 @@ id = "correct.delivery.verify-before-claiming-done"
 version = 1
 blocking = true
 
+# Coworking: the studio-level layer every module plugs into (2026-10-28).
+
+[[gates]]
+id = "correct.cowork.module-plug"
+version = 1
+paths = ["web/src/**", "gstudio/**"]
+
+[[gates]]
+id = "correct.cowork.converge"
+version = 1
+paths = ["gstudio/**", "web/src/**", "tests/**"]
+blocking = true
+
+[[gates]]
+id = "correct.cowork.alone-still-works"
+version = 1
+paths = ["web/src/**", "tests/**"]
+blocking = true
+
 # Look: the studio app and the editor injected into previews.
 
 [[gates]]

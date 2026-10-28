@@ -1,0 +1,26 @@
+id = "correct.cowork.converge"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "People editing the same thing at once always end with the same content, seeded once, saved once per change, and no edit is lost silently, even when an agent or another path writes the file underneath."
+guidance = """
+Shared documents run the stock Yjs protocol through the studio server; the file on disk stays the
+truth. Test through the real server, not a mock: several clients editing one document with
+random operations, network drops and reconnects; two clients opening an empty room at the same
+instant (exactly one seeds); the saver leaving mid-edit (another takes over, nothing lost); an
+outside write to the file while people type (the change arrives or both versions are kept,
+never a silent loss); a layout-only write (order, span) never resetting a room; read-only
+members whose updates are dropped; awareness names and colours coming from the server, never
+the client. Name the tests so `-k cowork` selects them, and keep the JS half under `npm run -s test:cowork`.
+"""
+pass = "met: every case above has a test and they pass with nothing skipped. attempted: tests pass but a case has no test, named in the note."
+remediation = "Read the failing case, the final documents of each client and the file on disk. Fix the room (seed grant, saver handoff, reset path) rather than the test. Never lengthen a wait to hide a race."
+written_against = { model = "claude-opus-5-5", date = "2026-10-28" }
+
+[sensor]
+type = "command"
+run = '''cd {repo} && out=$(PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q -rs -p no:cacheprovider -k cowork tests/unit tests/api 2>&1); rc=$?; printf '%s\n' "$out" | tail -n 30; [ $rc -eq 0 ] || exit $rc; if printf '%s\n' "$out" | grep -Eq '[0-9]+ skipped|no tests ran'; then echo 'converge: cowork tests skipped or missing'; exit 1; fi; cd web && npm run -s test:cowork 2>&1 | tail -n 20'''
+
+[origin]
+date = "2026-10-28"
+incident = "Gabriel asked for fully featured live co-editing across the studio. Notes were saved with etags, so two people in one note got a conflict instead of a merge, and agents edit the same files between sessions."
