@@ -15,4 +15,4 @@ cannot_run_exit = 2
 
 [origin]
 date = "2026-10-28"
-incident = "The owner said fire goes on forever; the 2026-10-28 design review found fields that never return to 0 active tiles and burnt flammables left in the world. Landed under Gabriel's open mandate of 2026-10-28. Sensor being built on gengine/fields-sleep."
+incident = "The owner said fire goes on forever; the 2026-10-28 design review found fields that never return to 0 active tiles and burnt flammables left in the world. Landed under Gabriel's open mandate of 2026-10-28. Sensor landed on gengine/int-1028 (fields-sleep 38efb57b): CAUGHT on int 96d55a57 (heat never rests, flooded post at 865 C, 30 solid slabs), MET after the merge ffef3571; blocking since."

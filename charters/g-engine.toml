@@ -163,6 +163,7 @@ paths = ["v2/**"]
 id = "correct.engine.every-process-ends"
 version = 1
 paths = ["v2/**"]
+blocking = true
 
 [[gates]]
 id = "correct.engine.one-blast-record"
