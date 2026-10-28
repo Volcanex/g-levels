@@ -1,0 +1,24 @@
+id = "correct.engine.owner-bugs-first"
+version = 1
+kind = "correcting"
+trigger = "milestone"
+principle = "A night run on g-engine starts from the owner's open bugs, in his own words, and is judged on his path. On g-engine, beauty means the internal design (renderer, physics, optimisation, emergent and data-driven systems), not visual polish."
+guidance = "Before writing a g-engine night brief, list the open g-engine Brain tickets (list_tickets, project g-engine) and put each owner bug first, quoted in his words, with its gate. The brief gates on his path: blast the ground twice, shoot a wall, watch a fire burn out, play for a minute on the range, on the M3 when the Mac runner is up. Look work comes after every open owner bug has a fix or a stated blocker. Read 'beauty' as elegant internal design, never as a polish pass."
+pass = "met: the brief lists every open owner bug ticket first in his words, each worker's done line is his path for that bug, and the run's report gives each bug's result on that path. attempted: the bugs are listed but a worker spent the run on look work while a listed bug stayed open without a stated blocker."
+remediation = "Name each open owner bug the brief left out or put after look work, and the path step that would show it. Rewrite the brief bug first; do not close a ticket without his path passing."
+written_against = { model = "claude-opus-5-5", date = "2026-10-28" }
+
+[sensor]
+type = "review"
+rubric = """
+You did not write this brief. Read the brief, then list the open g-engine tickets in Brain (project g-engine).
+1. Does the brief open with every open owner bug, quoted in his words, before any look or polish work?
+2. Does each bug's done line name his path (ground twice, a wall shot, a fire burning out, a minute of play on the range, the M3 when the Mac runner is up), not a proxy metric?
+3. Does the brief read 'beauty' as internal design (renderer, physics, optimisation, emergent and data-driven systems), not visual polish?
+4. After the run: did the report give each bug's result on that path?
+Record met only if all four hold. Otherwise attempted, naming each missing bug or step.
+"""
+
+[origin]
+date = "2026-10-28"
+incident = "A night run read 'beauty' as visual polish and spent the night on looks while the owner's month-old engine bugs stayed open."

@@ -1,0 +1,18 @@
+id = "correct.engine.input-latency"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "A shot happens when you fire. In single player an input reaches the sim on the next tick."
+guidance = "Never route solo input through a relay, referee or scheduling lead. Prediction may smooth movement; it may not delay a shot."
+pass = "met: the headless run fires a rocket at tick T, the rocket spawns by T + 1 and bursts within one tick of its flight time. attempted: never; a late spawn is a catch."
+remediation = "The sensor prints the fire, spawn and burst ticks and the expected burst. Find the stage that holds the input (relay, referee, lead) and take solo input off it; never shorten the flight or move the target."
+written_against = { model = "claude-opus-5-5", date = "2026-10-24" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && node v2/tests/range/gate.mjs input-latency"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-10-24"
+incident = "A runtime audit found single player running the multiplayer authority stack in process, so Fire and Detonate landed 12 ticks (200 ms) after the click."

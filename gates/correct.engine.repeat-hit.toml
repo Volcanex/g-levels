@@ -1,12 +1,12 @@
 id = "correct.engine.repeat-hit"
-version = 1
+version = 2
 kind = "correcting"
 trigger = "every-run"
 principle = "Damage tests against the world as it is now. A shot into an existing breach passes through it or hits real remaining geometry, and nothing is ever carved or drawn outside solid geometry."
-guidance = "Every hit test (projectile ray, fuse, contact, forecast) must read the post-carve state, and the drawn hole must use the same coordinates as the carve. Write the failing reproduction first."
-pass = "met: the repeat-hit test fires into a carved breach and the projectile passes through or detonates on remaining solid, with no carve or mask outside solid, and the range repeat-hit bay shows it. attempted: the sim test passes but the bay still shows a fault, or the reverse."
-remediation = "The test prints where the second detonation landed and what it tested against. Fix the stale state at its source; do not add a special case for holes."
-written_against = { model = "claude-opus-5-5", date = "2026-10-20" }
+guidance = "Every hit test (projectile ray, fuse, contact, forecast) must read the post-carve state, and the drawn hole must use the same coordinates as the carve. On the ground, a crater is placed against the craters already there: what it draws (its skirt and apron) never lies over another crater's bowl, and a crater that replaces another holds the whole old bowl. Write the failing reproduction first."
+pass = "met: the wall case fires into a carved breach and the projectile passes through or detonates on remaining solid, with no carve or mask outside solid; and the ground case (a big crater, then blasts in its bowl, on its rim and just outside it) leaves no two live craters whose drawn extents overlap and no replacement that fills a bowl back in; and the range bays show it (the ground bay, and the ground-twice bay once it exists). attempted: the sim cases pass but a bay still shows a fault, or the reverse."
+remediation = "The test prints where the second detonation landed and what it tested against, and for the ground each overlapping pair with its distance and drawn extents. Fix the stale state or the crater choice at its source (the one place a crater is picked); do not add a special case for holes or shrink the skirt to pass."
+written_against = { model = "claude-opus-5-5", date = "2026-10-28" }
 
 [sensor]
 type = "command"
@@ -15,4 +15,4 @@ cannot_run_exit = 2
 
 [origin]
 date = "2026-10-20"
-incident = "A rocket shot into an existing hole spawned a smaller hole in mid air."
+incident = "A rocket shot into an existing hole spawned a smaller hole in mid air. Version 2 (2026-10-28): a second ground blast in a big crater's bowl made a new crater at the uncut ground height whose flat skirt was drawn over the bigger bowl; the sensor only fired at walls."

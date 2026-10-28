@@ -1,0 +1,18 @@
+id = "correct.engine.local-cost"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "Cost is local and bounded. Per-tick cost scales with local activity, never with world size, and returns to its baseline after an event settles."
+guidance = "A change to the world (a crater, a breach, a body) costs where it is and while it is active. Rebuilding a world-sized structure (a heightfield, a collider, a mesh, a graph) for a local change is the usual cause. Measure the sim tick in Node, say which numbers come from where, and never judge frame times from SwiftShader on h."
+pass = "met: in Node, the sim tick after a ground blast and after it settles stays within the sensor's bound of the pre-blast baseline, and the cost of one blast does not grow with the world's size. attempted: the post-settle cost is back but the event spike still scales with world size, or the reverse."
+remediation = "The sensor prints the baseline tick, the tick during and after the blast, and the same on a larger world. Find what is rebuilt whole for a local change and update only the part that changed; do not shrink the world or skip ticks to pass."
+written_against = { model = "claude-opus-5-5", date = "2026-10-28" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && nice -n 19 node --max-old-space-size=900 v2/tests/range/gate.mjs local-cost"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-10-28"
+incident = "The owner felt lag after a ground blast on the range on his M3."

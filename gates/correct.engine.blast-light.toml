@@ -1,0 +1,19 @@
+id = "correct.engine.blast-light"
+version = 1
+kind = "correcting"
+trigger = "milestone"
+skill = "g-motion"
+principle = "A blast's light goes out. When the scene has settled it is lit as it was before the blast."
+guidance = "Every light or emissive an effect turns on has a lifetime on the sim clock and ends. Run the boot check, then this gate on its frames, before a publish, and again on the live capture after it. This is the mechanical half of correct.render.frame-integrity's 'changes light when nothing moved' for g-engine; that gate's review still applies."
+pass = "met: in every blast bay of the capture the settled frame's mean luminance is under 1.2 times the before frame's. attempted: never. Only the upper bound is judged; a scene going dark is not covered."
+remediation = "The sensor prints before, settled and their ratio per bay: the settled frame is N times brighter than before the blast, so a blast light or emissive never turned off. Check the fx flash light's lifetime and the clock it runs on."
+written_against = { model = "claude-opus-5-5", date = "2026-10-25" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && node v2/tests/range/gate.mjs blast-light"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-10-25"
+incident = "Moving the effects onto wall time left the blast light on and drew no fireball, washing every scene white from the first blast; the boot check passed because nothing threw, though its own frames showed the blowout."

@@ -1,0 +1,18 @@
+id = "correct.engine.precut-hit"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "A hit flips pieces, it does not rebuild the world. It builds no mesh, compiles no shader and uploads small state."
+guidance = "Pieces and support are cut before play (agents/v2/precut.md). A hit writes alive bits and spawns bodies from load-time templates. Never compute at runtime what can be computed before."
+pass = "met: on every range blast bay, stepped a tick a frame, the hits run no mesh job on the bay's sources, build no shader program after boot and upload at most 64 KiB a shot. attempted: never; an unmeasured program count is a catch."
+remediation = "The sensor prints mesh jobs, programs built and bytes a shot per bay. Move what the hit built (a mesh, a shader variant, a big upload) to build or load time; never raise the byte bound or drop a bay."
+written_against = { model = "claude-opus-5-5", date = "2026-10-28" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && node v2/tests/range/gate.mjs precut-hit"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-10-24"
+incident = "The owner asked for pre-cut things that are snappy and fast; the voxel route remeshed and published masks on every hit."

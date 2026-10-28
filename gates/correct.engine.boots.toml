@@ -1,0 +1,18 @@
+id = "correct.engine.boots"
+version = 1
+kind = "correcting"
+trigger = "milestone"
+principle = "Nothing ships that has not booted. Every page the hub links starts, and the range plays one bay with no page or console errors."
+guidance = "Node tests never load the stage, so a deleted variable still referenced there passes them all. After any change to the stage, the sandbox, the runner pages or a module they import, run the boot check before you hand the work over, and always before a publish. The check boots every page the hub links (the range sandbox and both device runners), never a hand-picked list."
+pass = "met: every page the hub links starts (the sandbox reaches ready, a runner passes its boot watchdog with its boot panel hidden) and the range house1 tour captures every pose with zero page and console errors. attempted: never; a page that does not start is a catch."
+remediation = "The sensor prints each page's first errors, for example `ReferenceError: initialScale is not defined at buildStage (stage.mjs:323)`. Fix the module it names, then boot again. Never drop a hub link or a pose to pass."
+written_against = { model = "claude-opus-5-5", date = "2026-10-28" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && node v2/tests/range/gate.mjs boots"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-10-25"
+incident = "A sim init message kept a deleted variable, every node test passed and a sandbox that threw before its first frame went live; later the same day a world the hub linked broke while the boot check loaded only the range tour."

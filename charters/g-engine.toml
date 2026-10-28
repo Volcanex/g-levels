@@ -6,6 +6,12 @@ principles = [
   "The engine is judged on its debug range, by eye, from seeded screenshots, before any soak number.",
   "Destruction looks right in a still frame and breaks on the frame the blast lands.",
   "A feature that breaks the engine is known to be broken and stays off in the default build.",
+  "Precompute: never compute at runtime what can be computed before. Pieces, support, shapes and templates are cut before play.",
+  "Systems meet through data and behaviour emerges from them. There is no scenario code.",
+  "Cost is local and bounded: what a change costs depends on where it happens and how much is going on there, never on the size of the world.",
+  "Every process ends. Fires burn out, debris sleeps, flows stop.",
+  "On g-engine, beauty means the internal design (renderer, physics, optimisation, emergent and data-driven systems), not visual polish. The owner's open bugs come first.",
+  "The range is the engine's only level. A game lives in its own repo.",
 ]
 
 [[gates]]
@@ -28,7 +34,7 @@ blocking = true
 
 [[gates]]
 id = "correct.engine.repeat-hit"
-version = 1
+version = 2
 paths = ["v2/**"]
 blocking = true
 
@@ -68,3 +74,80 @@ id = "correct.engine.interpolated-id"
 version = 1
 paths = ["v2/**/*.mjs"]
 blocking = true
+
+[[gates]]
+id = "correct.engine.input-latency"
+version = 1
+paths = ["v2/**"]
+blocking = true
+
+[[gates]]
+id = "correct.engine.lean"
+version = 1
+paths = ["v2/**"]
+
+[[gates]]
+id = "correct.engine.precut-hit"
+version = 1
+paths = ["v2/**"]
+blocking = true
+
+[[gates]]
+id = "correct.engine.no-play-alloc"
+version = 1
+paths = ["v2/**"]
+
+[[gates]]
+id = "correct.engine.emergence"
+version = 1
+paths = ["v2/**"]
+blocking = true
+
+[[gates]]
+id = "correct.engine.materials"
+version = 1
+paths = ["v2/**"]
+
+[[gates]]
+id = "correct.engine.explosion-look"
+version = 1
+paths = ["v2/**"]
+
+[[gates]]
+id = "correct.engine.boots"
+version = 1
+paths = ["v2/**"]
+blocking = true
+
+[[gates]]
+id = "correct.engine.blast-light"
+version = 1
+paths = ["v2/**"]
+blocking = true
+
+[[gates]]
+id = "correct.render.no-dead-surfaces"
+version = 1
+paths = ["v2/**"]
+
+[[gates]]
+id = "correct.engine.chunked-collapse"
+version = 1
+paths = ["v2/**"]
+blocking = true
+
+[[gates]]
+id = "correct.engine.finite"
+version = 1
+paths = ["v2/**"]
+blocking = true
+
+[[gates]]
+id = "correct.engine.local-cost"
+version = 1
+paths = ["v2/**"]
+
+[[gates]]
+id = "correct.engine.owner-bugs-first"
+version = 1
+paths = ["v2/**", "agents/**"]

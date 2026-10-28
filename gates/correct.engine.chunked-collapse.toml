@@ -1,0 +1,18 @@
+id = "correct.engine.chunked-collapse"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "What loses support comes down as connected chunks taken from the precomputed support graph. Single bricks come loose only near the hit, and the bodies one hit releases are bounded."
+guidance = "Support and chunking are computed before play (the brick layout and its support graph). A hit removes what it destroys near the hit; what falls because it lost support falls as the connected pieces the graph already knows, one body each, never as its bricks. Never cap the body count at runtime to pass: that hides a slice that should have come down whole."
+pass = "met: on the range wall and house shots, each hit releases single bricks only within its blast radius, everything else that falls comes down as connected chunks of many bricks, and the bodies per hit stay under the gate's bound; the range house bay shows a chunked collapse. attempted: the sim case passes but the bay still shows bricks raining, or the reverse."
+remediation = "The sensor prints per shot the bodies released, the largest chunk, and the single bricks with their distance from the hit. Find where support loss is turned into bodies and make it read the support graph's components; do not raise the bound or shrink the shot."
+written_against = { model = "claude-opus-5-5", date = "2026-10-28" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && node v2/tests/range/gate.mjs chunked-collapse"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-10-28"
+incident = "On the range, one wall shot released the whole vertical slice of a house as thousands of single bricks; the design intent was chunks."

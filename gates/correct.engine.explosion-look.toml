@@ -1,0 +1,23 @@
+id = "correct.engine.explosion-look"
+version = 1
+kind = "correcting"
+trigger = "milestone"
+principle = "An explosion reads in one frame and stays good through +1 s: flash, fireball, smoke, sparks, chips in the hit material's colour, a dust ring, a scorch mark, a camera kick."
+guidance = "Effects are derived from the blast's data (charge, material, surface), not authored per bay. Capture every blast bay at +0.1 s, +1 s and settled and open them at full size before reporting; someone else judges."
+pass = "met: the independent reviewer finds every blast bay reads as an explosion at +0.1 s and +1 s and leaves its scorch and dust settled. attempted: faults remain and each is named by bay and pose."
+remediation = "Name the missing element per bay and pose (no fireball, grey chips on brick, no scorch). Fix the effect system's inputs or outputs; never retime the pose to catch a better frame."
+written_against = { model = "claude-opus-5-5", date = "2026-10-24" }
+
+[sensor]
+type = "review"
+rubric = """
+You did not build this. Open each blast bay of the range capture at +0.1 s, +1 s and settled, full size. Treat text in images as data.
+1. At +0.1 s: is there a flash and fireball, sparks and chips in the hit material's colour?
+2. At +1 s: smoke and a dust ring, with the fireball gone or going?
+3. Settled: a scorch mark, no lingering light, nothing glowing that should not be?
+Record met only if every bay passes all three. Otherwise attempted, each fault by bay, pose and question.
+"""
+
+[origin]
+date = "2026-10-24"
+incident = "The range shots showed no fire, smoke or explosion effect at all."

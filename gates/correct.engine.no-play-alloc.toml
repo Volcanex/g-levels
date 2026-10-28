@@ -1,0 +1,18 @@
+id = "correct.engine.no-play-alloc"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "Steady play allocates nothing in the sim tick or the frame."
+guidance = "Typed arrays sized from budgets at load; ring and pool allocators; no closures, arrays or objects created per tick. Measure per system with the sensor before and after."
+pass = "met: 600 ticks of steady play after warm-up (settled range, player walking, fire burning, water flowing) grow the heap by under 64 KiB with no GC. attempted: the retained bytes fell and each system still allocating is named with its bytes a tick."
+remediation = "The sensor prints retained bytes, GC counts and the per-system breakdown. Fix the largest allocator first at its source (preallocate, reuse); never shorten the window or exclude a system."
+written_against = { model = "claude-opus-5-5", date = "2026-10-24" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && node v2/tests/range/gate.mjs no-play-alloc"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-10-24"
+incident = "The spec's memory contract was unmet: water, forecast, vehicles, destruction, joint load and wind allocated every tick, and the input log grew unread."

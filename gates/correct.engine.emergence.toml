@@ -1,0 +1,18 @@
+id = "correct.engine.emergence"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "Systems meet through data, never by calling each other, and the chains happen without scenario code."
+guidance = "Write components, fire events, read shared fields. A new interaction is a material property or a field coupling, not an if in another system. No sim/systems module imports another system."
+pass = "met: every headless chain happens (a blast beside timber ignites and spreads, burnt posts drop what they held, water stops fire, a breached tank drains, wood floats and brick sinks, a heated barrel sets off the next) and the import check finds 0 violations. attempted: never; a missing chain is a catch."
+remediation = "The sensor names the chain that did not happen and the values it read, or the import that couples two systems. Add the missing material property or field coupling; never script the scenario or special-case the test setup."
+written_against = { model = "claude-opus-5-5", date = "2026-10-24" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && nice -n 19 node --max-old-space-size=900 v2/tests/range/gate.mjs emergence"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-10-24"
+incident = "The owner asked for little systems that meet, a super object from the ground up; fire existed but was not in the playable sim."

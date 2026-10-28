@@ -1,0 +1,18 @@
+id = "correct.engine.lean"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "Every module in v2 is reachable from an entry point that ships or from a test of one. Dead code is deleted, not kept in case: git keeps it."
+guidance = "Before adding a module, find the one it duplicates. When a path is replaced, delete the old one in the same change. A new entry point is declared in the walker's ENTRIES with the doc that names it."
+pass = "met: the import-graph walker finds no unreachable production module outside its allowlist. attempted: never; the test-only list it prints is a deletion list to decide on, not a pass condition."
+remediation = "The walker prints each unreachable module and its lines. Delete it, or wire it from the entry that should ship it. Never add it to ENTRIES or the allowlist to quiet the gate."
+written_against = { model = "claude-opus-5-5", date = "2026-10-24" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && node v2/tests/range/gate.mjs lean"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-10-24"
+incident = "An audit found a 570-line unreachable classic path in the sim worker, a 1,969-line net-sim stack imported but never run, and about 80k lines of engine source against 66k of tests."

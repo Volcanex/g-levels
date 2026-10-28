@@ -1,0 +1,18 @@
+id = "correct.engine.finite"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "Every process that starts ends or settles. A fire burns out when its fuel is gone and destroys what was flammable, debris goes to sleep, flows stop, effects end."
+guidance = "Give every process the quantity it consumes (fuel mass, energy, water volume, momentum) as data, and let it end when that runs out. A fire that never ends usually reads fuel it never spends. Never end a process with a timer or a despawn: that hides the missing quantity."
+pass = "met: headless runs of the range fire bay, a timber post fire and a blast's debris each end (no flame, no burning entity, every body asleep, every flow below its rest threshold) within the bound the sensor names, and what burned is consumed. attempted: some cases end and the rest are named with what is still active."
+remediation = "The sensor prints per case the tick it ended, or what is still active at the bound and its remaining fuel. Find the quantity that is never spent and spend it; do not add a timeout or lower the bound."
+written_against = { model = "claude-opus-5-5", date = "2026-10-28" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && nice -n 19 node --max-old-space-size=900 v2/tests/range/gate.mjs finite"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-10-28"
+incident = "On the range, fire went on forever."
