@@ -50,5 +50,5 @@ paths = ["geo/pages/workbench/**", "static/js/wb-svea/**"]
 
 [[gates]]
 id = "correct.research.client-data-boundary"
-version = 1
+version = 2
 paths = ["geo/pages/workbench/**", "static/js/wb-svea/**", "geo/api/wb_*.py"]
