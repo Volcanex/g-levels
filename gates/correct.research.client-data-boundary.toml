@@ -1,5 +1,5 @@
 id = "correct.research.client-data-boundary"
-version = 1
+version = 2
 kind = "correcting"
 trigger = "every-run"
 principle = "Client data is read, never changed, and never leaves the systems it was entrusted to."
@@ -8,16 +8,29 @@ Client warehouses are read-only: SELECT and metadata only, a dry run first, and 
 every query. No client rows to third-party services other than the model providers already in
 use. Public web collection stays logged out, keeps no named private individuals, and stores
 tone in aggregate. Credentials never in argv, logs or git.
+Client analytics (GA4 and the like) reaches a page only as aggregates: counts per day,
+campaign, channel or landing path. No user_pseudo_id, ga_session_id, client or user id,
+event-level row or anything that names one visitor is served, even to the client's own
+people, and a scoped view is re-aggregated from the cube rather than filtered rows.
 """
-pass = "Met when the run log shows only reads under the cap and no personal data stored. Any write, uncapped query or stored personal identifier is impossible to waive."
+pass = "Met when the run log shows only reads under the cap, no personal data stored, and every served analytics file holds aggregate items only. Any write, uncapped query or stored personal identifier is impossible to waive."
 remediation = "Stop, delete the offending data, report it to Gabriel."
 written_against = { model = "claude-opus-5-5", date = "2026-10-19" }
 
 [sensor]
 type = "review"
 run = "! grep -rIlE '\"private_key\"|BEGIN PRIVATE KEY' {file}"
-rubric = "A separate reviewer reads the query log and the stored collections for writes, uncapped scans and personal identifiers."
+rubric = "A separate reviewer reads the query log and the stored collections for writes, uncapped scans and personal identifiers, then greps every served analytics file for visitor ids (user_pseudo_id, ga_session_id, client_id, user_id) and checks the items are aggregate cells. For Svea the department verifier ~/research/svea/explorers/verify_dept.py enforces the field allowlist."
 
 [origin]
 date = "2026-10-19"
 incident = "Written when read access to a client's analytics warehouse was granted for research."
+
+[validation]
+date = "2026-10-29"
+sensor = "~/research/svea/explorers/verify_dept.py (GA4 field allowlist) plus a grep of served svea-x/dept"
+cases = [
+  "original: user_pseudo_id written into a Payments GA4 day item -> exit 1, 'Item fields svea-payments/ga4/day_20260914: {user_pseudo_id}'",
+  "related: ga_session_id written into the same item -> exit 1, 'Item fields ... {ga_session_id}'",
+  "clean: the shipped build -> exit 0; grep of staging svea-x/dept for visitor id keys finds nothing",
+]

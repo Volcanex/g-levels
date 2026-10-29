@@ -24,3 +24,12 @@ Run the scope's click-through script (named in the charter note or project docs)
 [origin]
 date = "2026-10-29"
 incident = "Written for interactive evidence-map workbenches, where earlier rounds shipped explorers that opened blank, nodes with no handler and a takeover that hid the main nav."
+
+[validation]
+date = "2026-10-29"
+sensor = "baseline tests/playwright/workbench_clickthrough.py"
+cases = [
+  "original: serp and shots nodes made dead (click swallowed by WB_INJECT) -> two 'nothing opened' catches, exit 1",
+  "related: a sensor that clicked a group's box centre landed on a neighbouring node and called a working node dead; fixed by clicking circle.sm-dot, recorded so the sensor is judged too",
+  "clean: the shipped Fordon bench at 1440 -> 27 clicks, met",
+]

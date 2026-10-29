@@ -33,3 +33,12 @@ You did not build this.
 [origin]
 date = "2026-10-29"
 incident = "Written before splitting a client's research store into per-department workbenches, where the records carry no department tag and every placement is inferred."
+
+[validation]
+date = "2026-10-29"
+sensor = "~/research/svea/explorers/verify_dept.py"
+cases = [
+  "original: one Fordon news record with its placement reasons emptied -> exit 1, 'Missing dw svea-fordon/news/ev_8016884b7c213fc1'",
+  "related: one Privat news record dropped from its scope (lost from the union) -> exit 1, 'Headline count svea-privat/news.json'",
+  "clean: the shipped build -> exit 0, 160 files, 20,453 occurrences, union exact",
+]

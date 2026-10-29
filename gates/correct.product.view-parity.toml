@@ -28,3 +28,12 @@ You did not build this.
 [origin]
 date = "2026-10-29"
 incident = "Written before rendering a client evidence map once per department, where a forked page would drift from the original and drop explorers."
+
+[validation]
+date = "2026-10-29"
+sensor = "baseline tests/playwright/workbench_clickthrough.py (PARITY lines)"
+cases = [
+  "original: the Fordon bench's serp explorer rerouted to the whole-Svea snapshot (WB_REROUTE=serp) -> catch 'parity svea-fordon: explorers not opened from this bench's own data: serp'",
+  "related: a source with nothing placed opening the whole snapshot without its 'Not scoped' banner -> catch 'opened the whole X with no Not scoped banner' (first run, before the banner check existed, showed reviews and social unaccounted)",
+  "clean: the shipped Fordon bench -> 11 of 13 explorers from own data, the other two behind the Not scoped banner, met",
+]
