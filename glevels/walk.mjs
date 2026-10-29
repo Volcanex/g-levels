@@ -167,7 +167,9 @@ function inspect() {
 }
 
 async function session(browser, o, entry) {
-  const context = await browser.newContext({ viewport: o.viewport, deviceScaleFactor: 1, serviceWorkers: "block" });
+  // A signed-in walk reads a Playwright storage state from a 0600 file, never from argv.
+  const context = await browser.newContext({ viewport: o.viewport, deviceScaleFactor: 1, serviceWorkers: "block",
+    ...(process.env.GLEVELS_STORAGE_STATE ? { storageState: process.env.GLEVELS_STORAGE_STATE } : {}) });
   context.setDefaultTimeout(5000);
   await context.addInitScript(init);
   const s = { context, page: null, entry, errors: [], requests: 0, dialogs: 0, blocked: [] };
