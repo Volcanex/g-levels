@@ -1,0 +1,30 @@
+id = "correct.product.view-parity"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-product"
+principle = "A scoped copy of a view offers everything the whole view offers, with the scope applied, so moving into a scope never loses a tool."
+guidance = """
+When one page is rendered again for a narrower scope (a department, a market, a client), it
+runs the same code as the whole, not a fork, and every drill-down the whole offers (explorers,
+inspectors, filters, deep links) is reachable from the scoped copy and opens already scoped.
+List the whole view's entry points before building and tick each off on the scoped copy.
+A drill-down with no data in a scope opens an honest empty state, never disappears silently.
+"""
+pass = "met: every entry point listed from the whole view is reachable from each scoped copy and opens scoped data (checked by request URL or visible counts). attempted: some entry points missing in some scopes, named in the note."
+remediation = "Make the scoped page call the shared code with the scope as a parameter rather than copying it. For each missing entry point, wire it through the same registration the whole view uses. For one that opens unscoped data, fix the data source it is pointed at."
+written_against = { model = "claude-opus-5-5", date = "2026-10-29" }
+
+[sensor]
+type = "review"
+rubric = """
+You did not build this.
+1. On the whole view, list every clickable entry point that opens a drill-down (explorer, inspector, detail, deep link).
+2. On at least three scoped copies, open each one. Note the request it makes and the counts it shows.
+3. A scoped entry point must request the scoped data source and show counts no larger than the whole.
+4. Record met only if every entry point is present and scoped on every copy checked.
+"""
+
+[origin]
+date = "2026-10-29"
+incident = "Written before rendering a client evidence map once per department, where a forked page would drift from the original and drop explorers."

@@ -30,3 +30,25 @@ paths = ["core/emails/**", "core/pages/admin/decks/**", "geo/pages/**"]
 id = "design.product.feature-ideas"
 version = 2
 
+
+# Scoped workbench views (per-department benches on a client evidence map). Verifiers:
+# ~/research/svea/explorers/verify_dept.py (data) and tests/playwright/workbench_clickthrough.py (browser).
+[[gates]]
+id = "correct.product.scope-provenance"
+version = 1
+paths = ["geo/pages/workbench/**", "static/js/wb-svea/**", "geo/api/wb_*.py"]
+
+[[gates]]
+id = "correct.product.view-parity"
+version = 1
+paths = ["geo/pages/workbench/**", "static/js/wb-svea/**"]
+
+[[gates]]
+id = "correct.product.click-through"
+version = 1
+paths = ["geo/pages/workbench/**", "static/js/wb-svea/**"]
+
+[[gates]]
+id = "correct.research.client-data-boundary"
+version = 1
+paths = ["geo/pages/workbench/**", "static/js/wb-svea/**", "geo/api/wb_*.py"]

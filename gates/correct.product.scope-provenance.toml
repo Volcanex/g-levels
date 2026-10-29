@@ -1,0 +1,35 @@
+id = "correct.product.scope-provenance"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-product"
+principle = "When a product splits one body of records into scoped views (per department, per market, per product line), every record in a view says why it is there, and every view says how much was left unplaced."
+guidance = """
+A scoped view is a claim that these records belong to this scope. Make the claim checkable.
+- Each placement carries its reason: the rule id and the matched text, or the model judgment
+  with its question and confidence. A placement with no reason is a guess.
+- Rules live in one config that the builder reads and the page can cite. Reuse the existing
+  mapping source of truth before adding a second one.
+- Nothing is lost: the union of every scoped view plus the unplaced set equals the whole.
+- The unplaced count is shown on every view, not only on the catch-all one, so a reader knows
+  how much the split could not decide.
+- Scoped aggregates are recomputed from the scoped records, never copied from the whole.
+"""
+pass = "met: the verifier passes (every scoped record has a non-empty reason, scoped counts never exceed the whole, union plus unplaced equals the whole) and a reviewer sampled at least ten placements across three scopes and found each reason true. attempted: verifier passes but some sampled reasons are wrong or vague, named in the note."
+remediation = "For a record without a reason, fix the builder so the rule that placed it records itself. For a wrong placement, tighten or remove the rule in the config, rebuild, and rerun the verifier. If the union check fails, find the records dropped between the whole and the scopes and place them or count them as unplaced."
+written_against = { model = "claude-opus-5-5", date = "2026-10-29" }
+
+[sensor]
+type = "review"
+rubric = """
+You did not build this.
+1. Run the scope's own verifier (the charter note or the project docs name it). A non-zero exit is a catch.
+2. Pick ten scoped records across at least three scopes, including two placed by a model judgment if any exist.
+3. For each, read the record's text or URL and its stated reason. Is the reason true, and does the record belong in that scope?
+4. Open three rendered views and check the unplaced count is visible on each.
+5. Record met only if every sampled reason holds and every view shows the unplaced count.
+"""
+
+[origin]
+date = "2026-10-29"
+incident = "Written before splitting a client's research store into per-department workbenches, where the records carry no department tag and every placement is inferred."

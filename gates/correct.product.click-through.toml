@@ -1,0 +1,26 @@
+id = "correct.product.click-through"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "webapp-testing"
+principle = "Every node, chip and link on an interactive view opens something real: no dead ends, no blank panels, no console errors."
+guidance = """
+Drive the page in a real browser and click every interactive element in the view, not a
+sample. After each click something visible must change (a panel, a takeover, a navigation)
+and it must carry content or an honest empty state with a way back. Watch the console and the
+network: an uncaught error or a failed request the page did not explain is a catch. Do it at
+phone width (390) and desktop width (1440).
+"""
+pass = "met: the click-through script clicked every interactive element on every view in scope at both widths, each opened content or an honest empty state, and the console and network were clean. impossible: no browser here, with the reason. attempted is not available: a dead end is a catch."
+remediation = "For each catch the script names the element, the width and what happened. Reproduce it, fix the product (wire the click, add the empty state, fix the request), rerun the whole script. Never remove an element from the clicked set to make it pass."
+written_against = { model = "claude-opus-5-5", date = "2026-10-29" }
+
+[sensor]
+type = "review"
+rubric = """
+Run the scope's click-through script (named in the charter note or project docs) against the deployed pages, signed in as a user who can open them. Exit non-zero is a catch; read its per-element log. Then spot-check three clicks by hand at 390 px. Record met only if the script passed at both widths.
+"""
+
+[origin]
+date = "2026-10-29"
+incident = "Written for interactive evidence-map workbenches, where earlier rounds shipped explorers that opened blank, nodes with no handler and a takeover that hid the main nav."
