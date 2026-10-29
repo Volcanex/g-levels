@@ -1,5 +1,5 @@
 id = "correct.product.click-through"
-version = 1
+version = 2
 kind = "correcting"
 trigger = "every-run"
 skill = "webapp-testing"
@@ -7,11 +7,13 @@ principle = "Every node, chip and link on an interactive view opens something re
 guidance = """
 Drive the page in a real browser and click every interactive element in the view, not a
 sample. After each click something visible must change (a panel, a takeover, a navigation)
-and it must carry content or an honest empty state with a way back. Watch the console and the
+and it must carry content or an honest empty state with a way back. An empty state is honest
+only when the data behind it is empty too: "No records here" over a snapshot that holds
+records is a catch, so check the count the view read (parts included), not the words. Watch the console and the
 network: an uncaught error or a failed request the page did not explain is a catch. Do it at
 phone width (390) and desktop width (1440).
 """
-pass = "met: the click-through script clicked every interactive element on every view in scope at both widths, each opened content or an honest empty state, and the console and network were clean. impossible: no browser here, with the reason. attempted is not available: a dead end is a catch."
+pass = "met: the click-through script clicked every interactive element on every view in scope at both widths, each opened content or an empty state its own data agrees with, and the console and network were clean. impossible: no browser here, with the reason. attempted is not available: a dead end is a catch."
 remediation = "For each catch the script names the element, the width and what happened. Reproduce it, fix the product (wire the click, add the empty state, fix the request), rerun the whole script. Never remove an element from the clicked set to make it pass."
 written_against = { model = "claude-opus-5-5", date = "2026-10-29" }
 
@@ -23,7 +25,7 @@ Run the scope's click-through script (named in the charter note or project docs)
 
 [origin]
 date = "2026-10-29"
-incident = "Written for interactive evidence-map workbenches, where earlier rounds shipped explorers that opened blank, nodes with no handler and a takeover that hid the main nav."
+incident = "Written for interactive evidence-map workbenches, where earlier rounds shipped explorers that opened blank, nodes with no handler and a takeover that hid the main nav. v2: the judge found forums empty on every view while the header counted 1,820; the v1 sensor scored any empty state over 20 characters as opened."
 
 [validation]
 date = "2026-10-29"
@@ -32,4 +34,7 @@ cases = [
   "original: serp and shots nodes made dead (click swallowed by WB_INJECT) -> two 'nothing opened' catches, exit 1",
   "related: a sensor that clicked a group's box centre landed on a neighbouring node and called a working node dead; fixed by clicking circle.sm-dot, recorded so the sensor is judged too",
   "clean: the shipped Fordon bench at 1440 -> 27 clicks, met",
+  "v2 original (2026-10-29): forums explorer said No records here on all 6 views over 1,820 records (items [] at top, captures in meta.parts) and the v1 sensor passed it; v2 run on the buggy build -> 15 catches, exit 1",
+  "v2 related: WB_INJECT emptied /x/news in the browser while the API held 1,759 (bench 58) -> 13 catches, exit 1",
+  "v2 clean: fixed build, Privat + Foretagslan + NL (NL forums parts 0/0, a true empty) at 1440 -> met, exit 0",
 ]
