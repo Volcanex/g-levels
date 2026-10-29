@@ -1,0 +1,18 @@
+id = "correct.engine.names-a-level"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "A system names a tree level, never a size. Cells, reaches, strides, chunks and samples come from v2/sim/core/tree.mjs (size('region'), per('chunk', 'region'), cover(m)), so tuning the tree is one number in one place."
+guidance = "Before giving a grid cell, chunk, sample spacing, stride or reach a number, read it from tree.mjs as a level or a whole number of a level. Metric tuning (a physical distance in metres, a ratio, a count) stays metric, and goes in the sensor's ALLOW with one line saying which it is. A size that should be on the tree but is not yet goes in ALLOW as 'debt:' with what removes it. Never widen the sensor's exclusions to pass."
+pass = "met: v2/tools/names-a-level.mjs exits 0 (no unexplained size literal in v2/sim/{systems,engine,wind,bricks,destruction}, no stale allowance). attempted: the offenders left are listed with why they could not move to the tree in this change."
+remediation = "The sensor prints file:line, the name and the number. Read the size from tree.mjs, or, if it is not a grid size, add it to ALLOW in v2/tools/names-a-level.mjs with why (debt names what removes it). Remove ALLOW entries the sensor reports as stale."
+written_against = { model = "claude-opus-5-5", date = "2026-10-29" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && test -f v2/tools/names-a-level.mjs || exit 2; node v2/tools/names-a-level.mjs"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-10-29"
+incident = "Object heat's 1 m sample and 3 m reach (caeb2bc1) drifted off the tree unnoticed because the rule was only checked inside v2/sim/core. Sensor landed on gengine/air-cubes (246b05c4) with the thermal sizes as debt, which stage B of air on the tree removes."
