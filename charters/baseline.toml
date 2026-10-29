@@ -45,7 +45,7 @@ paths = ["geo/pages/workbench/**", "static/js/wb-svea/**"]
 
 [[gates]]
 id = "correct.product.click-through"
-version = 1
+version = 2
 paths = ["geo/pages/workbench/**", "static/js/wb-svea/**"]
 
 [[gates]]
