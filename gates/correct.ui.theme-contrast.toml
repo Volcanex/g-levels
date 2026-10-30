@@ -28,3 +28,12 @@ cannot_run_exit = 2
 [origin]
 date = "2026-10-30"
 incident = "On his phone, Gabriel found Controll buttons that did not work in the dark themes. No charter scoped the repo, and nothing checked a token pairing across themes."
+
+[validation]
+date = "2026-10-30"
+sensor = "gsp-controll .glevels/contrast.sh (app/test/contrast_test.dart, pairs of kind text and control fail, chart pairs report only)"
+cases = [
+  "original: main's tokens (6b5cd86) -> catch 'natt: line on raised [control] = 1.698:1; required 3.0:1', the outline Gabriel could not see on his phone",
+  "related: Natt with onAccent set equal to accent -> catch 'onAccent on accent [text] = 1.000:1'",
+  "clean: the twilight palette (branch twilight, d3ec2fd) in Skymning, Natt, Grön, Isblå and Ljus -> exit 0, with chart washes and bands printed as information and not failed",
+]
