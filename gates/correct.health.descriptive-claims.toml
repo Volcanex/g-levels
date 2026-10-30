@@ -1,0 +1,28 @@
+id = "correct.health.descriptive-claims"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "A health product describes patterns and how sure it is. It never diagnoses, treats or advises on a dose, so it stays wellbeing software and not a medical device."
+guidance = """
+Say what the data shows and the confidence: "your mood dipped in the week before your last two
+periods (moderate confidence)", never "you have PMDD" or "this looks like ADHD". Name a
+condition only when the person has said it about themselves. Medication copy describes timing
+and the person's own pattern. It never names an amount, a change, or a reason to take, skip or
+adjust a dose. No claim that the product treats, cures, reduces symptoms or replaces care.
+A claim like that would make it a medical device (UK MHRA, EU MDR), which is a decision for
+the owners, not something copy can drift into. This covers app screens, the landing page,
+survey intros, store listings and anything the studio publishes.
+"""
+pass = "met: the reviewer read every user-facing string the change added or altered and found no diagnosis, treatment, efficacy or dosing claim. impossible: the copy is not reachable, with the reason. attempted is not available: a claim is a catch."
+remediation = "Rewrite the line as a description with its confidence. Put any condition name behind the person's own statement. Delete efficacy claims. If the owners want such a claim, send it to them as a regulatory question instead of shipping it."
+written_against = { model = "claude-opus-5-5", date = "2026-10-30" }
+
+[sensor]
+type = "review"
+rubric = """
+You did not write this. List every user-facing string the change added or altered (Dart string literals in app/lib, landing HTML and its COPY table, survey intros, studio pages). As a lead, search them for diagnos, treat, cure, symptom, therapy, dose, dosage, mg, "you have", "you are", "sign of", "suggests you". A hit is only a lead: "undiagnosed users welcome" is fine. For each string ask: does it name a condition the person has not asserted? Does it say the product treats, improves or replaces care? Does it say how much medicine, or whether to take, skip or change it? Record met only if every answer is no, naming the strings you read.
+"""
+
+[origin]
+date = "2026-10-30"
+incident = "Written ahead of any leak when Controll got its charter. The product model requires descriptive copy, and the owners' business research (2026-10-29) found that diagnosis or treatment claims would make Controll a medical device."

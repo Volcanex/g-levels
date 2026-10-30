@@ -1,0 +1,111 @@
+id = "controll"
+title = "Controll, a self-regulation app people open on their phones, often at night"
+extends = ["g-system", "look", "delivery"]
+repos = ["state"]
+principles = [
+  "Every screen reads and responds in the hand: phone width, every shipped theme, the dark ones first.",
+  "Controll describes patterns and how sure it is. It never diagnoses, treats or advises on a dose.",
+  "Gentle and honest: no guilt, no red, no streaks that reset, and missing data widens the uncertainty instead of inventing a value.",
+  "Health data goes nowhere the person did not send it, and no visit tells a third party they came.",
+  "The owners' words and looks are theirs: survey wording and the live look change only with their yes.",
+]
+
+# In the hand: the 2026-10-30 incident (buttons that "don't work in dark" on the phone).
+
+[[gates]]
+id = "correct.ui.theme-contrast"
+version = 1
+paths = ["app/lib/**", "web/landing/**"]
+blocking = true
+
+[[gates]]
+id = "correct.ui.app-craft"
+version = 1
+paths = ["app/lib/**", "app/web/**"]
+
+[[gates]]
+id = "correct.product.click-through"
+version = 2
+paths = ["app/lib/**", "web/landing/**"]
+
+[[gates]]
+id = "correct.ux.first-run"
+version = 1
+paths = ["app/lib/screens/**", "app/lib/state/**"]
+
+# The look gates measure HTML, so they hold the pages. The Flutter app is judged from
+# screenshots by app-craft above.
+
+[[gates]]
+id = "correct.ui.spacing"
+version = 2
+paths = ["web/landing/*.html", "web/landing/design/**", "web/landing/survey/index.html", "web/admin/**"]
+
+[[gates]]
+id = "correct.ui.on-system"
+version = 1
+paths = ["web/landing/*.html", "web/landing/design/**", "web/landing/survey/index.html", "web/admin/**"]
+
+[[gates]]
+id = "correct.assets.real-sourced"
+version = 1
+paths = ["web/landing/**", "app/web/**", "app/assets/**"]
+
+[[gates]]
+id = "correct.motion.rhythm"
+version = 1
+paths = ["web/landing/*.html", "app/lib/**"]
+
+[[gates]]
+id = "correct.render.frame-integrity"
+version = 1
+paths = ["app/lib/charts/**"]
+
+# Health: what the product may say and how it says it.
+
+[[gates]]
+id = "correct.health.descriptive-claims"
+version = 1
+paths = ["app/lib/**", "web/landing/**", "studio/**"]
+blocking = true
+
+[[gates]]
+id = "correct.health.gentle-honest"
+version = 1
+paths = ["app/lib/**", "web/landing/**"]
+
+# Privacy.
+
+[[gates]]
+id = "correct.privacy.no-third-party"
+version = 1
+paths = ["app/web/**", "web/**", "scripts/deploy_web.sh"]
+blocking = true
+
+# Words and numbers.
+
+[[gates]]
+id = "correct.copy.voice"
+version = 2
+paths = ["web/landing/**"]
+
+[[gates]]
+id = "correct.product.data-truth"
+version = 1
+paths = ["web/admin/**", "studio/**"]
+
+[[gates]]
+id = "correct.research.evidence-trace"
+version = 1
+paths = ["notes/**"]
+
+[[gates]]
+id = "design.product.feature-ideas"
+version = 2
+
+[[exceptions]]
+gate = "correct.copy.voice"
+paths = ["web/landing/survey/**"]
+reason = "Survey wording is the owners' and changes only with their approval, so a voice rewrite is not the agent's to make."
+review = "2027-01-30"
+approved_by = "pending"

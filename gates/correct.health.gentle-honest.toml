@@ -1,0 +1,28 @@
+id = "correct.health.gentle-honest"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-product"
+principle = "Support that never shames: no guilt, no red, no streaks that reset, uncertainty always on show, and missing data that widens the uncertainty instead of becoming a failure or an invented value."
+guidance = """
+People open this on bad days. No guilt or nagging words (missed, failed, behind, don't forget,
+only N%). No red or alarm colour anywhere: the warm accent is ochre. No streaks or counters that
+reset to zero, so measure recovery from dips, not perfection. Any number the model estimates
+is drawn with its uncertainty. When data is missing, say so plainly and widen the band. Never
+fill the gap with a made-up value, an assumed cycle anchor or an empty state that reads as the
+person's fault. Support stays advisory: it can be softened or switched off.
+"""
+pass = "met: the theme test passes (no red reaches a token) and the reviewer finds no guilt wording, resetting counter, bare estimate or invented value in the screens the change touched, in the demo person and a sparse live instance. attempted: wording faults fixed, with a judged one named by screen and string."
+remediation = "Rewrite guilt wording as a plain description or drop it. Replace a resetting streak with a recovery or best-sustained measure. Draw the band beside the estimate. For missing data, show the honest unknown state the model already exposes (no phase, wider band), never a filled-in value."
+written_against = { model = "claude-opus-5-5", date = "2026-10-30" }
+
+[sensor]
+type = "review"
+run = "cd {repo}/app && PATH=\"$PATH:/opt/flutter/bin\" flutter test test/theme_test.dart"
+rubric = """
+You did not build this. Open each screen the change touched twice: as the demo person, and as a live instance with only a few days of data and gaps. For each ask: any guilt or nagging word? Any red or alarm hue? Any streak or counter that resets? Any estimate without its band or confidence? Any gap filled with an invented value, or an empty state that blames the person? Record met only if every answer is no; otherwise attempted with the screen, the string and a screenshot.
+"""
+
+[origin]
+date = "2026-10-30"
+incident = "Written ahead of any leak when Controll got its charter, from the tone laws in the repo and the product model. The no-red half was already a test (theme_test.dart); the rest lived only in prose."

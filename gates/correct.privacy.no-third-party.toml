@@ -1,0 +1,28 @@
+id = "correct.privacy.no-third-party"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "webapp-testing"
+principle = "A health product's pages request nothing from anyone but their own origin: no CDN, font host, analytics or embed learns who visited or what they opened."
+guidance = """
+Serve every font, icon, script and runtime file from the origin. Flutter web fetches its
+renderer from www.gstatic.com and fallback fonts from fonts.gstatic.com unless told otherwise:
+serve CanvasKit locally (useLocalCanvasKit in the loader config, or the build flag for the
+installed Flutter) and bundle every font the app draws, including fallbacks for the languages
+it ships. Self-host web fonts instead of linking Google Fonts. No analytics, pixels, embeds or
+remote images. Outbound links are fine, since they load nothing until clicked. The identity
+provider that gates the app (Cloudflare Access on the same host) is the one allowed exception.
+"""
+pass = "met: a network log of the landing page, every survey page and the signed-in app (start screen, one tab, one sheet) shows no request to another host except the named identity provider. impossible: no browser here, or the app cannot be signed into, with the reason. attempted is not available: a third-party request is a catch."
+remediation = "For each foreign host the log names, vendor the file onto the origin or remove the request, then rerun the whole log. Do not add a host to an allow-list to pass; only the charter can name an exception."
+written_against = { model = "claude-opus-5-5", date = "2026-10-30" }
+
+[sensor]
+type = "review"
+rubric = """
+Load each page in scope in a real browser (Playwright, phone viewport) with an empty cache and record every request's host. For the app, sign in (or run it against a local API with a dev identity) and visit the start screen, one tab and one sheet. List the hosts. Record met only if the only foreign host is the named identity provider; otherwise name each host and the file it served.
+"""
+
+[origin]
+date = "2026-10-30"
+incident = "Controll's landing page linked Google Fonts and its Flutter app loaded CanvasKit from www.gstatic.com, so every visit to a health app reached Google, against the product's no-telemetry stance."
