@@ -1,0 +1,28 @@
+id = "correct.ui.press-feedback"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-motion"
+principle = "Every control answers the finger: a press shows at once in every theme, and assistive tech hears a button, so a tap never looks like it did nothing."
+guidance = """
+Route every tappable thing through the app's shared tappable widget, never a raw
+GestureDetector or a bare onTap on a decoration. The shared widget shows a pressed state on
+touch down (a short eased darken, lift or fill, visible in every theme, never a snap or a
+bounce), clears it on release or cancel, wraps the child in a button semantics node with its
+label, and gives a light haptic where the platform has one. If the Material theme switches off
+splash and overlay, the shared widget is the only feedback left, so it must carry it. Targets
+are at least 44 px even when the drawn control is smaller.
+"""
+pass = "met: no screen draws a tappable outside the shared widget, the widget test shows the pressed state and the button semantics, and the reviewer sees the pressed state in a dark and a light theme. attempted: the shared widget is right but named screens still bypass it."
+remediation = "Move each named raw GestureDetector or onTap onto the shared widget. If the pressed state cannot be seen in a theme, fix the widget's pressed colour for every theme in the token set, not on that screen."
+written_against = { model = "claude-opus-5-5", date = "2026-10-30" }
+
+[sensor]
+type = "review"
+rubric = """
+You did not build this. As a lead, search app/lib for GestureDetector, InkWell, InkResponse and onTap outside the shared tappable widget. Each one that makes something tappable is a fault unless it is a drag or scroll surface. Read the shared widget: is there a pressed state, a Semantics button node and a target of at least 44 px? Run its widget test if there is one. Then look at a screenshot taken mid-press in one dark and one light theme. Can you see the press without being told where it is? Record met only if every answer holds, naming the files you searched and the shots you opened.
+"""
+
+[origin]
+date = "2026-10-30"
+incident = "Gabriel found Controll buttons that 'don't work in dark' on his phone. Half the cause was contrast (correct.ui.theme-contrast). The other half was that the shared Tappable was a bare GestureDetector with Material splash switched off, so a tap showed nothing and VoiceOver heard no button."

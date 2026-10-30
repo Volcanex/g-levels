@@ -7,7 +7,7 @@ principles = [
   "Controll describes patterns and how sure it is. It never diagnoses, treats or advises on a dose.",
   "Gentle and honest: no guilt, no red, no streaks that reset, and missing data widens the uncertainty instead of inventing a value.",
   "Health data goes nowhere the person did not send it, and no visit tells a third party they came.",
-  "The owners' words and looks are theirs: survey wording and the live look change only with their yes.",
+  "The owners' words and looks are theirs: survey wording and the live look change only with their yes. They chose twilight over ochre on 2026-10-30.",
 ]
 
 # In the hand: the 2026-10-30 incident (buttons that "don't work in dark" on the phone).
@@ -17,6 +17,11 @@ id = "correct.ui.theme-contrast"
 version = 1
 paths = ["app/lib/**", "web/landing/**"]
 blocking = true
+
+[[gates]]
+id = "correct.ui.press-feedback"
+version = 1
+paths = ["app/lib/**"]
 
 [[gates]]
 id = "correct.ui.app-craft"
