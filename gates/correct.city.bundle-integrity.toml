@@ -1,0 +1,18 @@
+id = "correct.city.bundle-integrity"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "A map bundle is complete and self-consistent, or it is not offered to players."
+guidance = "Every map under public/maps/<id>/ carries the same file set the client loads for public/world, and meta.json declares its own origin, CRS, half and attribution. Terrain size must match meta; every chunk the meta names must exist; no NaN; roads and buildings non-empty; licences named for the actual data sources of that country."
+pass = "met: every bundle listed in public/maps/index.json passes. attempted: never; a broken bundle is delisted, not shipped."
+remediation = "The sensor names the bundle and the missing or inconsistent file. Fix the pipeline step that produced it and rebuild; do not hand-edit bundle output or delist the check."
+written_against = { model = "claude-opus-5-5", date = "2026-10-30" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && .venv/bin/python build/gates/map_bundle.py"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-10-30"
+incident = "Written before the multi-map race work on gp-newcastle, for a flaw class the build plan named in advance: a new map missing files fails only once a player reaches that chunk."

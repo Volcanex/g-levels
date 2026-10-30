@@ -2,4 +2,56 @@ id = "gp-newcastle"
 title = "Newcastle, the city game"
 extends = ["delivery", "look"]
 repos = ["gp-newcastle"]
-principles = ["Laid out with care, on the house system, with real assets."]
+principles = [
+  "Laid out with care, on the house system, with real assets.",
+  "Adding a map never moves the map that works, and a map that is not good enough is not offered.",
+  "A stranger with a link gets a real race, with rivals and items, and no dead ends.",
+]
+
+[[gates]]
+id = "correct.city.bundle-integrity"
+version = 1
+paths = ["public/maps/**"]
+blocking = true
+
+[[gates]]
+id = "correct.city.course-drivable"
+version = 1
+paths = ["public/world/races/**","public/maps/**"]
+blocking = true
+
+[[gates]]
+id = "correct.city.base-map-frozen"
+version = 1
+paths = ["public/world/**","build/**"]
+blocking = true
+
+[[gates]]
+id = "correct.city.no-private-places"
+version = 1
+paths = ["public/**","build/**"]
+blocking = true
+
+[[gates]]
+id = "correct.city.place-truth"
+version = 1
+paths = ["public/maps/**"]
+blocking = true
+
+[[gates]]
+id = "correct.race.item-rules"
+version = 1
+paths = ["server/**","public/js/race/**"]
+blocking = true
+
+[[gates]]
+id = "correct.race.item-feel"
+version = 1
+paths = ["public/js/race/**"]
+blocking = true
+
+[[gates]]
+id = "correct.race.first-run"
+version = 1
+paths = ["public/js/race/**","public/js/main.js"]
+blocking = true

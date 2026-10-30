@@ -1,0 +1,19 @@
+id = "correct.race.item-rules"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-product"
+principle = "Items are fair and cannot be forged, and never touch the time trial board."
+guidance = "The server validates every item message: the sender is racing, has a real item from a box it could have reached, rate limits apply, targets exist and are in the same room. Time trials run with no items and no bots, and only they submit to the board. Item results are not trusted beyond what race_cp and rp already allow. Protocol changes are additive so older clients keep working. Hits are decided by the victim client, the same trust model as the rest of the game, and bounded."
+pass = "met: server tests cover forged use, wrong phase, rate limit, cross-room, a trial attempting items, and all pass. attempted: never."
+remediation = "The failing test names the rule. Fix the server. Do not weaken the test."
+written_against = { model = "claude-opus-5-5", date = "2026-10-30" }
+
+[sensor]
+type = "command"
+run = "cd {repo}/server && npm test"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-10-30"
+incident = "Written before the multi-map race work on gp-newcastle, for a flaw class the build plan named in advance: item races feeding the leaderboard, or clients inventing items."

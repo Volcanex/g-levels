@@ -1,0 +1,18 @@
+id = "correct.city.course-drivable"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "A race course can be driven at race speed from start to finish on real road, and is short enough for a new player."
+guidance = "Courses come from build/race_route.py over real road data, with hand-picked waypoints. New courses run 1.5 to 3 km a lap. Check height steps along the line, kerb-free surface, width, corners a car can take, gate posts clear of buildings, the grid on open road and on the ground, and that the loop closes. Footpath stretches (a park) must be wide enough and have their furniture cleared."
+pass = "met: every course in scope passes all checks and a bot completes a lap headlessly or in the browser. attempted: geometry passes but no lap has been driven; the note says so."
+remediation = "The sensor names the course, path index and which check failed. Move waypoints or fix the road data; never widen a threshold to pass."
+written_against = { model = "claude-opus-5-5", date = "2026-10-30" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && .venv/bin/python build/gates/course.py"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-10-30"
+incident = "Written before the multi-map race work on gp-newcastle, for a flaw class the build plan named in advance: a course that looks fine on the map but kerb-traps or wall-traps cars at speed."

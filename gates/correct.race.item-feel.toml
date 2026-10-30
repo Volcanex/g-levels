@@ -1,0 +1,18 @@
+id = "correct.race.item-feel"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-motion"
+principle = "Item play reads instantly and feels like a kart racer: you always know what you hold, what hit you and why."
+guidance = "Load g-motion. Boxes are visible from far off and spin; pickup has a roulette and a sound; held item is unmissable on desktop, phone and gamepad, with the control shown; a hit is a brief spin with a clear cue, not a death and not a lost race; last place gets better items; nothing pops in or lingers. Items respect the PS1 look of the game. Performance: fixed pools, no per-frame allocation, no frame-time regression on low-memory phones."
+pass = "met: reviewer watching recorded frames of a full bot race confirms each point on desktop and phone. attempted: works, with named rough edges."
+remediation = "The note names the moment and frame. Fix it and re-record."
+written_against = { model = "claude-opus-5-5", date = "2026-10-30" }
+
+[sensor]
+type = "review"
+rubric = "You did not build this. Run a full lap vs bots at desktop and phone viewports; capture frame sequences of pickup, roulette, use of every item, being hit, respawn. Can you say from a still what is held? Does a hit read? Do projectiles follow the road on bridges and hills, or clip into it? Any popping, z-fighting, overlap of HUD with mobile controls? Does the last-place driver get stronger items over ten simulated rolls? Record met only if you would show this to a friend."
+
+[origin]
+date = "2026-10-30"
+incident = "Written before the multi-map race work on gp-newcastle, for a flaw class the build plan named in advance: items that work technically but read as glitches."

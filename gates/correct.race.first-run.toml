@@ -1,0 +1,18 @@
+id = "correct.race.first-run"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-product"
+principle = "A stranger gets from the URL to a finished, fun race with no help and no dead ends."
+guidance = "Think of someone sent a link. Play, choose a map, race; defaults for everything else. Alone they still get a real race with rivals, not an offer of a time trial. Default course finishes in about 2 to 3 minutes for a new driver. They can recover from being stuck without knowing a key. Loading has honest progress. Every map offered works. Phone included."
+pass = "met: a journey from a clean profile reaches results at desktop and phone viewports, with at most three choices before the grid, and the reviewer reports no point of confusion. attempted: reaches results with named confusions."
+remediation = "Name the step where a stranger would stop, and fix that step."
+written_against = { model = "claude-opus-5-5", date = "2026-10-30" }
+
+[sensor]
+type = "review"
+rubric = "You did not build this. Clean browser profile, the real URL, no query parameters. Count choices before the grid. Note every moment that needs knowledge the screen does not give. Time a lap driving badly. Try the phone viewport. Get stuck on purpose. Finish, then try to race again and to switch map. Run glevels/runtime.py with the journey as well. Record met only if nobody would have to ask you anything."
+
+[origin]
+date = "2026-10-30"
+incident = "Written before the multi-map race work on gp-newcastle, for a flaw class the build plan named in advance: a solo visitor's only race option being a time trial on a 4.4 km course."

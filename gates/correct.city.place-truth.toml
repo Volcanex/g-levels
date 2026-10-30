@@ -1,0 +1,17 @@
+id = "correct.city.place-truth"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "Someone who lives there recognises it."
+guidance = "Roads, the park, water, rail and building mass have to match the real place, with no Newcastle leftovers: no Tyne, Metro, Byker names, radio places, bus destinations, landmark faces or Geordie place copy on another map. Generic buildings are fine; wrong ones are not. Leave a thing out rather than fake it."
+pass = "met: reviewer finds the place recognisable from seeded screenshots along the course, and no leftovers. attempted: recognisable, with named gaps."
+remediation = "The note names the frame and what is wrong: fix the source data or gate the Newcastle-specific system off for this map."
+written_against = { model = "claude-opus-5-5", date = "2026-10-30" }
+
+[sensor]
+type = "review"
+rubric = "You did not build this. Open the map at each checkpoint and at two overhead views. Compare with OSM and Esri imagery of the same coordinates (a side by side). Check: road layout, water, rail, park, building heights, skyline at the start line, sky, floating buildings, gaps at chunk edges, holes in terrain. Search the UI strings seen in play for places from another map. Record met only if a local would know where they are."
+
+[origin]
+date = "2026-10-30"
+incident = "Written before the multi-map race work on gp-newcastle, for a flaw class the build plan named in advance: a pipeline tuned for one city produces plausible nonsense in another."

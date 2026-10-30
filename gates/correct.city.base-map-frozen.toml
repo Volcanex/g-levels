@@ -1,0 +1,18 @@
+id = "correct.city.base-map-frozen"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "Adding maps does not move the map that already works."
+guidance = "public/world is Newcastle's committed build and its building ids are a ledger. New-map pipeline work writes to its own output root. Pipeline changes must rebuild nothing in public/world, and Explore plus the three original routes must load and behave as before. Only additive race files may appear under public/world/races."
+pass = "met: nothing under public/world differs from the pinned base commit except new files in races/. attempted: never."
+remediation = "The sensor lists each changed path. Restore it from the base commit and move your output under public/maps/<id>/."
+written_against = { model = "claude-opus-5-5", date = "2026-10-30" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && .venv/bin/python build/gates/world_frozen.py"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-10-30"
+incident = "Written before the multi-map race work on gp-newcastle, for a flaw class the build plan named in advance: parametrising a hard-coded pipeline silently rewrites the live city and shifts its building indices."
