@@ -3,7 +3,7 @@ version = 1
 kind = "correcting"
 trigger = "every-run"
 principle = "A public game does not mark where anyone lives."
-guidance = "Courses are named after districts and streets, never a house number. No start line, gate, label, landmark or comment points at a private address. The list of protected places is private, in data/private-places.txt (never in git): each line is a term or lat,lon,radius. Keep any start line and gate 150 m or more from a listed point."
+guidance = "Courses are named after districts and streets, never a house number. No start line, gate, label, landmark or comment points at a private address. The list of protected places is private and outside git, at $NEWCASTLE_PRIVATE_PLACES or /home/gabriel/newcastle-data/private-places.txt: each line is a term or lat,lon,radius; missing list means exit 2. Keep any start line and gate 150 m or more from a listed point."
 pass = "met: no listed term in tracked files or map bundles' names, and no course start, gate or grid slot within the radius. attempted: never."
 remediation = "The sensor says which file or gate hit, not the private term. Rename or move it; do not edit the list."
 written_against = { model = "claude-opus-5-5", date = "2026-10-30" }
