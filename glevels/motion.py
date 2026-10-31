@@ -38,7 +38,7 @@ except ImportError:
 
 HERE = Path(__file__).resolve().parent
 TOKENS = Path('/home/gabriel/g-design/packages/g-tokens/dist/tokens.css')
-LOCK = Path(os.environ.get('GSPACING_LOCK', str(Path(tempfile.gettempdir()) / 'glevels-browser.lock')))
+LOCK = Path(os.environ.get('GSPACING_LOCK', '/tmp/glevels-browser.lock'))
 MIN_FREE_MB = 600  # Chromium needs headroom on this shared host.
 FRAME_MS = 1000 / 60  # Measure travel in nominal display frames, independent of host speed.
 VISUAL_TRAVEL = .98  # Sub-pixel spring settling is outside the visible duration.
