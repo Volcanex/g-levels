@@ -1,5 +1,5 @@
 id = "correct.security.path-confinement"
-version = 1
+version = 2
 kind = "correcting"
 trigger = "every-run"
 principle = "Every surface that takes a file path keeps it inside the tenant's own root. Traversal, absolute paths, NUL bytes, backslashes, unicode look-alikes and symlinks that point out of the root are refused, and protected files stay invisible to people who may not see them."
@@ -26,7 +26,7 @@ written_against = { model = "claude-opus-5-5", date = "2026-10-24" }
 # Mechanical half: the tests selected by -k confine in the unit and security suites. Exit 5
 # (none collected) is a catch: the gate needs those tests to exist. A skip is a catch too.
 type = "review"
-run = '''cd {repo} && out=$(PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q -rs -p no:cacheprovider -k confine tests/unit tests/security 2>&1); rc=$?; printf '%s\n' "$out" | tail -n 40; if [ $rc -eq 0 ] && printf '%s\n' "$out" | grep -Eq '[0-9]+ skipped'; then echo 'path-confinement: a confinement test was skipped'; exit 1; fi; exit $rc'''
+run = '''cd {repo} && out=$(PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q -rs -p no:cacheprovider -k confine tests/unit tests/security 2>&1); rc=$?; printf '%s\n' "$out" | tail -n 40; if [ $rc -eq 0 ] && printf '%s\n' "$out" | grep -Eq '[0-9]+ (skipped|xfailed)'; then echo 'path-confinement: a confinement test was skipped or marked as a known failure'; exit 1; fi; exit $rc'''
 rubric = """
 You did not build this.
 1. Read the mechanical half's result. A failure or a skip is a catch; record nothing until it passes.

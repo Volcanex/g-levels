@@ -1,5 +1,5 @@
 id = "correct.product.e2e-journeys"
-version = 1
+version = 2
 kind = "correcting"
 trigger = "milestone"
 skill = "webapp-testing"
@@ -23,7 +23,7 @@ written_against = { model = "claude-opus-5-5", date = "2026-10-24" }
 [sensor]
 # 75 means it could not run here (no Playwright, or a journey skipped); other non-zero codes are catches.
 type = "command"
-run = '''cd {repo} && { PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -c 'import playwright' >/dev/null 2>&1 || { echo 'e2e-journeys: Playwright is not installed in the venv'; exit 75; }; } && out=$(PYTHONDONTWRITEBYTECODE=1 timeout 2400 .venv/bin/python -m pytest -q -rs -p no:cacheprovider -m e2e 2>&1); rc=$?; printf '%s\n' "$out" | tail -n 40; if [ $rc -eq 0 ] && printf '%s\n' "$out" | grep -Eq '[0-9]+ skipped'; then echo 'e2e-journeys: journeys were skipped, so they prove nothing here'; exit 75; fi; exit $rc'''
+run = '''cd {repo} && { PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -c 'import playwright' >/dev/null 2>&1 || { echo 'e2e-journeys: Playwright is not installed in the venv'; exit 75; }; } && out=$(PYTHONDONTWRITEBYTECODE=1 timeout 2400 .venv/bin/python -m pytest -q -rs -p no:cacheprovider -m e2e 2>&1); rc=$?; printf '%s\n' "$out" | tail -n 40; if [ $rc -eq 0 ] && printf '%s\n' "$out" | grep -Eq '[0-9]+ (skipped|xfailed)'; then echo 'e2e-journeys: journeys were skipped or marked as known failures, so they prove nothing here'; exit 75; fi; exit $rc'''
 cannot_run_exit = 75
 
 [origin]

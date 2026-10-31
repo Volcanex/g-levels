@@ -1,5 +1,5 @@
 id = "correct.security.tenant-isolation"
-version = 1
+version = 2
 kind = "correcting"
 trigger = "every-run"
 principle = "In a multi-tenant product, a person acting on one tenant can never read or change another. Every route, tool and socket that takes a tenant id refuses anyone without a role there, and the refusal leaves every byte of state as it was."
@@ -25,7 +25,7 @@ written_against = { model = "claude-opus-5-5", date = "2026-10-24" }
 [sensor]
 # Exit 0 only when every collected test passed and none was skipped.
 type = "command"
-run = "cd {repo} && out=$(PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q -rs -p no:cacheprovider tests/security 2>&1); rc=$?; printf '%s\\n' \"$out\" | tail -n 40; if [ $rc -eq 0 ] && printf '%s\\n' \"$out\" | grep -Eq '[0-9]+ skipped'; then echo 'tenant-isolation: a security test was skipped, which leaves a surface untested'; exit 1; fi; exit $rc"
+run = "cd {repo} && out=$(PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q -rs -p no:cacheprovider tests/security 2>&1); rc=$?; printf '%s\\n' \"$out\" | tail -n 40; if [ $rc -eq 0 ] && printf '%s\\n' \"$out\" | grep -Eq '[0-9]+ (skipped|xfailed)'; then echo 'tenant-isolation: a security test was skipped or marked as a known failure, which leaves a surface untested'; exit 1; fi; exit $rc"
 
 [origin]
 date = "2026-10-24"

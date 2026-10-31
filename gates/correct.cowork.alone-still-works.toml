@@ -1,5 +1,5 @@
 id = "correct.cowork.alone-still-works"
-version = 1
+version = 2
 kind = "correcting"
 trigger = "every-run"
 principle = "Coworking is additive and reversible. With its sockets refused, slow or dropped, every module still opens, edits and saves on its own, and says so quietly."
@@ -16,7 +16,7 @@ written_against = { model = "claude-opus-5-5", date = "2026-10-28" }
 
 [sensor]
 type = "command"
-run = '''cd {repo} && out=$(PYTHONDONTWRITEBYTECODE=1 timeout 900 .venv/bin/python -m pytest -q -rs -p no:cacheprovider -k "cowork and alone" tests/e2e 2>&1); rc=$?; printf '%s\n' "$out" | tail -n 30; [ $rc -eq 0 ] || exit $rc; if printf '%s\n' "$out" | grep -Eq '[0-9]+ skipped|no tests ran'; then echo 'alone-still-works: skipped or missing'; exit 75; fi'''
+run = '''cd {repo} && out=$(PYTHONDONTWRITEBYTECODE=1 timeout 900 .venv/bin/python -m pytest -q -rs -p no:cacheprovider -k "cowork and alone" tests/e2e 2>&1); rc=$?; printf '%s\n' "$out" | tail -n 30; [ $rc -eq 0 ] || exit $rc; if printf '%s\n' "$out" | grep -Eq '[0-9]+ (skipped|xfailed)|no tests ran'; then echo 'alone-still-works: skipped, missing or marked as a known failure'; exit 75; fi'''
 cannot_run_exit = 75
 
 [origin]

@@ -1,5 +1,5 @@
 id = "correct.product.preview-parity"
-version = 1
+version = 2
 kind = "correcting"
 trigger = "milestone"
 principle = "A preview with no changes is exactly the live site. If an untouched preview differs from live, every preview lies, and people publish changes they never saw."
@@ -20,7 +20,7 @@ written_against = { model = "claude-opus-5-5", date = "2026-10-24" }
 
 [sensor]
 type = "command"
-run = '''cd {repo} && out=$(PYTHONDONTWRITEBYTECODE=1 timeout 2400 .venv/bin/python -m pytest -q -rs -p no:cacheprovider -m parity tests/parity 2>&1); rc=$?; printf '%s\n' "$out" | tail -n 40; if [ $rc -eq 0 ] && printf '%s\n' "$out" | grep -Eq '[0-9]+ skipped'; then echo 'preview-parity: sites were skipped, so parity is unproven here'; exit 75; fi; exit $rc'''
+run = '''cd {repo} && out=$(PYTHONDONTWRITEBYTECODE=1 timeout 2400 .venv/bin/python -m pytest -q -rs -p no:cacheprovider -m parity tests/parity 2>&1); rc=$?; printf '%s\n' "$out" | tail -n 40; if [ $rc -eq 0 ] && printf '%s\n' "$out" | grep -Eq '[0-9]+ (skipped|xfailed)'; then echo 'preview-parity: sites were skipped or marked as known mismatches, so parity is unproven here'; exit 75; fi; exit $rc'''
 cannot_run_exit = 75
 
 [origin]

@@ -13,25 +13,25 @@ principles = [
 
 [[gates]]
 id = "correct.security.tenant-isolation"
-version = 1
+version = 2
 paths = ["gstudio/**", "sandbox/**", "tests/**"]
 blocking = true
 
 [[gates]]
 id = "correct.security.path-confinement"
-version = 1
+version = 2
 paths = ["gstudio/**", "tests/**"]
 blocking = true
 
 [[gates]]
 id = "correct.security.sandbox-escape"
-version = 1
+version = 2
 paths = ["sandbox/**", "gstudio/terminal.py", "tests/sandbox/**"]
 blocking = true
 
 [[gates]]
 id = "correct.security.agent-tool-boundary"
-version = 1
+version = 2
 paths = ["gstudio/**", "tests/**"]
 blocking = true
 
@@ -44,18 +44,18 @@ paths = ["gstudio/**", "tests/**"]
 
 [[gates]]
 id = "correct.product.publish-integrity"
-version = 1
+version = 2
 paths = ["gstudio/**", "tests/**"]
 blocking = true
 
 [[gates]]
 id = "correct.product.preview-parity"
-version = 1
+version = 2
 paths = ["gstudio/**", "tests/parity/**"]
 
 [[gates]]
 id = "correct.product.e2e-journeys"
-version = 1
+version = 2
 
 [[gates]]
 id = "design.product.feature-ideas"
@@ -99,13 +99,13 @@ paths = ["web/src/**", "gstudio/**"]
 
 [[gates]]
 id = "correct.cowork.converge"
-version = 2
+version = 3
 paths = ["gstudio/**", "web/src/**", "tests/**"]
 blocking = true
 
 [[gates]]
 id = "correct.cowork.alone-still-works"
-version = 1
+version = 2
 paths = ["web/src/**", "tests/**"]
 blocking = true
 
