@@ -1,16 +1,18 @@
 id = "correct.product.server-enforced-rules"
-version = 1
+version = 2
 kind = "correcting"
 trigger = "every-run"
 principle = "A product rule that decides who may do what lives on the server as a pure function with tests. The client only reads the flags it is given."
-guidance = "Put the rule in one pure module (for Wing, api/rules.py) and call it from every route that acts on it. Test the allowed and refused cases for each kind of person, including the edge ones (trans men, non-binary people, pairs, queer contexts). Never work the rule out again in the client."
+guidance = "Put the rule in one pure module (for Wing, api/rules.py) and call it from every route that acts on it. Test the allowed and refused cases for each kind of person, including the edge ones (trans men, non-binary people, pairs, queer contexts). Never work the rule out again in the client. A repo whose tests/ also holds browser, sandbox or live-site suites lists its server suites as paths in .glevels/server-tests, and the sensor runs only those."
 pass = "met: the repo's pytest suite passes and covers each rule's allowed and refused cases. attempted: tests pass but an edge case named in the guidance has no test, named in the note."
 remediation = "Read the failing test's assertion. Fix the rule or the route, not the test. If a route skipped the rule, call the rule from it and add a test that hits the route as a refused user."
 written_against = { model = "claude-opus-5-5", date = "2026-10-18" }
 
 [sensor]
 type = "command"
-run = "cd {repo} && .venv/bin/python -m pytest -q -x tests"
+# Runs the paths in the repo's .glevels/server-tests, else all of tests/. Bytecode and cache writes
+# are off, because a root run leaves root-owned files that break services running as gabriel.
+run = "cd {repo} && PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q -x -p no:cacheprovider $(cat .glevels/server-tests 2>/dev/null || echo tests)"
 
 [origin]
 date = "2026-10-18"

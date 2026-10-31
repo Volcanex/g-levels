@@ -10,7 +10,7 @@ principles = [
 
 [[gates]]
 id = "correct.product.server-enforced-rules"
-version = 1
+version = 2
 paths = ["api/**", "tests/**"]
 blocking = true
 

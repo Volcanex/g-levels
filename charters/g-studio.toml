@@ -37,7 +37,7 @@ blocking = true
 
 [[gates]]
 id = "correct.product.server-enforced-rules"
-version = 1
+version = 2
 paths = ["gstudio/**", "tests/**"]
 
 # Product: live sites and the paths people take.
