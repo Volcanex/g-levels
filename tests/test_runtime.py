@@ -60,6 +60,20 @@ def test_clean_passes_and_captures_evidence(tmp_path):
     assert next(c for c in state["controls"] if c["name"] == "Hidden button")["visible"] is False
 
 
+@pytest.mark.parametrize("broken", [False, True])
+def test_sandboxed_preview_has_no_sensor_error_but_real_frame_errors_still_block(tmp_path, broken):
+    page = tmp_path / "index.html"
+    page.write_text('<h1>Preview</h1><iframe sandbox="allow-scripts" src="frame.html"></iframe>')
+    (tmp_path / "frame.html").write_text('<h1>Frame content</h1>' +
+        ('<script>throw new Error("fixture frame exploded")</script>' if broken else ''))
+    out = tmp_path / "result"
+    run = sensor(out, page)
+    assert run.returncode == (1 if broken else 0), run.stdout + run.stderr
+    errors = load(out)["blocking"]
+    assert not any("serviceWorker" in row["message"] for row in errors)
+    assert any("fixture frame exploded" in row["message"] for row in errors) == broken
+
+
 @pytest.fixture(scope="module")
 def broken_run():
     with tempfile.TemporaryDirectory(prefix="glevels-runtime-broken-") as directory:

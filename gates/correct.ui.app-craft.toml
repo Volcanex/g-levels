@@ -1,5 +1,5 @@
 id = "correct.ui.app-craft"
-version = 1
+version = 2
 kind = "correcting"
 trigger = "every-run"
 skill = "g-spacing"
@@ -19,9 +19,10 @@ written_against = { model = "claude-opus-5-5", date = "2026-10-19" }
 
 [sensor]
 type = "review"
-run = "cd {repo} && /usr/bin/python3 app/test/screens.py"
+run = "python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/screens.py {repo}"
+cannot_run_exit = 2
 rubric = """
-You did not build this. Run the harness (WING_SCREENS sets the output folder) and open every screenshot it saves. If it cannot run, record impossible with the reason.
+You did not build this. Run the repo's .glevels/screens command, or app/test/screens.py for Wing (WING_SCREENS sets Wing's output folder). Open every screenshot it saves. If it cannot run, record impossible with the reason.
 For each screen ask, with the g-spacing checklist beside you: does text touch its box or a neighbour? Anything overlapping, cut off or poking out? Even insets and equal gaps between same-kind things? Is there exactly one obvious primary action? Are buttons, chips, cards and headers the same components as on sibling screens? Is any body text hard to read on its background? Is any target smaller than a fingertip? Is an empty state oversized or bare? Does each polished skin hold up, or does one break contrast or layout?
 Record met only if you can point at nothing. Otherwise attempted, naming each fault by screenshot file, place and checklist question.
 """

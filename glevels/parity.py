@@ -26,8 +26,10 @@ from collections import defaultdict
 from pathlib import Path
 
 if __package__:
+    from . import rendered
     from .claims import Page, Element, compact, finish, read_target
 else:
+    import rendered
     from claims import Page, Element, compact, finish, read_target
 
 INTERPRET = re.compile(r"\b(?:so what|means|because|which means|you should|next steps?|we recommend|why it matters)\b", re.I)
@@ -220,9 +222,14 @@ def main():
                     for r in re.split(r"[,;]", a.require or os.environ.get("GLEVELS_CAPABILITIES", "")) if normalise(r)]
         Element.SOURCE = a.source
         surfaces = []
-        for target in a.targets:
-            if Path(target).is_dir():
-                surfaces.extend(walk_surfaces(target))
+        for index, target in enumerate(a.targets):
+            source = rendered.capture(target, out_dir / f"rendered-{index}") if rendered.requested(target) else Path(target)
+            if source.is_dir():
+                saved = walk_surfaces(source)
+                if rendered.requested(target):
+                    for surface in saved:
+                        surface["target"] = target
+                surfaces.extend(saved)
             else:
                 text, html = read_target(target)
                 if not html:

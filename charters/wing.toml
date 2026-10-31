@@ -36,12 +36,12 @@ paths = ["app/**", "web/**"]
 
 [[gates]]
 id = "correct.ui.app-craft"
-version = 1
+version = 2
 paths = ["app/**"]
 
 [[gates]]
 id = "correct.ux.first-run"
-version = 1
+version = 2
 
 [[gates]]
 id = "correct.ux.option-tree"

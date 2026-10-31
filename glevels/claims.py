@@ -24,6 +24,11 @@ from datetime import date, datetime
 from html.parser import HTMLParser
 from pathlib import Path
 
+try:
+    from . import rendered
+except ImportError:
+    import rendered
+
 VOID = set("area base br col embed hr img input link meta param source track wbr".split())
 MONTH = r"(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)"
 WINDOW = re.compile(r"\b(?:last\s+\d+\s+(?:days?|weeks?|months?|hours?)|this\s+(?:week|month|year)|today|since\s+[^.;]+|between\s+[^.;]+|in\s+" + MONTH + r"(?:\s+\d{4})?|\d+\s+(?:days?|hours?)|per\s+\w+)\b", re.I)
@@ -408,15 +413,17 @@ def main():
         out_dir = Path(a.out or tempfile.mkdtemp(prefix="glevels-claims-")).resolve()
         out_dir.mkdir(parents=True, exist_ok=True)
         pages, findings, coverage = [], [], []
-        for target in a.targets:
-            files = sorted((Path(target) / "text").glob("*.txt")) if Path(target).is_dir() else [target]
+        for index, target in enumerate(a.targets):
+            source = rendered.capture(target, out_dir / f"rendered-{index}") if rendered.requested(target) else Path(target)
+            files = sorted((source / "text").glob("*.txt")) if source.is_dir() else [target]
             if not files:
                 raise ValueError(f"{target}: no text/*.txt walk evidence")
             for file in files:
                 text, html = read_target(str(file))
                 units = html_units(text) if html else text_units(text)
-                pages.append({"target": str(file), "units": len(units)})
-                findings.extend(inspect_page(str(file), units, now))
+                label = target if rendered.requested(target) else str(file)
+                pages.append({"target": label, "units": len(units)})
+                findings.extend(inspect_page(label, units, now))
         for target in (t for group in a.data for t in group):
             fs, counts = inspect_data(target, required)
             findings.extend(fs)

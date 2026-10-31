@@ -3,6 +3,7 @@ import json
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from types import SimpleNamespace
 from urllib.request import urlopen
@@ -65,6 +66,17 @@ def test_edge_error_kinds(walk, error, blocks):
 def test_error_outcome_without_details(walk):
     walk["edges"][1].update(outcome="error", errors=[])
     assert any("'Save draft'" in s and "action failed" in s for s in optiontree.analyse(walk, FIXTURES)["blocking"])
+
+
+@pytest.mark.parametrize("destination,blocks", [("#/home", False), ("#/settings", True)])
+def test_current_page_link_is_not_dead_but_failed_navigation_still_blocks(destination, blocks):
+    walk = clean_walk()
+    state = walk["states"][0]
+    state.update(url="http://127.0.0.1/#/home", controls=[{"name": "Home", "ref": "home", "visible": True}])
+    walk["edges"] = [{"from": "home", "to": "home", "action": {"kind": "link", "name": "Home",
+        "ref": "home", "url": destination}, "outcome": "none", "errors": []}]
+    faults = optiontree.analyse(walk)["blocking"]
+    assert any("dead control" in fault for fault in faults) == blocks
 
 
 def test_leads_and_implied_one_hop(walk):
@@ -196,7 +208,7 @@ def test_cli_json_fault_exit_and_temp_output():
     result = run_sensor("--walk", FIXTURES, "--json")
     assert result.returncode == 1 and json.loads(result.stdout)["blocking"]
     result = run_sensor("--walk", FIXTURES)
-    assert result.returncode == 1 and "/tmp/glevels-optiontree-" in result.stdout
+    assert result.returncode == 1 and str(Path(tempfile.gettempdir()) / "glevels-optiontree-") in result.stdout
 
 
 @pytest.mark.parametrize("args", [[], ["--walk", "/nonexistent-walk"], ["--src", "/nonexistent-src", "--walk", FIXTURES], ["--deep", "-1", "--walk", FIXTURES]])

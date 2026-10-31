@@ -68,6 +68,11 @@ function options() {
 }
 
 function init() {
+  // Playwright's serviceWorkers: "block" script reads this getter in opaque frames and throws.
+  // Keep workers from taking over the walk without adding an error to the product's preview.
+  try {
+    if (navigator.serviceWorker) navigator.serviceWorker.register = () => new Promise(() => {});
+  } catch {}
   window.__walk = { mutations: 0, longtasks: [], paints: 0 };
   new MutationObserver((rs) => { window.__walk.mutations += rs.length; })
     .observe(document, { subtree: true, childList: true, attributes: true, characterData: true });
@@ -168,7 +173,7 @@ function inspect() {
 
 async function session(browser, o, entry) {
   // A signed-in walk reads a Playwright storage state from a 0600 file, never from argv.
-  const context = await browser.newContext({ viewport: o.viewport, deviceScaleFactor: 1, serviceWorkers: "block",
+  const context = await browser.newContext({ viewport: o.viewport, deviceScaleFactor: 1,
     ...(process.env.GLEVELS_STORAGE_STATE ? { storageState: process.env.GLEVELS_STORAGE_STATE } : {}) });
   context.setDefaultTimeout(5000);
   await context.addInitScript(init);

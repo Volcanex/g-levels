@@ -13,6 +13,7 @@ by default). --refs also renders the house reference screens for the judge.
 import argparse
 import fcntl
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -145,7 +146,7 @@ def main():
     ap.add_argument("--out")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--refs", action="store_true")
-    ap.add_argument("--viewports", default=DEFAULT_VIEWPORTS)
+    ap.add_argument("--viewports", default=os.environ.get("GLEVELS_VIEWPORTS", DEFAULT_VIEWPORTS))
     a = ap.parse_args()
     try:
         for viewport in a.viewports.split(","):
@@ -157,6 +158,7 @@ def main():
         spacing.impossible("invalid viewports; use name=WIDTHxHEIGHT, separated by commas")
     if not shutil.which("node"):
         spacing.impossible("node is not installed")
+    spacing.validate_targets(a.targets)
     out_dir = Path(a.out or tempfile.mkdtemp(prefix="glevels-onsystem-")).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     profiles = json.loads((HERE / "systems.json").read_text())

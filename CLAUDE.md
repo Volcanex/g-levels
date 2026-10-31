@@ -43,13 +43,71 @@ produce. The theory is in Volcanex/g-research
     glevels map                   the gate taxonomy and its links
     glevels lint                  validate the registry (run before committing here)
 
-A command sensor passes on exit 0. A command containing `{file}` runs once per
+A command sensor passes on exit 0. By default, a command containing `{file}` runs once per
 tracked file matching the charter's `paths`. A review sensor prints its rubric and
 waits for `glevels record`. A review sensor may also carry a `run` command, its
 mechanical half: `check` runs it and logs a catch before printing the rubric.
 `cannot_run_exit` names the exit code that means the sensor could not run, logged
 as `impossible` rather than a catch (ganti uses 2 for absolutes, so it is opt-in). `caught` is logged when a sensor fails, so the counts
 show catches as well as final results.
+
+### Page and screen inputs
+
+A repo may name its running pages in `.glevels/pages.json`:
+
+```json
+{
+  "serve": "python3 -m http.server {port}",
+  "ready": "http://127.0.0.1:{port}/",
+  "timeout": 20,
+  "viewports": "phone=390x844,desktop=1440x900",
+  "env": {"GSPACING_LOCK": "/tmp/g-studio-browser.lock"},
+  "pages": [
+    {"name": "Home", "url": "http://127.0.0.1:{port}/index.html"},
+    {"name": "Settings", "url": "http://127.0.0.1:{port}/settings.html"}
+  ],
+  "siblings": ["Home", "Settings"],
+  "capabilities": ["Account"]
+}
+```
+
+`serve`, `ready` and a nonempty list of uniquely named `pages` are required.
+`{port}` is a free loopback port and `{repo}` is the repository root. The serve command
+runs in that root once per check. Readiness needs HTTP 2xx within `timeout` seconds
+(default 20, maximum 300). Invalid inputs, a failed command or a readiness timeout
+report impossible and fail the check for page gates. The entire server process group is stopped on
+normal exit, errors, Ctrl-C, SIGTERM and SIGHUP. SIGKILL cannot run cleanup handlers.
+
+Source paths still scope gates. For each gate in scope, a `{file}` command runs once per
+named page URL, quoted for the shell. This includes every `{file}` gate, so do not add
+this manifest to a repo whose charter pins a source-file sensor such as the copy gates.
+The runtime, frames, parity, option-tree and screens sensors also get the server. Every
+other gate never starts it, so a broken manifest cannot change its result. Without this
+manifest the original per-file behavior is unchanged. `viewports` is optional and may be overridden per page.
+Spacing and on-system read it through `GLEVELS_VIEWPORTS`. Other sensors keep their
+existing viewports. No threshold or stress state is changed.
+
+Every page gate receives `GLEVELS_URL` (all URLs, or the current page for a `{file}` run),
+`GLEVELS_READY_URL`, `GLEVELS_REPO` (assets finds the repo's assets.toml with it), and
+`GLEVELS_PAGES` (the expanded page list as JSON). Optional `env`
+entries are strings with the same substitutions. `GLEVELS_RENDERED=1` makes claims and
+parity capture visible text and controls with the existing browser walker before judging
+URLs. Without it their existing static-input behavior stays unchanged. Optional `siblings`
+names pages of the same kind for `GLEVELS_SIBLINGS`. Optional `capabilities` supplies
+`GLEVELS_CAPABILITIES`. Listing unrelated screens as siblings gives misleading comparisons.
+
+`.glevels/screens` is a shell command file run from the repo root by the first-run and
+app-craft gates. It must save ordered screenshots and a manifest with each role's steps,
+taps and elapsed time to home and a first useful result. Capture supported themes, empty,
+loading and error states for app-craft. Exit 0 means the mechanical walk completed, 1
+means a fault and 2 means it could not run. Screenshots still need independent review.
+The harness owns its browser lock. Without this file, `app/test/screens.py` runs exactly
+as before for Wing, with its existing environment and output folder.
+
+`.glevels/frames.json` keeps the frame sensor's capture and mesh format. In a capture URL,
+`{url}` expands to `GLEVELS_READY_URL` from pages.json. The recipe still needs a real
+interaction script and consecutive frames. Use the shared `GSPACING_LOCK` for all page
+sensor browser launches, including motion and frames.
 
 ## Gate conventions
 

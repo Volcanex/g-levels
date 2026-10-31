@@ -207,6 +207,8 @@ def analyse(walk, walk_dir=".", src=None, routes=(), deep=4):
                 review.append(f"'{name}' on {where}: the walker could not click it ({edge.get('note', 'timed out')}); "
                               "check by hand whether something covers it")
             elif edge.get("outcome") == "none" and any(matches(c, action) for c in available):
+                if action.get("kind") == "link" and action.get("url") and urljoin(state["url"], action["url"]) == state["url"]:
+                    continue  # A link to the current page has already reached its destination.
                 blocking.append(f"'{name}' on {where}: nothing happened (dead control)")
         if not available:
             review.append(f"{where}: dead end, no enabled controls offered")

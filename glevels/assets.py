@@ -170,6 +170,8 @@ def metadata(data):
 def find_manifest(target, explicit=None, src=None):
     if explicit:
         return Path(explicit).resolve()
+    # A running page has no path of its own, so the page runner names the repo that serves it.
+    src = src or os.environ.get("GLEVELS_REPO")
     start = Path(src).resolve() if src else None
     if not str(target).startswith(("http://", "https://")):
         start = Path(target).resolve().parent
@@ -413,6 +415,7 @@ def main():
         spacing.impossible(f"no source directory: {args.src}")
     if shutil.which("node") is None:
         spacing.impossible("node is not installed")
+    spacing.validate_targets(args.targets, IMAGES)
     out = Path(args.out or tempfile.mkdtemp(prefix="glevels-assets-")).resolve()
     out.mkdir(parents=True, exist_ok=True)
     servers, optional = [], []

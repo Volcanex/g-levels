@@ -169,8 +169,22 @@ def serve(pages, upstream):
     return srv, f"http://127.0.0.1:{srv.server_address[1]}"
 
 
+def validate_targets(targets, images=()):
+    """Reject non-pages before taking the browser lock or starting any local servers."""
+    for target in targets:
+        if target.startswith(("http://", "https://")):
+            continue
+        file = Path(target)
+        if not file.exists():
+            impossible(f"no such file or URL: {target}")
+        if not file.is_file() or not (gsite_page(target) or file.suffix in (".html", ".htm") or
+                                      file.suffix.lower() in images):
+            impossible(f"{target} is not a page: give a URL, an HTML file or a g-site pages/<dir>/content.html")
+
+
 def resolve(targets, tmp):
     """Turn targets into URLs, starting whatever servers they need."""
+    validate_targets(targets)
     urls, servers, gsite = [], [], {}
     for t in targets:
         if t.startswith(("http://", "https://")):
@@ -374,7 +388,7 @@ def main():
     ap.add_argument("targets", nargs="+")
     ap.add_argument("--out", help="where screenshots and findings.json go (default: a new temp dir)")
     ap.add_argument("--json", action="store_true", help="print findings.json instead of the report")
-    ap.add_argument("--viewports", default="phone-s=320x568,phone=390x844,tablet=768x1024,desktop=1440x900")
+    ap.add_argument("--viewports", default=os.environ.get("GLEVELS_VIEWPORTS", "phone-s=320x568,phone=390x844,tablet=768x1024,desktop=1440x900"))
     ap.add_argument("--landscape", action="store_true", help="also render phone-land 844x390")
     ap.add_argument("--states", default="loaded,loading,error,long-text", help="comma-separated states; stress at 390px only")
     ap.add_argument("--steps", type=int, default=0, help="measure after each of N key presses")
@@ -428,6 +442,7 @@ def main():
 
     if shutil.which("node") is None:
         impossible("node is not installed")
+    validate_targets(a.targets)
     out_dir = Path(a.out or tempfile.mkdtemp(prefix="glevels-spacing-")).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="glevels-spacing-build-") as tmp, open(LOCK, "a") as lock:

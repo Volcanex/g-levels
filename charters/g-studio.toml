@@ -73,7 +73,7 @@ paths = ["web/src/**"]
 
 [[gates]]
 id = "correct.ux.first-run"
-version = 1
+version = 2
 paths = ["web/src/**", "web/inject/**"]
 
 [[gates]]
@@ -123,7 +123,7 @@ paths = ["web/src/**", "web/inject/**"]
 
 [[gates]]
 id = "correct.ui.app-craft"
-version = 1
+version = 2
 paths = ["web/src/**", "web/inject/**"]
 
 [[gates]]

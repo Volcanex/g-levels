@@ -7,11 +7,13 @@ import hashlib
 import json
 import os
 import random
+import shlex
 import subprocess
 import sys
 from pathlib import Path
 
 from . import registry
+from .pages import PageInputs, uses_pages
 
 LOG = Path(os.environ.get("GLEVELS_LOG", registry.ROOT / "var" / "results.jsonl"))
 
@@ -59,10 +61,34 @@ def fill(cmd, **values):
     return cmd
 
 
-def run_sensor(gate, entry, repo, rel):
+def run_sensor(gate, entry, repo, rel, pages=None):
     """Returns (result, output): met, caught, or impossible when every failure exits with the sensor's
-    cannot_run_exit. A command containing {file} runs once per tracked file in scope."""
+    cannot_run_exit. {file} runs per tracked file, or per named page when the repo supplies pages."""
     cmd = gate["sensor"]["run"]
+    if pages is not None and pages.present and uses_pages(cmd):
+        error = pages.start()
+        if error:
+            return "impossible", error
+        targets = pages.pages if "{file}" in cmd else [None]
+        runs = []
+        for page in targets:
+            error = pages.start()
+            if error:
+                return "impossible", error
+            command = fill(cmd, repo=shlex.quote(str(repo)), path=shlex.quote(str(repo / rel)),
+                           file=shlex.quote(page["url"]) if page else "")
+            process = subprocess.run(command, shell=True, cwd=repo, env=pages.environment(page),
+                                     capture_output=True, text=True)
+            label = f"{page['name']} ({page['url']})" if page else rel
+            runs.append((label, process))
+        error = pages.start()
+        if error:
+            return "impossible", error
+        fails = [p for _, p in runs if p.returncode]
+        cannot = gate["sensor"].get("cannot_run_exit")
+        result = "met" if not fails else "impossible" if cannot and all(p.returncode == cannot for p in fails) else "caught"
+        runs.sort(key=lambda run: not run[1].returncode)
+        return result, "\n\n".join(f"{label}\n{(p.stdout + p.stderr).strip()}" for label, p in runs)
     if "{file}" in cmd:
         runs = [(f, subprocess.run(fill(cmd, file=repo / f, repo=repo), shell=True, capture_output=True, text=True))
                 for f in files_under(repo, rel, entry.get("paths", ["**"]))]
@@ -84,8 +110,13 @@ def cmd_check(a):
         print("no charter covers this path")
         return 0
     triggers = set(registry.TRIGGERS) if a.all else {"every-run"}
-    caught = 0
     print(f"{repo.name}/{rel}  charter {cid}")
+    with PageInputs(repo) as pages:
+        return check_gates(a, gates, scoped, repo, rel, triggers, pages)
+
+
+def check_gates(a, gates, scoped, repo, rel, triggers, pages):
+    caught = 0
     for e in scoped:
         g = gates[e["id"]]
         if a.gate and g["id"] not in a.gate:
@@ -99,14 +130,16 @@ def cmd_check(a):
         elif g["sensor"]["type"] == "command" or "run" in g["sensor"]:
             # A review gate with a run command has a mechanical half: it runs here, and its catch is
             # logged, then the rubric still goes to an independent reviewer.
-            result, out = run_sensor(g, e, repo, rel)
+            result, out = run_sensor(g, e, repo, rel, pages)
             review = g["sensor"]["type"] == "review"
             if result == "met":
                 if not review:
                     record(g["id"], g["version"], e["charter"], repo.name, rel, "met")
                 print(f"  {'mechanical' if review else 'met       '} {g['id']}{tag}{' passed' if review else ''}")
+                if pages.present and uses_pages(g["sensor"]["run"]) and out:
+                    print("    " + out.replace("\n", "\n    "))
             else:
-                caught += result == "caught"
+                caught += result == "caught" or pages.present and uses_pages(g["sensor"]["run"]) and result == "impossible"
                 record(g["id"], g["version"], e["charter"], repo.name, rel, result, out[:500])
                 print(f"  {result:<10} {g['id']}{tag}\n    fix: {g['remediation'].strip()}\n    {out.replace(chr(10), chr(10) + '    ')}")
             if review:
@@ -365,3 +398,7 @@ def main():
     sub.add_parser("lint", help="validate gates and charters").set_defaults(f=cmd_lint)
     a = ap.parse_args()
     sys.exit(a.f(a))
+
+
+if __name__ == "__main__":
+    main()

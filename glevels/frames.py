@@ -52,6 +52,7 @@ from functools import lru_cache, partial
 import http.server
 import json
 import math
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -62,7 +63,7 @@ from urllib.parse import quote
 import uuid
 
 HERE = Path(__file__).resolve().parent
-LOCK = Path("/tmp/glevels-browser.lock")
+LOCK = Path(os.environ.get("GSPACING_LOCK", "/tmp/glevels-browser.lock"))
 MIN_FREE_MB = 600  # Browser launches need at least this much available host memory.
 TILE = 24  # Temporal evidence is averaged in native-pixel tiles.
 SPIKE_LEAD = 14  # Minimum luma disagreement unique to the middle frame.
@@ -793,6 +794,10 @@ def recipe_run(args, out):
     def expand(value):
         if not isinstance(value, str):
             raise ValueError("recipe commands and paths must be strings")
+        if "{url}" in value:
+            if not os.environ.get("GLEVELS_READY_URL"):
+                raise ValueError("{url} needs GLEVELS_READY_URL from pages.json")
+            value = value.replace("{url}", os.environ["GLEVELS_READY_URL"])
         return value.replace("{run}", run_id)
 
     def resolve(value):

@@ -10,7 +10,7 @@ principles = [
 
 [[gates]]
 id = "correct.ui.app-craft"
-version = 1
+version = 2
 
 [[gates]]
 id = "correct.ui.spacing"
