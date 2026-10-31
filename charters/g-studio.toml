@@ -94,7 +94,7 @@ blocking = true
 
 [[gates]]
 id = "correct.cowork.module-plug"
-version = 1
+version = 2
 paths = ["web/src/**", "gstudio/**"]
 
 [[gates]]

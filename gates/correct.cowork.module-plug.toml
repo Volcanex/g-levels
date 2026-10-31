@@ -1,5 +1,5 @@
 id = "correct.cowork.module-plug"
-version = 1
+version = 2
 kind = "correcting"
 trigger = "every-run"
 principle = "Coworking is one studio-level layer. Every module joins it through the one plug (the workspace surface, content anchors, focus, registered document kinds) and none builds its own sockets, pointers, carets or comments."
@@ -18,7 +18,7 @@ written_against = { model = "claude-opus-5-5", date = "2026-10-28" }
 
 [sensor]
 type = "review"
-run = '''cd {repo} && PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q -p no:cacheprovider tests/unit/test_cowork_plug.py 2>&1 | tail -n 30'''
+run = '''cd {repo} && out=$(PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q -p no:cacheprovider tests/unit/test_cowork_plug.py 2>&1); rc=$?; printf '%s\n' "$out" | tail -n 30; exit $rc'''
 rubric = """
 You did not build this.
 1. Read the mechanical half's result. A failure or "no tests collected" is a catch.
