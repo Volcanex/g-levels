@@ -99,7 +99,7 @@ paths = ["web/src/**", "gstudio/**"]
 
 [[gates]]
 id = "correct.cowork.converge"
-version = 1
+version = 2
 paths = ["gstudio/**", "web/src/**", "tests/**"]
 blocking = true
 
