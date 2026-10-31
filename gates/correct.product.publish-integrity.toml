@@ -1,5 +1,5 @@
 id = "correct.product.publish-integrity"
-version = 2
+version = 3
 kind = "correcting"
 trigger = "every-run"
 principle = "Publishing a live site never half-applies. Someone else's change is surfaced as a conflict, never overwritten. A failed build rolls every file back. Every publish can be undone from history."
@@ -15,7 +15,7 @@ Test each failure point, not only the happy path: a conflict from an outside edi
 fails after half the files are written, a crash between apply and build, two publishes at
 once, a revert of a revert, a binary file and a deleted file. After each, assert live is
 byte-identical to either the old or the new state, never a mix. Name these tests so
-`-k "publish or revert or conflict or history"` selects them in the unit and API suites.
+`-k "publish or revert or conflict or history or mirror"` selects them in the unit and API suites.
 """
 pass = "met: the publish tests pass with nothing skipped, and the reviewer finds a test for each failure point in the guidance and no write to live outside the publish path. attempted: tests pass but a failure point has no test, named in the note."
 remediation = "Read the failing case and what live looked like after it. Fix the ordering in the publish path: record before you write, write atomically, restore on any failure. Never catch the build failure and report success, and never skip the conflict check for admins or the agent."
@@ -23,7 +23,7 @@ written_against = { model = "claude-opus-5-5", date = "2026-10-24" }
 
 [sensor]
 type = "review"
-run = '''cd {repo} && out=$(PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q -rs -p no:cacheprovider -k "publish or revert or conflict or history" tests/unit tests/api 2>&1); rc=$?; printf '%s\n' "$out" | tail -n 40; if [ $rc -eq 0 ] && printf '%s\n' "$out" | grep -Eq '[0-9]+ (skipped|xfailed)'; then echo 'publish-integrity: a publish test was skipped or marked as a known failure'; exit 1; fi; exit $rc'''
+run = '''cd {repo} && out=$(PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q -rs -p no:cacheprovider -k "publish or revert or conflict or history or mirror" tests/unit tests/api 2>&1); rc=$?; printf '%s\n' "$out" | tail -n 40; if [ $rc -eq 0 ] && printf '%s\n' "$out" | grep -Eq '[0-9]+ (skipped|xfailed)'; then echo 'publish-integrity: a publish test was skipped or marked as a known failure'; exit 1; fi; exit $rc'''
 rubric = """
 You did not build this.
 1. Read the mechanical half's result. A failure, skip or "no tests collected" is a catch.

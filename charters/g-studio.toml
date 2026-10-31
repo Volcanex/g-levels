@@ -44,7 +44,7 @@ paths = ["gstudio/**", "tests/**"]
 
 [[gates]]
 id = "correct.product.publish-integrity"
-version = 2
+version = 3
 paths = ["gstudio/**", "tests/**"]
 blocking = true
 
