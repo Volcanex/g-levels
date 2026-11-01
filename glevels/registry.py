@@ -78,6 +78,19 @@ def main_name(repo):
     return common.parent.name if common.name == ".git" else repo.name
 
 
+def origin_name(repo):
+    """The repo a plain clone was made from: bt-clones/x/repo cloned from g-studio is g-studio."""
+    try:
+        url = subprocess.run(["git", "-C", str(repo), "remote", "get-url", "origin"],
+                             capture_output=True, text=True, check=True).stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None
+    if Path(url).is_dir():
+        return main_name(Path(url))
+    name = url.rstrip("/").rsplit("/", 1)[-1].rsplit(":", 1)[-1]
+    return name.removesuffix(".git") or None
+
+
 def chain(charter_id, charters):
     """The charter and everything it extends, broadest first."""
     out, seen = [], set()
@@ -123,7 +136,11 @@ def covers(rel, globs):
 
 def in_scope(repo, rel, charters):
     """Gate entries that apply at repo/rel, with the narrowest charter winning per gate."""
-    cid = charter_for(main_name(repo), charters, repo)
+    name = main_name(repo)
+    if not any(name in c.get("repos", []) for c in charters.values()):
+        # A clone in a directory no charter names keeps the charter of the repo it came from.
+        name = origin_name(repo) or name
+    cid = charter_for(name, charters, repo)
     if cid is None:
         return None, []
     entries = {}

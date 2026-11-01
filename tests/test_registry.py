@@ -1,3 +1,4 @@
+import subprocess
 from pathlib import Path
 
 from glevels import registry
@@ -100,3 +101,20 @@ def test_dirs_scope_a_non_git_directory(tmp_path):
     assert registry.charter_for("research", charters, tmp_path / "research") == "g-system"
     problems, _ = registry.lint({}, {"bad": {"id": "bad", "dirs": ["research/*"]}})
     assert any("dirs entry" in p for p in problems)
+
+
+def test_a_plain_clone_keeps_its_origins_charter(tmp_path):
+    charters = {"g-system": {"id": "g-system", "repos": ["*"]},
+                "studio": {"id": "studio", "repos": ["g-studio"], "extends": ["g-system"],
+                           "gates": [{"id": "correct.secrets.argv", "version": 1}]}}
+    git = lambda *a: subprocess.run(["git", *a], check=True, capture_output=True)
+    main = tmp_path / "g-studio"
+    git("init", "-q", str(main))
+    git("-C", str(main), "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "x")
+    clone = tmp_path / "bt" / "repo"
+    git("clone", "-q", str(main), str(clone))
+    assert registry.in_scope(clone, "", charters)[0] == "studio"
+    git("-C", str(clone), "remote", "set-url", "origin", "git@github.com:Volcanex/g-studio.git")
+    assert registry.in_scope(clone, "", charters)[0] == "studio"
+    git("-C", str(clone), "remote", "remove", "origin")
+    assert registry.in_scope(clone, "", charters)[0] == "g-system"
