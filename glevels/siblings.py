@@ -7,8 +7,11 @@ every `path:` in project.yml (local packages and source or resource folders alik
 `file:`/`link:` specs in package.json. Each is resolved against its own file and named by the
 sibling checkout it lands in (a worktree takes its main repo's name). Then it applies the rule:
 
-  g-studio, g-studio-apple   g-design only
-  g-command-apple            g-design, and g-studio-apple's Kit/ (the GStudioKit package)
+  g-studio                   g-design only
+  g-studio-apple             g-design, and in g-studio only the shared app-contract fixtures
+                             (tests/fixtures/app-contract, Debug resources: Studio reading Studio)
+  g-command-apple            g-design, g-studio-apple's Kit/ (the GStudioKit package) and the
+                             same app-contract fixtures, for its Studio section's fixture mode
   g-command-web              g-design, and in g-studio only a mount entry (a file or folder
                              whose name says mount); the reviewer confirms Studio publishes it
 
@@ -37,6 +40,10 @@ def kit_only(subpath):
     return subpath == "Kit" or subpath.startswith("Kit/")
 
 
+def contract_fixtures(subpath):
+    return subpath == "tests/fixtures/app-contract" or subpath.startswith("tests/fixtures/app-contract/")
+
+
 def mount_entry(subpath):
     return bool(subpath) and "mount" in Path(subpath).name.lower()
 
@@ -44,8 +51,9 @@ def mount_entry(subpath):
 # Per app: the siblings it may reach, each with a test on the path inside that sibling.
 RULES = {
     "g-studio": {"g-design": None},
-    "g-studio-apple": {"g-design": None},
-    "g-command-apple": {"g-design": None, "g-studio-apple": (kit_only, "only Kit/, the GStudioKit package")},
+    "g-studio-apple": {"g-design": None, "g-studio": (contract_fixtures, "only the app-contract fixtures")},
+    "g-command-apple": {"g-design": None, "g-studio-apple": (kit_only, "only Kit/, the GStudioKit package"),
+                        "g-studio": (contract_fixtures, "only the app-contract fixtures")},
     "g-command-web": {"g-design": None, "g-studio": (mount_entry, "only Studio's published mount entry")},
 }
 SKIP_DIRS = {".git", "node_modules", ".build", "DerivedData", ".venv", "__pycache__"}

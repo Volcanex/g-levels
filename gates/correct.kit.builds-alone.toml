@@ -1,5 +1,5 @@
 id = "correct.kit.builds-alone"
-version = 1
+version = 2
 kind = "correcting"
 trigger = "every-run"
 principle = "Each app builds from its own checkout plus only the siblings it is allowed: Studio needs only g-design; G-Command needs g-design, Studio's Swift Kit and at most the mount entry Studio's web publishes."

@@ -37,12 +37,22 @@ def test_studio_app_on_g_design_alone_passes(tmp_path, capsys):
 
 def test_studio_reaching_into_command_or_another_studio_checkout_is_caught(tmp_path, capsys):
     files = dict(APPLE)
-    files["project.yml"] += "      - path: ../g-studio/tests/fixtures/app-contract\n"
+    files["project.yml"] += "      - path: ../g-studio/web/src\n"
     files["Kit/Package.swift"] = 'let p = Package(dependencies: [.package(name: "K", path: "../../g-command-apple/Kit")])\n'
     code, out = run(make(tmp_path / "g-studio-apple", files), "g-studio-apple", capsys)
     assert code == 1
-    assert "-> g-studio/tests/fixtures/app-contract: not allowed, g-studio-apple may depend only on g-design" in out
+    assert "-> g-studio/web/src: not allowed, g-studio-apple may use only the app-contract fixtures from g-studio" in out
     assert "-> g-command-apple/Kit: not allowed" in out
+
+
+def test_studio_and_command_apps_may_read_the_shared_contract_fixtures(tmp_path, capsys):
+    files = dict(APPLE)
+    files["project.yml"] += "      - path: ../g-studio/tests/fixtures/app-contract\n"
+    code, out = run(make(tmp_path / "g-studio-apple", files), "g-studio-apple", capsys)
+    assert code == 0, out
+    assert "-> g-studio/tests/fixtures/app-contract" in out
+    code, out = run(make(tmp_path / "g-command-apple", files), "g-command-apple", capsys)
+    assert code == 0, out
 
 
 def test_command_apple_may_use_studio_kit_only(tmp_path, capsys):

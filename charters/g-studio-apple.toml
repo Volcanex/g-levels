@@ -1,6 +1,6 @@
 id = "g-studio-apple"
 title = "g-studio native apps, iPhone first"
-extends = ["delivery", "look"]
+extends = ["delivery", "look", "kit"]
 repos = ["g-studio-apple"]
 principles = [
   "Each screen opens on what this person came to do, chosen by the server for them, never hardcoded.",

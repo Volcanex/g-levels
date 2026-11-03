@@ -36,7 +36,7 @@ blocking = false
 
 [[gates]]
 id = "correct.kit.builds-alone"
-version = 1
+version = 2
 blocking = false
 
 # Existing gates the refactor leans on.

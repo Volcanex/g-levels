@@ -1,6 +1,6 @@
 id = "g-studio"
 title = "g-studio, where the people around Gabriel see, edit and run their projects"
-extends = ["g-system", "look", "delivery"]
+extends = ["g-system", "look", "delivery", "kit"]
 repos = ["g-studio"]
 principles = [
   "A client can edit their own site safely, and nothing else.",
