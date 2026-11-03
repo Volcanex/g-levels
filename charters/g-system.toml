@@ -17,6 +17,10 @@ id = "correct.repo.gcore-boxes"
 version = 1
 
 [[gates]]
+id = "correct.gcore.connections-declared"
+version = 1
+
+[[gates]]
 id = "correct.secrets.argv"
 version = 1
 blocking = true

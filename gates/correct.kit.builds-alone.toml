@@ -1,0 +1,42 @@
+id = "correct.kit.builds-alone"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "Each app builds from its own checkout plus only the siblings it is allowed: Studio needs only g-design; G-Command needs g-design, Studio's Swift Kit and at most the mount entry Studio's web publishes."
+guidance = """
+Every path a build file points outside the repo is a sibling the build needs. Studio repos
+(g-studio, g-studio-apple) may reach only g-design. g-command-apple may reach g-design and
+g-studio-apple's Kit/ (GStudioKit). g-command-web may reach g-design and, in g-studio, only the
+mount entry Studio publishes, never its web source. Then actually build: the Mac build scripts for
+the Swift apps (iPhone and Mac targets), and npm run build for each web package, after your last
+change. The strongest evidence is a build in a fresh directory holding only the repo and its
+allowed siblings.
+"""
+pass = "met: the sensor lists no disallowed sibling, and the builds were run after the last change and passed, with their output in hand. attempted: the paths are clean but a build was not run, named in the note."
+remediation = "For each disallowed line, move what the build needs into g-design or GStudioKit, or have Studio publish it as its mount entry and depend on that. Never copy a sibling's folder into the repo to hide the path, or vendor its source without saying so."
+written_against = { model = "claude-opus-5-5", date = "2026-11-03" }
+
+[sensor]
+# Two halves. `run` lists every .package(path:) in Package.swift, every path: in project.yml and
+# every file:/link: spec in package.json that leaves the repo, names the sibling it lands in and
+# applies the rule above. Exit 1 on a disallowed sibling, 2 when it cannot run. The rubric is the
+# judged half: did the builds actually run and pass.
+type = "review"
+run = "python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/siblings.py {repo}"
+cannot_run_exit = 2
+rubric = """
+You did not do this work.
+1. Run `python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/siblings.py <repo>` and read each line.
+   Any "not allowed" fails the gate.
+2. For a g-command-web line into g-studio, confirm it points at the mount entry Studio publishes
+   (built output Studio names as its entry), not a file from Studio's web source.
+3. Find the build output: the Mac build scripts' results for each Swift target (iPhone and Mac),
+   npm run build for each web package. Check it ran after the last change to the repo and its
+   siblings, and passed. A build you cannot find was not run.
+4. Record met only with clean paths and passing builds in hand. Otherwise attempted, naming the
+   missing build or the disallowed path.
+"""
+
+[origin]
+date = "2026-11-03"
+incident = "Sharing a kit between Studio and G-Command makes it easy for one app's build to quietly need the other's checkout, so neither ships alone."

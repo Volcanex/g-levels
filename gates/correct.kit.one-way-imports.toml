@@ -1,0 +1,27 @@
+id = "correct.kit.one-way-imports"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "Dependencies point one way. G-Command may build on Studio and the kit, Studio builds only on the kit, and the kit (g-design) builds on neither."
+guidance = """
+Studio repos (g-studio, g-studio-apple) never import, depend on or path-reference G-Command code,
+and g-design references neither Studio nor G-Command. Something both products need moves down into
+g-design, or into Studio's GStudioKit for Swift that G-Command then imports, never across. A copy
+is fine when it will never need to stay in sync. Naming the other product in prose, a comment,
+demo data, a meta tag or a domain in config is not an import.
+"""
+pass = "met: the sensor finds no reference in the repo. A hit is removed or the code it needs moves into the kit; there is no attempted."
+remediation = "Each line names file:line and the reference. Move the shared code into g-design (or GStudioKit), or copy it when it will never need to stay in sync. Never rename a module or package to slip past the pattern."
+written_against = { model = "claude-opus-5-5", date = "2026-11-03" }
+
+[sensor]
+# Reads Package.swift, project.yml, Swift imports, package.json dependencies, JS and TS import,
+# export-from, import() and require() specifiers, and Python imports in tracked files.
+# Exit 1 on a reference, 2 when it cannot run. Repos with no rule pass.
+type = "command"
+run = "python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/oneway.py {repo}"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-11-03"
+incident = "Extracting Studio's look into a shared kit for G-Command invites shortcuts where Studio or the kit reaches back into G-Command, which would tie Studio's releases to G-Command's."

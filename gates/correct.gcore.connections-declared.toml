@@ -1,0 +1,29 @@
+id = "correct.gcore.connections-declared"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-gcore-comply"
+principle = "A repo declares what it connects to and what flows, so the system map is read from the repos instead of guessed."
+guidance = """
+In pyproject.toml, beside `depends`, add one [[tool.gcore.connects]] table per connection:
+`to` (a gcore manifest id: project, service, host, system repo or dependency), `via` (http, sse,
+websocket, import, path, vendor, file, ssh, db or mcp), `flow` (what moves, in plain words) and
+optionally `dir` (out, the default: this repo calls or reads `to`; in; both). Write
+`connects = []` under [tool.gcore] when the repo connects to nothing. When `to` is not in the
+manifest yet, add it there rather than inventing an id. Declare what the code really does: read
+its clients, fetches, imports and path references before writing the list.
+"""
+pass = "met: connects is declared and every entry names a manifest id, a known via and a flow. The sensor checks form, not completeness: a connection the code makes that the list leaves out is a catch when found."
+remediation = "The sensor names each problem: no connects key, an id the manifest does not have, an unknown via or dir, an empty flow, an unknown key. Fix the declaration, or add the missing id to gcore's manifest. Never set connects = [] for a repo that does connect to something."
+written_against = { model = "claude-opus-5-5", date = "2026-11-03" }
+
+[sensor]
+# Reads <repo>/pyproject.toml and the manifest at GCORE_MANIFEST (default
+# /home/gabriel/gcore/manifest.json). Exit 1 naming each problem, 2 when the manifest is unreadable.
+type = "command"
+run = "python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/connections.py {repo}"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-11-03"
+incident = "How repos connect lived only in code and memory, so a shared-kit refactor had no record of what each repo calls, reads or vendors; this is gcore's compliance box 5."

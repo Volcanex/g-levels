@@ -1,0 +1,42 @@
+id = "correct.kit.studio-unchanged"
+version = 1
+kind = "correcting"
+trigger = "milestone"
+principle = "Studio's clients see nothing change when its look moves into the shared kit, and Gabriel can still sign in to Studio directly."
+guidance = """
+Before the first kit change, capture Studio's fixture screenshots on iPhone, Mac and web into a
+before directory and keep it: the apps' fixture --shot runs and the web pages, every screen the
+fixtures reach, in light and dark, at the same sizes. After the change, capture the same set the
+same way into an after directory and compare them with
+`python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/shotdiff.py BEFORE AFTER`. A changed pixel is a
+lead to look at, not a verdict. Then check the direct way in still works: studio.gabrielpenman.com's
+login page loads, a fixture or test owner signs in end to end (never Gabriel's real password), and
+both Studio apps still pair with a gstudio://pair link.
+"""
+pass = "met: every before screenshot has an after twin taken from the same fixture and appearance, the reviewer looked at every pair shotdiff shows as changed and finds them visually identical, the login page loads, a fixture owner signs in, and the iPhone and Mac apps pair. attempted: a platform, an appearance, the sign-in or the pairing was not checked, named in the note."
+remediation = "Open the pair shotdiff names side by side and find what moved: a token, font, size, spacing or radius now read from the kit. Make the kit reproduce Studio's value or keep Studio's own value, then retake the after set. Never retake the before set, drop a screenshot or change a fixture to make a pair match."
+written_against = { model = "claude-opus-5-5", date = "2026-11-03" }
+
+[sensor]
+# Review only. shotdiff.py is the mechanical half the reviewer runs: it needs two directories that
+# glevels check cannot supply, and it reports without a pass threshold, so it is not a `run`.
+type = "review"
+rubric = """
+You did not do this work.
+1. Get the before and after screenshot directories. Check the before set predates the first kit
+   change (commit or file times) and both sets cover iPhone, Mac and web in each appearance.
+2. Run `python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/shotdiff.py BEFORE AFTER`. Exit 2: record
+   impossible with its reason. Every "missing after" is a gap; every "size differs" is a change.
+3. Open every pair it shows as changed, and a few it shows as identical, side by side at full size.
+   Is the change visible to a client: colour, type, spacing, radius, icon, copy? Antialiasing noise
+   a person cannot see is not a change; say so for each pair you pass on that ground.
+4. Load studio.gabrielpenman.com's login page and sign in as a fixture or test owner. Never use or
+   ask for Gabriel's real password.
+5. Pair the iPhone and Mac apps with a gstudio://pair link against the server.
+6. Record met only when every pair is visually identical and steps 4 and 5 work. Otherwise attempted,
+   naming each screenshot that changed and what changed, or the step that failed.
+"""
+
+[origin]
+date = "2026-11-03"
+incident = "Moving Studio's look into a shared kit for G-Command could change Studio for its clients; the refactor is safe only if Studio stays identical and directly reachable."
