@@ -1,0 +1,35 @@
+id = "design.content.type-scout"
+version = 1
+kind = "design"
+trigger = "milestone"
+principle = "Before a content-lab wave, the kinds of content that can be made programmatically on our own box, at near-zero API cost, and still look world-class have been explored until new types dry up, so the wave makes the most promising ones."
+guidance = """
+Check what is actually installed first (node, npx, Playwright, ffmpeg, HyperFrames, Codex image_gen; no Blender, no apt installs, npm only inside the lab). Propose content types and techniques, each with: what it is, the tool chain on this box, a concrete Baseline Labs subject (AI assistants reading websites, schema.org, bot visits, AI visibility, the WordPress plugin, markupschema.com, George), where it would be used, the API cost, and what would make it world-class rather than passable. Video-generation models are out of scope.
+"""
+framings = [
+  "a studio motion designer",
+  "a data-visualisation journalist",
+  "a 3D and technical artist working in WebGL and shaders",
+  "a B2B SaaS growth marketer",
+]
+pass = "met: saturation reached within budget (a round adds fewer than one new type after merging) and the ranked shortlist is saved. attempted: the budget ran out first."
+remediation = "If the budget ran out before saturation, say so with the counts per round, and run again with framings drawn from the gaps. Never drop a round to reach saturation sooner."
+generators = "Codex Sol through g-agent-call --role research with web search, one framing each, blind to each other."
+judge = "One Claude Opus orchestrator merges duplicates, ranks by expected quality times cost, and does not generate types itself."
+saturation = "Stop when a round adds fewer than one new type after merging."
+probe = "Optional: one generator from a different family (Claude Opus) after apparent saturation."
+budget = "At most three rounds."
+written_against = { model = "claude-opus-5-5", date = "2026-11-04" }
+
+[sensor]
+type = "review"
+rubric = """
+1. Run two to four generators with different framings. Merge their types into one list, citing which generator raised each.
+2. Count new types per round. Stop at saturation or after three rounds.
+3. Rank by how good it can get, cost, and fit to Baseline subjects. Save the shortlist (scout.md in the lab).
+4. Record met at saturation, attempted on budget, with counts per round in the note.
+"""
+
+[origin]
+date = "2026-11-04"
+incident = "Gabriel's content lab ask, 2026-11-04: find which kinds of content AI can generate programmatically and how good they get, before spending a wave making them."

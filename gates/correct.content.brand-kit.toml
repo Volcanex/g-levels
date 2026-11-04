@@ -1,0 +1,27 @@
+id = "correct.content.brand-kit"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-design"
+principle = "A Baseline Labs content piece looks like Baseline Labs: its colours, fonts and logo come from the brand sources, never from a model's defaults. No purple, no robot icons (bots and crawlers are ph-cpu), no em dashes or middle dots, and every user-facing string starts with a capital."
+guidance = """
+Before making anything read the brand sources: /opt/baseline/design/deck-skill (palette, type, George, logo), /opt/baseline/design/banners/presets.json and render.js (the banner brand kit), /opt/baseline/static/css/baseline.css (the colour tokens) and the HyperFrames brand layer under the scratchpad's hf/brand/. Take hex values, font families and the logo file from there; do not pick colours by eye. Fonts are DM Sans, DM Serif Display, JetBrains Mono and Plus Jakarta Sans. Icons are Phosphor; a bot or crawler is ph-cpu, never ph-robot or any robot face. No purple or violet anywhere, including gradients and shader output. Separate with a spaced hyphen, a comma or layout, never an em dash or middle dot. Every visible string starts with a capital, except a bare token in mono (a domain, a path).
+"""
+pass = "met: the judge, looking at the piece at full resolution, finds every colour within the brand palette (or a tint of it), only brand fonts, the real logo where a logo appears, no purple, no robot, no banned glyph and no lowercase-led string. attempted: on brand overall but with named slips (one off-palette accent, a fallback font in one label), each named with where it is."
+remediation = "Name each slip with its location (frame time or crop) and the brand value it should use: the token from baseline.css, the font from the deck skill, the logo file path. The maker swaps the value at its source (the CSS variable, the shader uniform, the render config) and re-renders; never recolour the output in post."
+written_against = { model = "claude-opus-5-5", date = "2026-11-04" }
+
+[sensor]
+type = "review"
+rubric = """
+You did not make this piece. Open it at full resolution (for video, frames at three or four points; for html, a screenshot at its aspect).
+1. Sample the dominant and accent colours. Each is a Baseline token from baseline.css or the deck palette, or a tint of one. Any purple or violet is a fault.
+2. Read every visible string: brand fonts only, capital first letter, no em dash or middle dot (a spaced hyphen is right).
+3. Where a logo appears it is the real logo file, not a redraw. Where a bot appears it is ph-cpu or George, never a robot.
+4. Ask whether someone who knows baselinelabs.ai would place this piece as ours without the logo.
+Record met only if you can point at nothing; otherwise attempted with each slip and its location.
+"""
+
+[origin]
+date = "2026-11-04"
+incident = "Gabriel's content lab ask, 2026-11-04: generated content has to be on brand to be scored at all, and earlier Baseline visuals reached him with off-palette colours, purple and robot icons."

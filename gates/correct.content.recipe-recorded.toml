@@ -1,0 +1,20 @@
+id = "correct.content.recipe-recorded"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "A content-lab piece is only worth scoring if it can be made again. Every piece carries a piece.json that matches the lab's CONTRACT.md, the media it names, a recipe.md that remakes it without asking, and the verbatim brief the maker received."
+guidance = """
+Read CONTRACT.md in the lab before you start. Write pieces/<id>/piece.json with every field it lists, the media in the same folder (images at most 4096px on the long edge, video as an H.264 MP4 under 30 MB with a poster, html as one self-contained file with a poster), and recipe.md: the tools and versions, every command in order, the data queries with where the numbers came from, and what you would change next time. Paste the brief you were given into recipe.brief verbatim, not a summary. Set generated_pixels true if any pixel came from an image model. Leave judge and status for the judge. Before reporting run `python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/contentpiece.py pieces/<id>` and fix every line it prints.
+"""
+pass = "met: the sensor exits 0 for the piece (every contract field present and typed, files exist and fit the media limits, recipe.md exists and is long enough to follow, the brief is non-empty). attempted is not available: a piece that fails the sensor is not recorded."
+remediation = "Fix each line the sensor prints in the piece folder: add the missing field, render or move the missing file, shrink the oversized image, inline the network asset, or write recipe.md from your own command history. Never fill a field with a placeholder to satisfy the sensor; a made-up cost or brief is a catch."
+written_against = { model = "claude-opus-5-5", date = "2026-11-04" }
+
+[sensor]
+type = "command"
+run = "python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/contentpiece.py {path}"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-11-04"
+incident = "Gabriel asked for a content lab that finds which kinds of content AI can generate and how good they get, scored out of ten, keeping the recipes of the winners. A winner without its recipe is a one-off."

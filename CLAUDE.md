@@ -25,6 +25,9 @@ produce. The theory is in Volcanex/g-research
   (with `motion.mjs`) records a page's animations and reveals; `frames.py` (with `frames.mjs`)
   reads or captures consecutive frames, or runs a repo's `.glevels/frames.json` recipe;
   `meshcheck.py` checks exported geometry. `adapters/` holds per-project mesh exporters.
+- `glevels/contentpiece.py`: the sensor for `correct.content.recipe-recorded`, checking each content-lab piece
+  (`~/content-lab/pieces/<id>/`) against the lab's CONTRACT.md. The `content` charter scopes that lab by `dirs` and holds
+  a `[[proposed_exceptions]]` block, which lint and scope resolution ignore until Gabriel approves it into `[[exceptions]]`.
 - `glevels/idcast.py`: the shader-source sensor for `correct.engine.interpolated-id`, an
   int()/uint() cast of an unrounded vertex attribute in TSL node code.
 - `var/results.jsonl`: the results log. Gitignored, because notes can carry private

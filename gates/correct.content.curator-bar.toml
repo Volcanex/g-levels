@@ -1,0 +1,27 @@
+id = "correct.content.curator-bar"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "A piece only counts as a candidate if an independent strong judge would put it in front of people: a top studio would ship it, it would stop a scroll, it is on brand, and it explains something true. The maker never judges itself."
+guidance = """
+Aim for the bar, not for done: look at your output at full resolution before you report and ask whether a top studio would ship it. Name in recipe.md what you think is weakest. Do not write a judge score; an independent Opus judge scores every piece. Below 7 it comes back to you once with a diagnostic.
+"""
+pass = "met: the judge scores 7 or more out of 10 and the piece is stored as a candidate. attempted: below 7, stored as rejected with notes saying what would lift it. Blocking: a piece below 7 is never shown as a winner."
+remediation = "The judge's notes name the weakest dimension of the rubric and the concrete change that would lift it (a sharper subject, real data in place of a stand-in, tighter type, slower easing, a different composition). The maker gets one revision with those notes; the judge rescores from scratch."
+written_against = { model = "claude-opus-5-5", date = "2026-11-04" }
+
+[sensor]
+type = "review"
+rubric = """
+Judge with Claude Opus (medium effort or higher), never the model or agent that made the piece. Open the piece at full resolution: images whole and in crops, video as frames at three or four points plus the motion, html rendered at its aspect.
+Score four dimensions, each 1-10, then an overall 1-10 that is not an average but your verdict:
+1. Craft: would a top studio (Pentagram, Buck, the NYT graphics desk) ship it as is? Type, spacing, colour, finish, no artefacts.
+2. Stop: would it stop a scroll on LinkedIn or X? Is there one clear idea at a glance?
+3. Brand: is it unmistakably Baseline Labs (see correct.content.brand-kit)?
+4. Truth: does it explain something true about AI assistants, schema, bots or visibility, with real data or a visible example label (see correct.content.truth)?
+7 or more: candidate. Below 7: rejected. Notes say why, and what would make it a 10. Write score, notes and status into piece.json and record with glevels record.
+"""
+
+[origin]
+date = "2026-11-04"
+incident = "Gabriel asked to score every content-lab piece out of ten on a demo page and keep the recipes of the winners. A maker grading its own work drifts up, so the score comes from an independent judge."

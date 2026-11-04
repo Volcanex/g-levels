@@ -1,0 +1,22 @@
+id = "correct.content.truth"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-product"
+principle = "Any figure, quote, customer or business shown in a content piece is real and sourced, or it is visibly labelled on screen as an example."
+guidance = """
+Every number comes from a source you can name in recipe.md: a read-only query against Baseline's database, a Baseline MCP read, or a public page with its URL and date. Never invent a statistic, a quote or a customer. If the piece needs an illustrative business (a bakery reading its schema), label it on screen as an example, in the frame where it appears, in text a viewer can read at the piece's size. Record each figure, its value and its source in recipe.md.
+"""
+pass = "met: every figure, quote, customer and business in the piece traces to a source recorded in recipe.md, or carries a visible example label in the frames where it appears. attempted: sources recorded for most, with the unsourced or unlabelled ones named."
+remediation = "For each unsourced item, either replace it with a real figure and record the query or URL, or label it on screen as an example in the frame where it shows. If neither is possible, cut it. Never back-fill a source for a number that came from nowhere."
+written_against = { model = "claude-opus-5-5", date = "2026-11-04" }
+
+[sensor]
+type = "review"
+rubric = """
+You did not make this piece. List every figure, quote, named customer and business it shows (for video, check every scene). For each, find its source in recipe.md and check it (rerun the read-only query or open the URL where cheap). An illustrative business must carry an example label visible in the frame. Record met if everything traces or is labelled, otherwise attempted naming each item.
+"""
+
+[origin]
+date = "2026-11-04"
+incident = "The 'What is schema?' explainer video showed a made-up bakery with no example label, so viewers could read it as a real customer."

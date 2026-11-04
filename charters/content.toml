@@ -1,0 +1,76 @@
+id = "content"
+title = "Baseline Labs content lab: programmatic content scored out of ten, with the winners' recipes kept"
+extends = ["look"]
+repos = []
+dirs = ["/home/gabriel/content-lab"]
+principles = [
+  "Every piece can be made again: it carries its verbatim brief, its tools and a recipe that remakes it without asking.",
+  "A piece is scored by an independent strong judge, never by its maker, and only 7 out of 10 or more counts as a candidate.",
+  "Every piece is on the Baseline Labs brand, and every figure, quote, customer or business in it is real and sourced or visibly labelled as an example.",
+  "The kinds of content worth making are scouted to saturation before a wave spends effort on them.",
+]
+
+[[gates]]
+id = "correct.content.recipe-recorded"
+version = 1
+paths = ["pieces/**"]
+blocking = true
+
+[[gates]]
+id = "correct.content.brand-kit"
+version = 1
+paths = ["pieces/**"]
+
+[[gates]]
+id = "correct.content.curator-bar"
+version = 1
+paths = ["pieces/**"]
+blocking = true
+
+[[gates]]
+id = "correct.content.truth"
+version = 1
+paths = ["pieces/**"]
+
+[[gates]]
+id = "design.content.type-scout"
+version = 1
+paths = ["scout.md"]
+
+[[gates]]
+id = "correct.assets.real-sourced"
+version = 1
+paths = ["pieces/**"]
+
+[[gates]]
+id = "correct.render.frame-integrity"
+version = 1
+paths = ["pieces/**"]
+
+[[gates]]
+id = "correct.motion.rhythm"
+version = 1
+paths = ["pieces/**"]
+
+[[gates]]
+id = "correct.copy.voice"
+version = 2
+paths = ["pieces/**"]
+
+[[gates]]
+id = "correct.copy.house-glyphs"
+version = 1
+paths = ["pieces/**"]
+
+# PROPOSED, NOT APPROVED. Awaiting Gabriel's yes. Kept out of [[exceptions]] on purpose, because an
+# entry there waives the gate. Until he approves, correct.assets.real-sourced still runs on every
+# piece; pieces with generated pixels are still made but tagged generated_pixels: true and judged
+# against the unwaived gate. On approval, move this block to [[exceptions]] with approved_by.
+[[proposed_exceptions]]
+gate = "correct.assets.real-sourced"
+paths = ["pieces/**"]
+condition = "The piece records recipe.generated_pixels = true, and the curator-bar judge finds nothing in it that reads as AI (waxy surfaces, plastic light, smeared detail, nonsense text)."
+reason = "Gabriel asked on 2026-11-04 for the content lab to try Codex image_gen assets, to learn how good generated imagery can get when judged. The gate forbids image-generator output for figures."
+review = "2026-12-04"
+status = "awaiting Gabriel's approval"
+proposed_by = "claude-opus-5-5 (content lab wave 1)"
