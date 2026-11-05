@@ -4,7 +4,10 @@ kind = "correcting"
 trigger = "every-run"
 skill = "g-design"
 principle = "Reader-facing copy has no em dashes, middle dots or semicolons. House style, set by Gabriel."
-guidance = "Separate with layout, a new sentence, a comma or words. The g-design skill lists the bans."
+guidance = """
+Separate with layout, a new sentence, a comma or words. The g-design skill lists the bans.
+Watch the hyphen too. Tabular figures (`font-variant-numeric: tabular-nums` or `'tnum'`) go on the spans that hold numbers, never on every `text`, `body` or `*`: Inter's `tnum` makes the hyphen tabular as well, widening it from 0.46 to 0.65 em, so a blanket rule sets "g-studio" as "g - studio". Space Grotesk and JetBrains Mono are unaffected. g-content's check flags a blanket rule mechanically.
+"""
 pass = "No banned glyph in the text a reader sees. Code, CSS and markup do not count."
 remediation = "Rewrite each listed line. A middle dot usually wants a gap or a second column, a semicolon two sentences."
 written_against = { model = "claude-opus-5-5", date = "2026-10-18" }

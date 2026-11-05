@@ -36,3 +36,9 @@ rubric = """
 [origin]
 date = "2026-11-05"
 incident = "Set by the g-content brief (5 Nov): a scout suggests the next content types as a list, and nothing is built from it without Gabriel's pick."
+
+[[picked]]
+date = "2026-11-05"
+types = ["colour-look", "damage-decal", "light-env", "effect-flipbook"]
+by = "Gabriel, relayed by the g-content coordinator session"
+note = "Straight into Showcase to rate: each scout's maker-a recipe is merged into g-content main and its piece is registered unjudged. kinetic-type and pbr-material are not picked or built yet."
