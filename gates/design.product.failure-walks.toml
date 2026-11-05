@@ -1,0 +1,43 @@
+id = "design.product.failure-walks"
+version = 1
+kind = "design"
+trigger = "milestone"
+skill = "g-product"
+principle = "Before a design is built, strong models have walked it as its real users and found where it confuses, fails silently, leaks or costs too much, until new break points dry up."
+guidance = """
+Read the proposed design, the product it lands in and who uses it. Walk it as each framing in
+concrete steps, cold, in the conditions they really meet (phone, poor network, two devices, late
+replies). Every finding names who hits it, the step, what goes wrong and the smallest design
+change that fixes it. Breadth over polish: a finding is a break point, not a feature wish (those
+belong to design.product.feature-ideas).
+"""
+framings = [
+  "a non-technical artist on an iPhone who arrives alone and does not know the product's words",
+  "a client who never opens the product and only sees push notifications and emails, replying late",
+  "the owner, admin on every project, online on a laptop and a phone at once",
+  "two or more people acting at the same moment: typing, editing, calling, undoing",
+  "an adversarial member, a removed member and a flaky network",
+  "the house design system's taste: calm, low effort, nothing said twice, no dead ends",
+]
+pass = "met: saturation reached within budget and the probe from another model family added at most one break point. The ranked list is folded into the design before building. attempted: the budget ran out first, or the probe found more."
+remediation = "If the budget ran out before saturation, or the probe added break points, say so with the counts and run again with framings drawn from what the probe found. Never cut rounds to reach saturation sooner."
+generators = "Strong, taste-capable models only: Claude Opus through g-agent-run, pinned by the runner. Generators are blind to each other's findings, so the new-finding count is honest."
+judge = "One Claude Opus call per round merges each raw finding into the canonical list or adds it, citing the raw finding. A last call ranks the list by harm."
+saturation = "Stop when a round of three generators adds fewer than one new break point after merging."
+probe = "After apparent saturation, one round from a different strong model family (Codex Astra, else Sol at high effort)."
+budget = "At most three rounds, plus the probe."
+written_against = { model = "claude-opus-5-5", date = "2026-11-05" }
+
+[sensor]
+type = "review"
+rubric = """
+1. Write a brief: the proposed design, the product, its users and conditions.
+2. Run `python3 -m glevels.ideas design.product.failure-walks --brief <file> --workdir <repo> --out <dir>`.
+3. Read shortlist.md. Each item must name who hits it, the step and the fix. Move feature wishes out.
+4. Fold the accepted fixes into the design (the contract or spec) before building, and say which were declined and why.
+5. Record met at saturation with a quiet probe, attempted otherwise, with the counts in the note.
+"""
+
+[origin]
+date = "2026-11-05"
+incident = "Gabriel asked for Studio Chat to be walked by strong models playing real users before it was built, because chat, tickets, AI and calls interlock and a break found after building costs a rebuild."

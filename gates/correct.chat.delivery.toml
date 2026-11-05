@@ -1,0 +1,26 @@
+id = "correct.chat.delivery"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "A chat message is stored before it is acknowledged and reaches its people: live when they are connected, by push when they are not, and Gabriel by his pager when he is offline. It never vanishes and never arrives twice."
+guidance = """
+The client sends each message with its own id and retries until acknowledged; the server stores it
+once per id. Reconnecting clients resync from their last seen cursor. A recipient with no live
+connection gets one push per conversation burst (web and iPhone through notify), not one per
+message, and muted or read conversations push nothing. When Gabriel has no live connection
+anywhere, a message addressed to him (project chat or DM) pages him once per conversation per
+cooldown, and the sender sees that it was sent to him. Tests named so `-k chat_delivery` selects
+them cover: duplicate send, offline send then reconnect, recipient offline gets push, Gabriel
+offline gets paged once, read before push suppresses it, two devices of one person.
+"""
+pass = "met: every case above has a test and they pass with nothing skipped. attempted: a case has no test, named in the note."
+remediation = "Read the failing case and the stored rows. Fix idempotency, the cursor or the push/page decision, not the test. Never add sleeps to hide a race."
+written_against = { model = "claude-opus-5-5", date = "2026-11-05" }
+
+[sensor]
+type = "command"
+run = '''cd {repo} && out=$(PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q -rs -p no:cacheprovider -k chat_delivery tests/unit tests/api 2>&1); rc=$?; printf '%s\n' "$out" | tail -n 20; [ $rc -eq 0 ] || exit $rc; if printf '%s\n' "$out" | grep -Eq '[0-9]+ (skipped|xfailed)|no tests ran'; then echo 'delivery: tests skipped or missing'; exit 1; fi'''
+
+[origin]
+date = "2026-11-05"
+incident = "Studio Chat promises clients that Gabriel gets their message even when he is offline; a dropped or doubled message there breaks the trust the feature exists for."

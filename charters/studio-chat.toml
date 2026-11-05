@@ -1,0 +1,52 @@
+id = "studio-chat"
+title = "Studio Chat: the one place people in g-studio talk, to each other, to Gabriel and to a light AI"
+extends = ["g-studio"]
+repos = ["g-studio"]
+principles = [
+  "One conversation store, every surface a view onto it.",
+  "Every message reaches someone: live, by push, or Gabriel by his pager.",
+  "Nobody sees a conversation they are not in.",
+  "Talking costs the client no effort: the bubble is always there, the next step is always obvious.",
+  "AI paid by Gabriel is capped per person per day, on the server.",
+]
+
+# Chat scope: the chat service, its routes, calls and the web pieces.
+# The g-studio gates (security matrix, look, motion, first-run, e2e) still apply through extends.
+
+[[gates]]
+id = "design.product.failure-walks"
+version = 1
+
+[[gates]]
+id = "correct.chat.one-store"
+version = 1
+paths = ["gstudio/**", "web/src/**", "tests/**"]
+blocking = true
+
+[[gates]]
+id = "correct.chat.delivery"
+version = 1
+paths = ["gstudio/chat/**", "gstudio/api/chat*.py", "gstudio/notify.py", "tests/**"]
+blocking = true
+
+[[gates]]
+id = "correct.chat.membership"
+version = 1
+paths = ["gstudio/chat/**", "gstudio/api/chat*.py", "gstudio/calls*.py", "tests/**"]
+blocking = true
+
+[[gates]]
+id = "correct.ai.spend-cap"
+version = 1
+paths = ["gstudio/chat/**", "gstudio/agent/**", "tests/**"]
+blocking = true
+
+[[gates]]
+id = "correct.chat.request-tickets"
+version = 1
+paths = ["gstudio/chat/**", "gstudio/tickets.py", "web/src/**", "tests/**"]
+
+[[gates]]
+id = "correct.calls.connect"
+version = 1
+paths = ["gstudio/calls*.py", "gstudio/chat/**", "deploy/h2/calls/**", "web/src/**"]

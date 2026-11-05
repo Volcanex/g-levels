@@ -1,0 +1,25 @@
+id = "correct.chat.membership"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "A person reads, searches and writes only the conversations they belong to: their projects' chats, direct messages with people they share a project with (and Gabriel), and their own AI threads. Leaving a project closes those doors at once."
+guidance = """
+Membership is checked on the server for every chat read, write, search, attachment, call token and
+realtime frame, from the session, never from an id the client sends. A direct message needs a shared
+live project at send time; history stays readable to its two people. Removing someone from a project
+removes them from its chat, its search results and any live call at once. Lite AI threads are visible
+only to their owner and Gabriel. Every new route joins the security isolation matrix. Tests named so
+`-k chat_membership` selects them cover each door above with an outsider, a removed member and an
+editor of another project.
+"""
+pass = "met: the chat_membership tests and the security matrix pass with nothing skipped. attempted: a door has no test, named in the note."
+remediation = "Route the read through the chat service's membership check. Never filter on the client."
+written_against = { model = "claude-opus-5-5", date = "2026-11-05" }
+
+[sensor]
+type = "command"
+run = '''cd {repo} && out=$(PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q -rs -p no:cacheprovider -k "chat_membership" tests/unit tests/api tests/security 2>&1); rc=$?; printf '%s\n' "$out" | tail -n 20; [ $rc -eq 0 ] || exit $rc; if printf '%s\n' "$out" | grep -Eq '[0-9]+ (skipped|xfailed)|no tests ran'; then echo 'membership: tests skipped or missing'; exit 1; fi; PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q -p no:cacheprovider tests/security 2>&1 | tail -n 5'''
+
+[origin]
+date = "2026-11-05"
+incident = "Studio Chat lets people message across every project they share, which is the first studio surface that crosses project lines; one missing check leaks a client's conversation to another client."

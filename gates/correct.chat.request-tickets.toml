@@ -1,0 +1,31 @@
+id = "correct.chat.request-tickets"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "A chat message becomes a ticket only when it asks for a change, the sender sees it happen and can undo it, and the ticket links back to the message it came from."
+guidance = """
+The request check runs after the message is stored and never delays it. It reads the message with
+a little context and answers request or not; small talk, thanks, questions about how to do
+something and messages to the AI are not requests. A request makes one ticket per message (never
+two on retry), shows a chip on the message, and can be undone by the sender until Gabriel starts
+it. Editing the message updates the ticket; deleting it closes the ticket with a note. Tests named
+so `-k request_ticket` select them cover the flow with the classifier stubbed; the labelled eval
+(`tests/evals/chat_requests.jsonl`) is run on demand against the real classifier.
+"""
+pass = "met: the request_ticket tests pass and the last eval run scored at least 0.9 precision and 0.8 recall, quoted in the note. attempted: tests pass but the eval is older than the classifier prompt, or below the bar."
+remediation = "Fix the flow for test failures. For eval misses, add the missed messages to the labelled set and tune the prompt, never the labels."
+written_against = { model = "claude-opus-5-5", date = "2026-11-05" }
+
+[sensor]
+type = "review"
+run = '''cd {repo} && PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q -rs -p no:cacheprovider -k request_ticket tests/unit tests/api 2>&1 | tail -n 20'''
+rubric = """
+1. Confirm the request_ticket tests ran and passed with nothing skipped.
+2. Run the eval: `.venv/bin/python -m gstudio.chat.requests --eval tests/evals/chat_requests.jsonl`. Quote precision and recall.
+3. Open the chip and undo in a screenshot: does the sender see it, understand it and reach undo?
+4. Record met or attempted with the numbers.
+"""
+
+[origin]
+date = "2026-11-05"
+incident = "Gabriel asked for chat entries to become tickets automatically; turning every message into a ticket would bury him, and a silent ticket would surprise the client."

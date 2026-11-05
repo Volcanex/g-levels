@@ -1,0 +1,24 @@
+id = "correct.ai.spend-cap"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "A model call paid by Gabriel checks the person's daily cap on the server before it runs, records the real cost after, and stops cleanly at the cap with a message that says what happens next."
+guidance = """
+Before each model call, read the person's spend for the current UK day and refuse when it is at
+or over the cap. After the call, record the cost from the provider's reported tokens and the
+model's price table, not an estimate made before. A turn that would cross the cap mid-way ends at
+the next call boundary with the work so far kept. The refusal says when the cap resets and points
+to connecting their own AI. Tests named so `-k spend_cap` select them cover: under cap, at cap,
+crossing mid-turn, the day rolling over, two devices racing the last pennies.
+"""
+pass = "met: every case above has a test and they pass with nothing skipped. attempted: a case has no test, named in the note."
+remediation = "Move the check to the call site on the server and record from the response usage. Never trust a client-side counter."
+written_against = { model = "claude-opus-5-5", date = "2026-11-05" }
+
+[sensor]
+type = "command"
+run = '''cd {repo} && out=$(PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q -rs -p no:cacheprovider -k spend_cap tests/unit tests/api 2>&1); rc=$?; printf '%s\n' "$out" | tail -n 20; [ $rc -eq 0 ] || exit $rc; if printf '%s\n' "$out" | grep -Eq '[0-9]+ (skipped|xfailed)|no tests ran'; then echo 'spend-cap: tests skipped or missing'; exit 1; fi'''
+
+[origin]
+date = "2026-11-05"
+incident = "Studio Lite AI runs on Gabriel's API key for every studio member, capped at GBP 1 per person per day; an unchecked loop or a race would spend his money without limit."

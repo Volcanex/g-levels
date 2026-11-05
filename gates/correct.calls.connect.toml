@@ -1,0 +1,30 @@
+id = "correct.calls.connect"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "A call connects for any two members of a conversation, on desktop and iPhone, through strict NAT by the relay, and the call service is watched by the alert spine."
+guidance = """
+Call tokens are minted by the studio server for members of the conversation only, short-lived and
+scoped to one room. Media goes through the self-hosted SFU, with TURN over TLS on 443 for
+networks that block UDP. The service has a health check the studio's health job reads, and a down
+call service pages through the spine. The probe joins two headless clients with fake media to a
+real room, once with UDP and once forced to TURN over TLS, and checks audio, video and a screen
+share track arrive.
+"""
+pass = "met: the probe connects both ways with all three tracks, and the health check is in the spine. attempted: connects but one path (TURN/TLS or screen share) is unproven, named."
+remediation = "Read the probe's ICE candidate log. Fix ports, certificates or the TURN config rather than the probe."
+written_against = { model = "claude-opus-5-5", date = "2026-11-05" }
+
+[sensor]
+type = "review"
+run = '''cd {repo} && test -x deploy/h2/calls/probe.sh && deploy/h2/calls/probe.sh'''
+cannot_run_exit = 2
+rubric = """
+1. Read the probe output: both paths, three tracks each.
+2. Confirm the calls health check appears in studio health and that stopping the service would page.
+3. Record met or attempted.
+"""
+
+[origin]
+date = "2026-11-05"
+incident = "Gabriel asked for calls with screen share inside Studio Chat, self-hosted on h2; clients behind phone networks and office firewalls are the usual failure."

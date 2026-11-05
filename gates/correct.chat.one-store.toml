@@ -1,0 +1,24 @@
+id = "correct.chat.one-store"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "Every chat surface (bubble, Chat section, notifications, tickets, notes, MCP, the native app) reads and writes one conversation store through one service module; nothing keeps its own copy that can drift."
+guidance = """
+gstudio/chat is the only code that writes the chat tables. Other modules reach it through its
+public functions, and the web keeps one client-side chat store that the bubble and the Chat
+section both render from (opening one never refetches what the other already holds). Tickets,
+notes and notifications point at a message id and quote it, they never become a second source
+of the conversation. Tests named so `-k chat_store` selects them prove the bubble and section see
+the same thread, unread state and drafts, and that a ticket or note made from a message links back.
+"""
+pass = "met: the writer check finds chat tables written only under gstudio/chat, and the chat_store tests pass with nothing skipped. attempted: tests pass but a surface has no test, named in the note."
+remediation = "Move the write into gstudio/chat and call it. In the web, render from the shared chat store instead of a component-local copy. Never weaken the writer check."
+written_against = { model = "claude-opus-5-5", date = "2026-11-05" }
+
+[sensor]
+type = "command"
+run = '''cd {repo} && bad=$(grep -rnE "(INSERT INTO|UPDATE|DELETE FROM) chat_" --include=*.py gstudio | grep -v "^gstudio/chat/"); if [ -n "$bad" ]; then echo "chat tables written outside gstudio/chat:"; echo "$bad"; exit 1; fi; out=$(PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q -rs -p no:cacheprovider -k chat_store tests/unit tests/api 2>&1); rc=$?; printf '%s\n' "$out" | tail -n 20; [ $rc -eq 0 ] || exit $rc; if printf '%s\n' "$out" | grep -Eq '[0-9]+ (skipped|xfailed)|no tests ran'; then echo 'one-store: tests skipped or missing'; exit 1; fi'''
+
+[origin]
+date = "2026-11-05"
+incident = "Studio Chat merges Ask AI, comments-to-tickets, notifications and direct messages into one place; each had its own store before, and a bubble plus a full section showing the same thread invites two copies."
