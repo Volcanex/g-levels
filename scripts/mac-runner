@@ -1,0 +1,238 @@
+#!/usr/bin/env python3
+"""Start/stop only the isolated Mac Chrome used by the frame-pacing gate."""
+import argparse
+import json
+import re
+import socket
+import subprocess
+import sys
+import time
+from urllib.parse import urlsplit, urlunsplit
+from urllib.request import urlopen
+
+G_RUN = [sys.executable, "/home/gabriel/g-runner/bin/g-run"]
+BUSY = 3  # exit status for a refusal made before anything was launched: the caller must not stop
+
+
+class Busy(RuntimeError):
+    pass
+SSH = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10"]
+
+# Sent on stdin, never installed in Gabriel's home or Chrome profile.
+REMOTE = r'''
+import os, pathlib, re, signal, subprocess, time
+root = pathlib.Path(ROOT)
+profile = root / "profile"
+label = "com.glevels.runner." + DEVICE
+domain = "gui/" + str(os.getuid())
+def listeners():
+    result = subprocess.run(["/usr/sbin/lsof", "-nP", "-iTCP:9333", "-sTCP:LISTEN", "-Fp"], capture_output=True, text=True)
+    if result.returncode not in (0, 1): raise SystemExit("impossible: cannot verify DevTools port owner")
+    return [int(line[1:]) for line in result.stdout.splitlines() if line.startswith("p")]
+def stop():
+    subprocess.run(["launchctl", "bootout", domain + "/" + label], capture_output=True)
+    rows = subprocess.check_output(["ps", "-axo", "pid=,command="], text=True)
+    pids = []
+    for row in rows.splitlines():
+        pid, _, args = row.strip().partition(" ")
+        if ("--user-data-dir=" + str(profile)) in args.split():
+            pids.append(int(pid))
+    for sig in (signal.SIGTERM, signal.SIGKILL):
+        for pid in pids:
+            try: os.kill(pid, sig)
+            except ProcessLookupError: pass
+        if sig == signal.SIGTERM and pids: time.sleep(2)
+if ACTION == "verify":
+    pids = listeners()
+    if not pids: raise SystemExit("impossible: isolated DevTools listener missing")
+    for pid in pids:
+        command = subprocess.check_output(["ps", "-p", str(pid), "-o", "command="], text=True)
+        if ("--user-data-dir=" + str(profile)) not in command.split():
+            raise SystemExit("impossible: DevTools port belongs to another Chrome; refusing to attach")
+    print("isolated DevTools owner verified")
+elif ACTION == "paired":
+    storage = profile / "Default/Local Storage/leveldb"
+    stored = storage.exists() and any(b"g-runner.token" in p.read_bytes()
+        for p in storage.iterdir() if p.suffix in (".log", ".ldb"))
+    print("stored" if stored else "pending")
+elif ACTION == "stop":
+    stop()
+    if root.exists():
+        import shutil
+        shutil.rmtree(root)
+    print("stopped isolated " + DEVICE)
+else:
+    stats = subprocess.check_output(["vm_stat"], text=True)
+    page_size = int(re.search(r"page size of (\d+)", stats).group(1))
+    available = sum(int(re.search(r"Pages " + key + r":\s+(\d+)", stats).group(1))
+                    for key in ("free", "inactive", "speculative")) * page_size // 1048576
+    print("Mac available memory: %s MB" % available, flush=True)
+    if available < 900: raise SystemExit("impossible: Mac has less than 900 MB available")
+    stop()  # Fresh process for every measurement; retain pairing only until stop.
+    if listeners(): raise SystemExit("impossible: DevTools port 9333 is occupied by another instance")
+    root.mkdir(mode=0o700, exist_ok=True)
+    os.chmod(root, 0o700)
+    paired = profile.exists()
+    args = ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "--headless=new",
+            "--user-data-dir=" + str(profile), "--no-first-run", "--no-default-browser-check",
+            "--disable-extensions", "--disable-sync", "--disable-background-networking",
+            "--disable-backgrounding-occluded-windows", "--disable-renderer-backgrounding",
+            "--disable-background-timer-throttling", "--remote-debugging-address=127.0.0.1",
+            "--remote-debugging-port=9333", "--window-size=1440,900", "--force-device-scale-factor=2",
+            "--disable-features=ExternalBeginFrameSourceMac,LocalNetworkAccessChecks,LocalNetworkAccessChecksWebRTC,BlockInsecurePrivateNetworkRequests,PrivateNetworkAccessSendPreflights",
+            "about:blank"]
+    # Started from this SSH session with nohup in a session of its own, never through launchd: a
+    # LaunchAgent bootstrapped into gui/UID runs as a Standard (daemon) job, and its Chrome drew
+    # the landing at 7 to 10 fps (frames on 133 ms steps) where this launch holds 60 on the same
+    # profile and URL (2026-11-05). It still gets the Apple GPU through Metal.
+    with (root / "chrome.log").open("w") as log:
+        subprocess.Popen(["/usr/bin/nohup", *args], stdin=subprocess.DEVNULL, stdout=log, stderr=log,
+                         start_new_session=True)
+    print("launch: nohup from the SSH session", flush=True)
+    print("profile-present" if paired else "pair-needed", flush=True)
+'''
+
+
+def remote(action, device):
+    root = "/tmp/grunner-m3" if device == "mac-m3" else "/tmp/grunner-" + device
+    code = "ROOT = %r\nDEVICE = %r\nACTION = %r\n" % (root, device, action) + REMOTE
+    process = subprocess.run([*SSH, "mac", "python3 -"], input=code, text=True, capture_output=True, timeout=45)
+    if process.returncode:
+        raise RuntimeError("Mac SSH/GUI command failed: " + (process.stdout + process.stderr).strip())
+    return root, process.stdout.strip()
+
+
+def state():
+    process = subprocess.run([*G_RUN, "--status", "--json"], capture_output=True, text=True)
+    if process.returncode:
+        raise RuntimeError("g-run status failed")
+    return json.loads(process.stdout)
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("action", choices=("start", "stop"))
+    parser.add_argument("--device", default="mac-m3")
+    args = parser.parse_args(argv)
+    if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,31}", args.device):
+        parser.error("invalid device name")
+    tunnel = None
+    started = False
+    root = "/tmp/grunner-m3" if args.device == "mac-m3" else "/tmp/grunner-" + args.device
+    try:
+        if args.action == "stop":
+            print(remote("stop", args.device)[1])
+            return 0
+        fleet = state()
+        device = next((d for d in fleet["devices"] if d["name"] == args.device), None)
+        if device and device.get("online") and device.get("job"):
+            raise Busy("isolated Mac runner is busy")
+        # Import before launching anything; CDP uses messages, never URL argv.
+        import websocket
+        started = True
+        root, output = remote("start", args.device)
+        print(output, flush=True)
+        with socket.socket() as sock:
+            sock.bind(("127.0.0.1", 0))
+            port = sock.getsockname()[1]
+        tunnel = subprocess.Popen([*SSH, "-S", "none", "-o", "ExitOnForwardFailure=yes", "-N", "-L",
+                                   f"127.0.0.1:{port}:127.0.0.1:9333", "mac"],
+                                  stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        deadline = time.monotonic() + 35
+        targets = None
+        while time.monotonic() < deadline:
+            if tunnel.poll() is not None:
+                raise RuntimeError("Mac DevTools tunnel failed: " + tunnel.stderr.read().decode().strip())
+            try:
+                with urlopen(f"http://127.0.0.1:{port}/json/list", timeout=2) as response:
+                    targets = json.load(response)
+                if any(t.get("type") == "page" for t in targets):
+                    break
+            except OSError:
+                pass
+            time.sleep(.3)
+        target = next((t for t in targets or [] if t.get("type") == "page"), None)
+        if not target:
+            raise RuntimeError("Mac Chrome DevTools did not become ready")
+        remote("verify", args.device)
+        url = "https://runner.gabrielpenman.com/run?device=" + args.device
+        if "pair-needed" in output or device is None:
+            pair = subprocess.run([*G_RUN, "--pair", args.device], capture_output=True, text=True)
+            if pair.returncode:
+                raise RuntimeError("g-run pairing failed")
+            url = pair.stdout.strip()
+            # Secret travels only through stdin and the CDP WebSocket body.
+            saved = subprocess.run([*SSH, "mac", f"umask 077; cat > {root}/pair-url; chmod 600 {root}/pair-url"],
+                                   input=url, text=True, capture_output=True)
+            if saved.returncode:
+                raise RuntimeError("cannot stage Mac pairing URL")
+        endpoint = urlunsplit(urlsplit(target["webSocketDebuggerUrl"])._replace(netloc=f"127.0.0.1:{port}"))
+        connection = websocket.create_connection(endpoint, timeout=10, suppress_origin=True)
+        try:
+            before = state()["now"]
+            connection.send(json.dumps(dict(id=1, method="Page.navigate", params=dict(url=url))))
+            while True:
+                answer = json.loads(connection.recv())
+                if answer.get("id") == 1:
+                    if answer.get("error") or answer.get("result", {}).get("errorText"):
+                        raise RuntimeError("Mac Chrome navigation failed")
+                    break
+        finally:
+            connection.close()
+            subprocess.run([*SSH, "mac", f"rm -f {root}/pair-url"], capture_output=True)
+        deadline = time.monotonic() + 45
+        while time.monotonic() < deadline:
+            device = next((d for d in state()["devices"] if d["name"] == args.device), None)
+            if device and device.get("online") and (device.get("seen") or 0) >= before:
+                info = device["info"]
+                adapter = " / ".join(str(x) for x in ((info.get("gpu") or {}).get("adapter"), info.get("webgl2_renderer")) if x)
+                if "swiftshader" in adapter.lower() or not all(x in adapter.lower() for x in ("apple", "metal")):
+                    raise RuntimeError("Mac adapter is not Apple/Metal hardware: " + (adapter or "unknown"))
+                # Chrome batches localStorage commits. A heartbeat alone can
+                # precede the pairing's disk write; an immediate fresh instance
+                # would then open unpaired. Wait for the profile's storage log.
+                if "pair-needed" in output and remote("paired", args.device)[1] != "stored":
+                    time.sleep(.5)
+                    continue
+                print(f"{args.device}: {adapter}", flush=True)
+                print("user agent: " + info.get("ua", "unknown"), flush=True)
+                return 0
+            time.sleep(1)
+        diagnostic = websocket.create_connection(endpoint, timeout=10, suppress_origin=True)
+        try:
+            diagnostic.send(json.dumps(dict(id=2, method="Runtime.evaluate", params=dict(
+                expression="JSON.stringify({device:localStorage.getItem('g-runner.device'),paired:!!localStorage.getItem('g-runner.token'),ready:document.readyState,title:document.title})",
+                returnByValue=True))))
+            while True:
+                answer = json.loads(diagnostic.recv())
+                if answer.get("id") == 2:
+                    print("heartbeat diagnostic: " + str(answer.get("result", {}).get("result", {}).get("value", "unavailable")), flush=True)
+                    break
+        finally:
+            diagnostic.close()
+        raise RuntimeError("Mac runner posted no fresh heartbeat")
+    except Busy as error:
+        print("busy: " + str(error), flush=True)
+        return BUSY
+    except (Exception, KeyboardInterrupt) as error:
+        # Pair URLs and CDP message bodies are intentionally absent from errors.
+        print("impossible: " + (str(error) if isinstance(error, RuntimeError) else type(error).__name__), flush=True)
+        if started:
+            try:
+                remote("stop", args.device)
+            except Exception:
+                print("impossible: isolated Mac cleanup failed", flush=True)
+        return 2
+    finally:
+        if tunnel:
+            tunnel.terminate()
+            try:
+                tunnel.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                tunnel.kill()
+                tunnel.wait()
+            tunnel.stderr.close()
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,33 @@
+id = "correct.motion.frame-pacing"
+version = 2
+kind = "correcting"
+trigger = "every-run"
+skill = "g-motion"
+principle = "Live pages hold their frame rate through every animation and interaction, including on a mid-range phone. Main-thread stalls and dropped updates are faults even when the easing and individual frames look right."
+guidance = "Load g-motion. Run pacing.py --repo <repo> --device auto. Online g-runner devices (heartbeat less than 30 seconds old) run first; results name each device, GPU adapter and user agent. Use runner_query=gate=frames plus runner_duration/runner_timeout in .glevels/pacing.json for the page's own driver. Judge posted gs_frames phases, never the runner page's rAF. Each managed Mac measurement starts a fresh isolated hardware Chrome and stops it afterwards. Only when no selected device is online, or with --device none, use the existing desktop and 4x CPU phone Playwright profiles, normal/reduced/nowebgl; the report must say measured_on: playwright fallback, no paired device online. The same page driver then supplies window.__gsFrames, with trace attribution retained. Legacy recipes keep their timed interaction driver. Keep the recipe and numeric limits fixed while fixing the page. SwiftShader on h cannot establish real-device GPU pacing."
+pass = "met: every selected online device completes every requested page phase with hardware GPU and user-agent evidence, no known page errors, no hardware frame interval over 50 ms desktop or 100 ms phone after intro/load, and no confirmed dropped-interval rate over 1% desktop or 2% phone. These shared numeric limits live in thresholds below, with explicit recipe overrides. Posted over_33/over_20 counters bound the 25 ms threshold (1.5 times 60 Hz): an unresolved bound straddling the limit is impossible, never met. Hardware summary drops need no claim of main-thread causation; video-induced 30 Hz playback remains a page finding. Missing gs_frames is impossible: page posted no frame stats. With no selected device online or --device none, fallback completes all recipe profiles/variants and phases with no page errors, after load no attributed LoAF over the same 50/100 ms limits and no main-thread-correlated rAF drop rate over the same 1/2% limits. Fallback does not establish phone GPU performance. Every verdict names measured_on and its coverage limits. attempted: named findings remain. Exit 2 is impossible, never met."
+remediation = "Use the attributed URL, function, invoker and forced-style/layout time to fix the expensive animation or handler. Batch DOM reads and writes; move suitable transforms to the compositor; reduce main-thread work and honour reduced motion and WebGL fallback. Rerun the same phases on every profile and variant. Do not hide an animation, shorten a phase, slow the display baseline, remove attribution or relax a threshold to silence a finding."
+written_against = { model = "gpt-6", date = "2026-11-05" }
+
+[sensor]
+type = "review"
+run = "python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/pacing.py --repo {repo} --device auto"
+cannot_run_exit = 2
+rubric = """
+You are independent of the worker. Read g-motion, the recipe and findings.json from the same run.
+1. Read measured_on first. Devices take priority when online (heartbeat less than 30 seconds old); require each selected device's GPU adapter, user agent and posted gs_frames. Never use the runner page's frames as evidence for the framed page. Missing page stats, incomplete phases, software adapters or exit 2 are impossible. Each managed Mac run needs a fresh isolated instance; Work at 30 Hz on hardware is a page finding, even if video playback triggers it.
+2. Check every posted phase's duration, count, fps, p50/p95/worst, over_20/33/50 and long-task count/total. Use thresholds below (or explicit recipe overrides) for desktop/phone. After intro/load, confirmed hardware drop rates over 1/2% or frame intervals over 50/100 ms block. The 25 ms drop count is bounded by over_33 and over_20, not exactly measured by either; a bound straddling the limit cannot pass. Summaries do not identify LoAF scripts, main-thread correlation, page errors or dropped presentation; do not invent these. State any missing coverage, including no real phone measurement.
+3. Fallback must print measured_on: playwright fallback, no paired device online and the reason for a forced or offline selection. Require the recipe's profiles and variants (normally desktop/phone, normal/reduced/nowebgl), with the same page driver when runner_query is present. Phone fallback means 4x CPU, 390x844 DPR3, touch/mobile UA. SwiftShader GPU gaps cannot establish real-device performance.
+4. For fallback, inspect attributed telemetry and analysed trace evidence: rAF p50/p95/p99/max, main-thread-correlated drop count/percent, LoAF scripts/forced layout, long tasks and page/console errors. Any page error blocks, including load. After load, LoAF over 50 ms desktop/100 ms phone or main-thread-correlated drops over 1/2% block. Actual script execution, tasks and trace spans establish correlation, not LoAF wall time alone. Trace DroppedFrame/partial and PipelineReporter counts are separate from rAF gaps; null means unsupported. Raw traces are deleted after analysis unless --keep-traces is passed. Page-driver phase windows reconstructed from durations have completion-poll boundary uncertainty.
+5. Compare normal and nowebgl fallback evidence and explain remaining raster/GPU candidates; software contention cannot excuse actual main-thread stalls. Reduced motion must follow the same page path. Record findings with device/profile, variant, phase, duration/percent and available attribution. Exit 0 alone is not a review verdict; say whether the work meets the principle or only the sensor.
+"""
+
+[origin]
+date = "2026-11-05"
+incident = "G-Studio's animated landing prompted Gabriel to require that nothing be choppy and every animation be checked for dropped frames on a mid-range phone; easing and frame-integrity reviews did not measure frame pacing."
+
+[thresholds]
+desktop_long_frame_ms = 50
+phone_long_frame_ms = 100
+desktop_dropped_percent = 1
+phone_dropped_percent = 2
