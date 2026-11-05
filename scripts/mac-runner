@@ -186,6 +186,10 @@ def main(argv=None):
             if device and device.get("online") and (device.get("seen") or 0) >= before:
                 info = device["info"]
                 adapter = " / ".join(str(x) for x in ((info.get("gpu") or {}).get("adapter"), info.get("webgl2_renderer")) if x)
+                if not adapter:
+                    # the first heartbeat after pairing can come before the page has read its GPU
+                    time.sleep(1)
+                    continue
                 if "swiftshader" in adapter.lower() or not all(x in adapter.lower() for x in ("apple", "metal")):
                     raise RuntimeError("Mac adapter is not Apple/Metal hardware: " + (adapter or "unknown"))
                 # Chrome batches localStorage commits. A heartbeat alone can
