@@ -42,3 +42,15 @@ date = "2026-11-05"
 types = ["colour-look", "damage-decal", "light-env", "effect-flipbook"]
 by = "Gabriel, relayed by the g-content coordinator session"
 note = "Straight into Showcase to rate: each scout's maker-a recipe is merged into g-content main and its piece is registered unjudged. kinetic-type and pbr-material are not picked or built yet."
+
+[[picked]]
+date = "2026-11-05"
+types = ["kinetic-type", "animated-chart", "code-art", "product-shot", "studio-tutorial", "studio-explainer"]
+by = "Gabriel, relayed by the g-content coordinator session"
+note = "Ported from an earlier content lab's methods with G-System subjects and G-Studio branding. Tutorial, walkthrough and explainer types become G-Studio tutorials."
+
+[[dropped]]
+date = "2026-11-05"
+types = ["mascot-scene", "cursor-scene"]
+by = "Gabriel, relayed by the g-content coordinator session"
+note = "No mascot type of any kind. The G-Studio logo is the nearest thing to a mascot. Nothing from that other company's brand or subjects goes into Showcase."
