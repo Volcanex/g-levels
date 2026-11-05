@@ -62,15 +62,12 @@ id = "correct.copy.house-glyphs"
 version = 1
 paths = ["pieces/**"]
 
-# PROPOSED, NOT APPROVED. Awaiting Gabriel's yes. Kept out of [[exceptions]] on purpose, because an
-# entry there waives the gate. Until he approves, correct.assets.real-sourced still runs on every
-# piece; pieces with generated pixels are still made but tagged generated_pixels: true and judged
-# against the unwaived gate. On approval, move this block to [[exceptions]] with approved_by.
-[[proposed_exceptions]]
+# Approved by Gabriel on 2026-11-05. Waives the gate only for pieces that record
+# generated_pixels = true and pass the curator-bar judge on the condition below.
+[[exceptions]]
 gate = "correct.assets.real-sourced"
 paths = ["pieces/**"]
 condition = "The piece records recipe.generated_pixels = true, and the curator-bar judge finds nothing in it that reads as AI (waxy surfaces, plastic light, smeared detail, nonsense text)."
 reason = "Gabriel asked on 2026-11-04 for the content lab to try Codex image_gen assets, to learn how good generated imagery can get when judged. The gate forbids image-generator output for figures."
 review = "2026-12-04"
-status = "awaiting Gabriel's approval"
-proposed_by = "claude-opus-5-5 (content lab wave 1)"
+approved_by = "Gabriel"
