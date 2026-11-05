@@ -1,0 +1,27 @@
+id = "correct.motion.frame-pacing"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-motion"
+principle = "Live pages hold their frame rate through every animation and interaction, including on a mid-range phone. Main-thread stalls and dropped updates are faults even when the easing and individual frames look right."
+guidance = "Load g-motion. Add .glevels/pacing.json with serve, ready, url, profiles and timed phases covering load, idle animations and real scroll/click/drag interactions. Run pacing.py --repo <repo>. Exercise desktop (1440x900 DPR1) and phone (390x844 DPR3, touch/mobile UA, 4x CPU), each normal, reduced motion and WebGL disabled. Keep the recipe and thresholds fixed while fixing the page. Read LoAF script attribution and forced layout, long tasks, rAF intervals and Chrome presentation evidence. Compare normal with nowebgl: headless SwiftShader runs WebGL on the CPU, so raster/GPU waiting is not a real phone GPU benchmark."
+pass = "met: no page errors in any phase or run, and after load no LoAF over 100 ms on phone or 50 ms on desktop, and no main-thread-caused rAF dropped-interval rate over 2% on phone or 1% on desktop. A dropped interval exceeds 1.5 times the nominal 60 Hz display interval (25 ms); percent uses measured intervals, not estimated missing display frames. All six runs and all phases must complete. The independent reviewer explains any remaining raster/GPU or unattributed gaps using the trace and WebGL comparison. attempted: the recipe ran and findings remain, each named by profile, variant, phase, duration and attribution. Exit 2 is impossible, never met."
+remediation = "Use the attributed URL, function, invoker and forced-style/layout time to fix the expensive animation or handler. Batch DOM reads and writes; move suitable transforms to the compositor; reduce main-thread work and honour reduced motion and WebGL fallback. Rerun the same phases on every profile and variant. Do not hide an animation, shorten a phase, slow the display baseline, remove attribution or relax a threshold to silence a finding."
+written_against = { model = "gpt-6", date = "2026-11-05" }
+
+[sensor]
+type = "review"
+run = "python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/pacing.py --repo {repo}"
+cannot_run_exit = 2
+rubric = """
+You are independent of the worker. Read g-motion and the recipe, findings.json, telemetry and Chrome traces from the same run.
+1. Require desktop and phone, each normal, reduced and nowebgl, with load and every animated/interactive region represented. Phone means 4x CPU, 390x844 DPR3, touch and mobile UA. Exit 2 or missing phases is impossible. Exit 0 alone is not a review verdict.
+2. Read every phase's frame count, interval p50/p95/p99/max, dropped count/percent, main-thread-correlated drops, LoAF over 50 ms (including full scripts), long tasks and page/console errors. Any page error blocks, including load. After load, any LoAF over 100 ms on phone or 50 ms on desktop blocks; main-thread dropped intervals above 2% phone or 1% desktop block. Load timing is diagnostic. Console errors require explanation and are retained even when a WebGL fallback intentionally logs one.
+3. Correlation uses actual script execution, long tasks and main-thread trace spans longer than a display interval, not just a long LoAF wall duration. Inspect overlapping spans before assigning cause. Check trace DroppedFrame/hasPartialUpdate and PipelineReporter state/reason where present; rAF gaps are not proof of dropped presentation. Wholly dropped and partially presented counts are separate. Null presentation counts mean unsupported evidence, not zero drops. LoAF and longtask miss shorter work; the trace supplies sub-50ms evidence. Cross-origin/worker attribution and software-renderer contention can remain uncertain.
+4. Compare each normal phase with its nowebgl control, including p95 difference, dropped percentage-point difference and LoAF counts. SwiftShader CPU rendering cannot establish real-device GPU performance. Uncorrelated gaps are raster/GPU candidates, not proven GPU faults. A reduction without WebGL measures the total WebGL path cost, not necessarily just the 3D G if other WebGL content exists. Never excuse real main-thread findings merely because WebGL is enabled. Reduced motion must run the same interaction path.
+5. Record each surviving finding with profile, variant, phase, duration/percent, sourceURL, sourceFunctionName and invoker, plus trace/telemetry evidence. A met verdict accounts for every phase and explains the largest remaining gap. Say whether the work meets the principle or merely the sensor.
+"""
+
+[origin]
+date = "2026-11-05"
+incident = "G-Studio's animated landing prompted Gabriel to require that nothing be choppy and every animation be checked for dropped frames on a mid-range phone; easing and frame-integrity reviews did not measure frame pacing."

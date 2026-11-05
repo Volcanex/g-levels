@@ -25,6 +25,13 @@ produce. The theory is in Volcanex/g-research
   (with `motion.mjs`) records a page's animations and reveals; `frames.py` (with `frames.mjs`)
   reads or captures consecutive frames, or runs a repo's `.glevels/frames.json` recipe;
   `meshcheck.py` checks exported geometry. `adapters/` holds per-project mesh exporters.
+- `glevels/pacing.py`: Python Playwright sensor for `correct.motion.frame-pacing`.
+  Runs `.glevels/pacing.json` timed load/idle/scroll/scrollTo/click/drag phases on desktop
+  and a 4x CPU phone, each normal, reduced and without WebGL. Saves attributed rAF,
+  long-frame/task telemetry and streamed Chrome traces; separates main-thread drops
+  from unattributed raster/GPU candidates and compares the WebGL control. Uses
+  `GSPACING_LOCK` (default `/tmp/g-studio-browser.lock`) and waits for 700 MB available
+  before each browser. Exit 0 means no blocking findings, 1 findings, 2 impossible.
 - `glevels/contentpiece.py`: the sensor for `correct.content.recipe-recorded`, checking each content-lab piece
   (`~/content-lab/pieces/<id>/`) against the lab's CONTRACT.md. The `content` charter scopes that lab by `dirs` and holds
   a `[[proposed_exceptions]]` block, which lint and scope resolution ignore until Gabriel approves it into `[[exceptions]]`.
