@@ -28,6 +28,9 @@ produce. The theory is in Volcanex/g-research
 - `glevels/contentpiece.py`: the sensor for `correct.content.recipe-recorded`, checking each content-lab piece
   (`~/content-lab/pieces/<id>/`) against the lab's CONTRACT.md. The `content` charter scopes that lab by `dirs` and holds
   a `[[proposed_exceptions]]` block, which lint and scope resolution ignore until Gabriel approves it into `[[exceptions]]`.
+- The `g-content` charter is the G-System's own recipe library (`/home/gabriel/g-content`), separate from the
+  Baseline content lab above. Its provenance sensor lives in that checkout (`bin/g-content check --sensor`), and
+  its judge records every pinned gate against the piece folder, `library/<recipe>/<piece-id>`.
 - `glevels/idcast.py`: the shader-source sensor for `correct.engine.interpolated-id`, an
   int()/uint() cast of an unrounded vertex attribute in TSL node code.
 - `var/results.jsonl`: the results log. Gitignored, because notes can carry private
