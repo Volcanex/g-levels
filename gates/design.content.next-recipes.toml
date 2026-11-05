@@ -1,0 +1,38 @@
+id = "design.content.next-recipes"
+version = 1
+kind = "design"
+trigger = "on-demand"
+skill = "g-assets"
+principle = "g-content's recipe library grows toward what Gabriel's projects will actually use and what the runners can make well, found by exploring the space of content types until new ideas dry up, not by building whatever came to mind first."
+guidance = """
+Read g-content's recipes and their judged pieces, the projects in the manifest and what each would ask for, and the runners (cpu on h, browser-gpu through g-runner devices, a native gpu runner still to come). Propose content types g-content should add, each with: the project that would use it and where, the recipe's method in two lines, its runner, the real sources or data it draws on, the gates it would pin, and what would make one a 10. A new input or style on an existing recipe is not a new type. List only: nothing is built without Gabriel's pick.
+"""
+framings = [
+  "the projects in the manifest, one by one: what each would ask g-content for next month",
+  "a top motion and identity studio deciding which programmatic pieces are worth a pipeline",
+  "the runners: what a real GPU device, or a native GPU runner with Blender, can make that cpu cannot",
+  "Gabriel's taste: real material through a pipeline, calm motion, the g-design language, nothing generated",
+  "a game and engine developer stocking g-engine's Newcastle with assets",
+  "the reader of gabrielpenman.com and the people he sends work to",
+]
+pass = "met: saturation reached within budget and the probe from another model family added at most one type. The ranked list goes to Gabriel, who picks. attempted: the budget ran out first, or the probe found more."
+remediation = "If the budget ran out before saturation, or the probe added types, say so with the counts and run again with framings drawn from what the probe found. Never cut the round count to reach saturation sooner."
+generators = "Codex Sol through g-agent-call --role research with web search and read access to the g-content checkout and the manifest, one framing each, blind to each other."
+judge = "One Claude Opus orchestrator merges each raw idea into the canonical list or adds it, citing the generator that raised it, and ranks by fit to a real project, how good the runners can make it, and cost. It does not generate types itself."
+saturation = "Stop when a round of three generators adds fewer than one new type after merging."
+probe = "After apparent saturation, one generator from a different family (Claude Opus through g-agent-run --role design)."
+budget = "At most three rounds, plus the probe."
+written_against = { model = "claude-opus-5-5", date = "2026-11-05" }
+
+[sensor]
+type = "review"
+rubric = """
+1. Write one brief per framing: what g-content is, its recipes with their judge and owner scores, the runners, and where the manifest lists the projects. Run the generators blind to each other.
+2. Merge their types into one list, citing which generator raised each. Drop variants of an existing recipe. Count new types per round and stop at saturation or on budget.
+3. Each type on the shortlist names its project, method, runner, sources and gates. Hand Gabriel the ranked list with the counts per round. He picks.
+4. Record met at saturation, attempted on budget, with the counts in the note.
+"""
+
+[origin]
+date = "2026-11-05"
+incident = "Set by the g-content brief (5 Nov): a scout suggests the next content types as a list, and nothing is built from it without Gabriel's pick."

@@ -1,0 +1,22 @@
+id = "correct.content.provenance"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-assets"
+principle = "Every piece of made content can be retraced: which recipe and version made it, from which brief, on which runner and device, by which agents and tools, from which sources under which licences, from which data, whether any pixel came from an image model, and what it cost in money, time and attempts. A score or a rating means nothing about a piece whose making cannot be repeated."
+guidance = """
+In g-content a recipe writes meta.json beside its outputs (tools, sources with url, licence and sha256, generated_pixels, data with the query behind every figure) and `g-content make` folds it into piece.json with the runner, device, agents, cost, wall time and attempts. Never write or patch piece.json by hand: rerun the recipe. recipe.md keeps its nine headings so a fresh agent can remake the piece without asking. Files stay inside the media limits in g-content's recipes/CLAUDE.md, and a video or html hero carries a poster. Run `g-content check <piece>` before judging.
+"""
+pass = "met: piece.json has every field, every listed file exists with its sha256, meta lists its tools, every source names what, url and licence, every figure has its query or url, generated_pixels is set, recipe.md has its nine headings in order, and every file is inside the media limits. attempted: any of these is missing, with each miss named."
+remediation = "Fix the recipe so its meta.json says what was used, then make the piece again. A source with no licence is replaced or its licence found on the source page, never guessed. A figure with no query is recomputed from a query. A file over the limits is re-encoded or resized by the recipe, not by hand."
+written_against = { model = "claude-opus-5-5", date = "2026-11-05" }
+
+[sensor]
+# The g-content checkout carries the sensor: it reads piece.json and the files beside it, prints each
+# miss and exits 1 if any, writing nothing. `g-content check <piece>` runs the same code and records.
+type = "command"
+run = "python3 ${G_CONTENT:-/home/gabriel/g-content}/bin/g-content check --sensor {file}"
+
+[origin]
+date = "2026-11-05"
+incident = "Set by the g-content brief (5 Nov): every showcase piece carries its models, tools, generated pixels, cost, wall time and attempts, so a judge score or an owner rating can be traced back to how the piece was made."

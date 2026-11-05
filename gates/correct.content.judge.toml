@@ -1,0 +1,28 @@
+id = "correct.content.judge"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-assets"
+principle = "Made content reaches a project only after a strong judge who did not make it has opened every output at full size against the recipe's own bar and the house language, and scored it 7 out of 10 or better. The judge stays calibrated: Gabriel's own rating sits beside its score, and a gap of two or more is a disagreement fed back into the next judge's brief."
+guidance = """
+Makers never judge their own pieces. In g-content, `g-content judge <piece>` hands an Opus judge (high effort, Claude only, read-only tools) the recipe's "What makes it a 10" and "Known faults", the brief, the provenance, every pinned gate's guidance, the house rules and Gabriel's recent disagreements, with every output to open: images directly, eight frames from a video, a screenshot of an html piece, a raster of an svg. Anchors: 10 a top studio would ship it unchanged, 7 a real project would use it after small fixes, 5 the method works but the piece shows faults, 3 broken or off-language. A piece under 7 goes back to its recipe, not to a project.
+"""
+pass = "met: an Opus judge at high effort or better, not the maker, opened every output and scored the piece 7 or more, with notes on what works, what fails and what would make it a 10. attempted: the score is under 7, or the judge could not open an output, with the notes."
+remediation = "Read the judge's notes, fix the recipe (not the piece) where the fault comes from, add the fault to the recipe's Known faults if it can recur, and make a new piece. When Gabriel disagrees by two or more, read both notes and decide which way the judge brief or the recipe's bar should move."
+written_against = { model = "claude-opus-5-5", date = "2026-11-05" }
+
+[sensor]
+# The judge is g-content's own command: it runs g-agent-run with --role judge --claude-only and records
+# this gate and every other pinned gate with --by reviewer. Gabriel's rating in Showcase grades that
+# verdict through `glevels grade`, so the taste column in `glevels counts` is the judge's agreement rate.
+type = "review"
+rubric = """
+1. Run `g-content judge <piece>` from the g-content checkout (add --dry-run to see the brief and the files it will open). It records the verdict itself.
+2. If you judge by hand instead, open every output at full resolution: crop large images into regions, step through a video's frames, open an html piece in a browser at its real size, rasterise an svg. Never judge from a thumbnail or a contact sheet.
+3. Score against the recipe's "What makes it a 10" and the anchors: 10 a top studio would ship it unchanged, 7 a real project would use it after small fixes, 5 the method works but the piece shows faults, 3 broken or off-language. Name what works, what fails at a place you can point to, and what would make it a 10.
+4. Record met at 7 or more, attempted under 7, with the notes. Gabriel's rating grades it later.
+"""
+
+[origin]
+date = "2026-11-05"
+incident = "Set by the g-content brief (5 Nov): the Opus judge is the review gate for made content, and Gabriel's own 1 to 10 rating is stored beside its score so disagreement shows up for recalibration."

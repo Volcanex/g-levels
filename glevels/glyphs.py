@@ -1,7 +1,7 @@
 """Sensor: house-banned glyphs in reader-facing text. Exit 1 and list them if any.
 `--text` prints the reader-facing text instead, for other sensors such as ganti.
 
-For HTML, style, script and tags are stripped and entities decoded first, so CSS
+For HTML and SVG, style, script and tags are stripped and entities decoded first, so CSS
 semicolons and &nbsp; never count.
 """
 import html
@@ -13,7 +13,7 @@ BANNED = {"—": "em dash", "·": "middle dot", ";": "semicolon"}
 
 def text_of(path):
     s = open(path, encoding="utf-8", errors="replace").read()
-    if path.endswith((".html", ".htm")):
+    if path.endswith((".html", ".htm", ".svg")):
         s = re.sub(r"<(script|style)\b.*?</\1>", " ", s, flags=re.S | re.I)
         s = re.sub(r"<!--.*?-->", " ", s, flags=re.S)
         s = html.unescape(re.sub(r"<[^>]+>", " ", s))
