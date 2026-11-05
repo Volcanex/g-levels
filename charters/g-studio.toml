@@ -136,6 +136,13 @@ id = "correct.render.frame-integrity"
 version = 1
 paths = ["web/src/**", "web/inject/**"]
 
+# The landing's shipped videos (Work recaptures, feature loops): real 60 fps, nothing choppy.
+[[gates]]
+id = "correct.video.smoothness"
+version = 1
+paths = ["web/static/landing/**/*.mp4"]
+blocking = true
+
 [[gates]]
 id = "correct.assets.real-sourced"
 version = 1
