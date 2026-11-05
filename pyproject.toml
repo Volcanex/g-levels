@@ -19,6 +19,10 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 packages = ["glevels"]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["browser: launches a real browser"]
+
 [[tool.gcore.connects]]
 to = "g-site"
 via = "http"

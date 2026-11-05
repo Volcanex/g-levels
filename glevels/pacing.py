@@ -1,6 +1,6 @@
-"""Measure .glevels/pacing.json timed phases on desktop and a 4x CPU phone.
+"""Measure frame pacing on online g-runner devices, with Playwright fallback.
 
-    python3 glevels/pacing.py --repo REPO [--out DIR] [--json]
+    python3 glevels/pacing.py --repo REPO [--device auto|NAME|none] [--out DIR] [--json]
 
 Recipes name serve, ready, url, profiles (desktop/phone), variants
 (normal/reduced/nowebgl), and phases with name, seconds, action. Actions are
@@ -9,12 +9,15 @@ load, idle, scroll (to selector or bottom), scrollTo/click (selector), and drag
 {type: "scroll", to: "bottom", seconds: 20} is also accepted. Scroll sends wheel
 events over real time, and drag sends timed mouse moves. No synthetic clock.
 
-Requires Python Playwright/Chromium. Each browser owns GSPACING_LOCK and waits
-for 700 MB available RAM. Exit 0: no blocking findings; 1: findings; 2: impossible.
-Raw Chrome traces and attributed telemetry accompany findings.json. rAF gaps
+Devices run first through g-runner; --device none forces Playwright fallback.
+runner_query=gate=frames uses the page driver and window.__gsFrames in fallback.
+Each fallback browser owns GSPACING_LOCK and waits for 900 MB available RAM. Exit 0: no blocking findings; 1: findings; 2: impossible.
+Analysed trace evidence and attributed telemetry accompany findings.json.
+Raw traces are deleted after analysis unless --keep-traces is passed. rAF gaps
 are not presentation counts: trace drops/partial presentations are separate.
 """
 import argparse
+from contextlib import contextmanager
 import fcntl
 import importlib.metadata
 import json
@@ -22,14 +25,16 @@ import math
 import os
 from pathlib import Path
 import re
+import selectors
 import socket
 import subprocess
 import sys
 import tempfile
 import time
+import tomllib
 import urllib.error
 import urllib.request
-from urllib.parse import urlsplit
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 try:
     from .pages import PageInputs
@@ -53,6 +58,20 @@ PROFILES = {
 VARIANTS = ("normal", "reduced", "nowebgl")
 GL_ARGS = ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader",
            "--ignore-gpu-blocklist"]
+G_RUN = [sys.executable, "/home/gabriel/g-runner/bin/g-run"]
+MAC_RUNNER = Path(__file__).resolve().parents[1] / "scripts/mac-runner"
+MAC_BUSY = 3  # scripts/mac-runner refused before launching (another measurement holds the Mac)
+FRAME_PHASES = ["intro", "hero", "scroll", "iso", "work", "features"]
+
+
+def thresholds(doc=None):
+    gate = Path(__file__).resolve().parents[1] / "gates/correct.motion.frame-pacing.toml"
+    limits = tomllib.loads(gate.read_text())["thresholds"]
+    for key, value in (doc or {}).get("thresholds", {}).items():
+        if key not in limits:
+            raise ValueError(f"unknown pacing threshold: {key}")
+        limits[key] = positive(value, key)
+    return limits
 
 INSTRUMENT = r"""(() => {
   if (window !== window.top) return;
@@ -98,9 +117,13 @@ def recipe_read(path):
     doc = json.loads(path.read_text())
     if not isinstance(doc, dict):
         raise ValueError("pacing recipe must be an object")
-    for key in ("serve", "ready", "url"):
+    for key in ("url",):
         if not isinstance(doc.get(key), str) or not doc[key].strip():
             raise ValueError(f"recipe needs {key}")
+    if any(key in doc for key in ("serve", "ready")):
+        for key in ("serve", "ready"):
+            if not isinstance(doc.get(key), str) or not doc[key].strip():
+                raise ValueError(f"recipe needs {key}")
     for key, choices in (("profiles", PROFILES), ("variants", VARIANTS)):
         values = doc.setdefault(key, list(choices))
         if not isinstance(values, list) or not values or any(v not in choices for v in values) or len(set(values)) != len(values):
@@ -108,6 +131,25 @@ def recipe_read(path):
     positive(doc.get("timeout", 20), "timeout")
     if doc.get("timeout", 20) > 300:
         raise ValueError("timeout must be at most 300 seconds")
+    thresholds(doc)
+    for key, default, maximum in (("runner_duration", 70, 1800), ("runner_timeout", 120, 3600),
+                                  ("runner_wait", 150, 3600), ("frames_timeout", 60, 300)):
+        value = positive(doc.setdefault(key, default), key)
+        if value > maximum:
+            raise ValueError(f"{key} must be at most {maximum} seconds")
+    if doc["runner_timeout"] < doc["runner_duration"] or doc["runner_duration"] < 1:
+        raise ValueError("runner duration must be >= 1 and <= runner timeout")
+    if "runner_query" in doc:
+        query = doc["runner_query"]
+        if not isinstance(query, str) or not query or query.startswith("?") or "#" in query:
+            raise ValueError("runner_query must be a query string, e.g. gate=frames")
+        doc.setdefault("phases", [dict(name=name) for name in FRAME_PHASES])
+        if not isinstance(doc["phases"], list):
+            raise ValueError("phases must be a list")
+        names = [p.get("name") for p in doc["phases"] if isinstance(p, dict)]
+        if not names or len(names) != len(doc["phases"]) or any(not isinstance(n, str) or not n for n in names) or len(set(names)) != len(names):
+            raise ValueError("phases need unique nonempty names")
+        return doc
     phases = doc.get("phases")
     if not isinstance(phases, list) or not phases:
         raise ValueError("recipe needs phases")
@@ -148,6 +190,11 @@ class RecipeServer(PageInputs):
         self.doc, self.path, self.present = doc, path, True
 
     def start(self):
+        if "serve" not in self.doc:
+            self.url = self.doc["url"]
+            if urlsplit(self.url).scheme not in ("http", "https") or not urlsplit(self.url).hostname:
+                raise ValueError("recipe url must be HTTP(S)")
+            return
         # Never collide with the studio's live development port.
         while True:
             with socket.socket() as sock:
@@ -258,7 +305,8 @@ def trace_read(path, sync_ms):
                 presentation_supported=bool(drops or reporters))
 
 
-def analyse_phase(window, telemetry, trace, errors, profile):
+def analyse_phase(window, telemetry, trace, errors, profile, limits=None):
+    limits = limits or thresholds()
     start, end = window["start"], window["end"]
     raf = telemetry["raf"]
     # Assign a boundary-spanning gap to the phase in which the callback arrived.
@@ -283,10 +331,10 @@ def analyse_phase(window, telemetry, trace, errors, profile):
     main_percent = 100 * main_drops / count if count else 0
     findings = []
     if window["action"] != "load":
-        limit = 100 if profile == "phone" else 50
+        limit = limits[f"{profile}_long_frame_ms"]
         if any(e["duration"] > limit for e in loaf):
             findings.append(f"long animation frame > {limit} ms")
-        if main_percent > (2 if profile == "phone" else 1):
+        if main_percent > limits[f"{profile}_dropped_percent"]:
             findings.append(f"main-thread dropped intervals {main_percent:.2f}%")
     if any(e["kind"] == "pageerror" for e in phase_errors):
         findings.append("page error")
@@ -365,7 +413,7 @@ def action_run(page, phase):
     wait_until(page, deadline)
 
 
-def capture(playwright, url, doc, profile, variant, out):
+def capture(playwright, url, doc, profile, variant, out, keep_traces=False):
     """Called with the shared lock held, once per fresh browser/process pair."""
     browser = playwright.chromium.launch(args=GL_ARGS + (["--disable-webgl", "--disable-webgl2"] if variant == "nowebgl" else []))
     chromium_version = browser.version
@@ -396,7 +444,28 @@ def capture(playwright, url, doc, profile, variant, out):
             cdp.send("Tracing.start", {"categories": "-*,devtools.timeline,blink.user_timing,toplevel,disabled-by-default-devtools.timeline.frame",
                                        "transferMode": "ReturnAsStream", "options": "recordContinuously"})
             windows = []
-            for phase in doc["phases"]:
+            payload = None
+            if doc.get("runner_query"):
+                response = page.goto(url, wait_until="commit", timeout=120000)
+                if response and response.status >= 400:
+                    record("pageerror", f"HTTP {response.status}")
+                try:
+                    handle = page.wait_for_function("window.__gsFrames?.gs_frames === 1 && window.__gsFrames.done === true",
+                                                    timeout=doc["frames_timeout"] * 1000)
+                    handle.dispose()
+                except Exception:
+                    raise RuntimeError("page posted no frame stats (window.__gsFrames timeout)") from None
+                snapshot = page.evaluate("({payload: window.__gsFrames, end: performance.now()})")
+                payload = snapshot["payload"]
+                posted_run(payload, doc, {}, profile, hardware=False)  # Validate the shared page contract.
+                if payload["reduced"] != (variant == "reduced") or (variant == "nowebgl" and payload["webgl"]):
+                    raise RuntimeError("page did not honour reduced motion/WebGL control")
+                start = max(0, snapshot["end"] - sum(p["ms"] for p in payload["phases"]))
+                for phase in payload["phases"]:
+                    end = start + phase["ms"]
+                    windows.append(dict(name=phase["id"], action="load" if phase["id"] in ("intro", "load") else "page", start=start, end=end))
+                    start = end
+            for phase in ([] if payload else doc["phases"]):
                 print(f"pacing: {profile}/{variant}/{phase['name']}", file=sys.stderr, flush=True)
                 active["name"] = phase["name"]
                 if phase["action"] == "load":
@@ -449,10 +518,19 @@ def capture(playwright, url, doc, profile, variant, out):
             raise RuntimeError("WebGL-disabled control still has a WebGL context")
         browser.close()
         browser = None  # Release Chromium's RAM before reading and analysing its trace.
-        trace = trace_read(trace_path, sync_ms)
+        try:
+            trace = trace_read(trace_path, sync_ms)
+        finally:
+            if not keep_traces:
+                trace_path.unlink(missing_ok=True)
         for error in errors:
             error["time"] = clock_page + (error.pop("host") - clock_host) * 1000
-        phases = [analyse_phase(w, telemetry, trace, errors, profile) for w in windows]
+            if payload:
+                error["phase"] = next((w["name"] for w in windows if error["time"] < w["end"]), windows[-1]["name"])
+        phases = [analyse_phase(w, telemetry, trace, errors, profile, thresholds(doc)) for w in windows]
+        if payload:
+            for phase, stats in zip(phases, payload["phases"]):
+                phase.update(stats)
         # Keep event-phase tags as well: host-to-page clock conversion can straddle a boundary.
         for error in errors:
             phase = next(p for p in phases if p["name"] == error["phase"])
@@ -461,13 +539,20 @@ def capture(playwright, url, doc, profile, variant, out):
             if error["kind"] == "pageerror" and "page error" not in phase["findings"]:
                 phase["findings"].append("page error")
         (out / f"{profile}-{variant}.telemetry.json").write_text(json.dumps(telemetry))
-        return dict(profile=profile, variant=variant, chromium=chromium_version, renderer=renderer,
+        result = dict(profile=profile, variant=variant, chromium=chromium_version, renderer=renderer,
                     cpu_throttle=4 if profile == "phone" else 1, context=options, phases=phases,
-                    errors=errors, trace=str(trace_path), trace_sync_ms=sync_ms,
+                    errors=errors, trace=str(trace_path) if keep_traces else None,
+                    trace_retained=keep_traces, trace_evidence=trace, trace_sync_ms=sync_ms,
                     presentation_supported=trace["presentation_supported"])
+        if payload:
+            result.update(posted=payload, device_info=dict(ua=options.get("user_agent", "Chromium desktop"), webgl2_renderer=renderer),
+                          phase_timing="trace windows reconstructed from page durations at completion poll; boundary uncertainty up to a polling interval")
+        return result
     finally:
         if browser:
             browser.close()
+        if not keep_traces:
+            (out / f"{profile}-{variant}.trace.json").unlink(missing_ok=True)
 
 
 def comparisons(runs):
@@ -484,7 +569,226 @@ def comparisons(runs):
     return result
 
 
+def runner_call(*args):
+    # g-run owns token loading. Never read, forward or print its credentials here.
+    process = subprocess.run([*G_RUN, *map(str, args)], capture_output=True, text=True)
+    try:
+        data = json.loads(process.stdout)
+    except ValueError:
+        raise RuntimeError(f"g-run returned no JSON (exit {process.returncode})") from None
+    if process.returncode not in (0, 1, 4):
+        raise RuntimeError(f"g-run failed (exit {process.returncode})")
+    return data
+
+
+def online_devices(state, selected="auto"):
+    return [d for d in state["devices"] if d.get("online") and d.get("seen") is not None
+            and 0 <= state["now"] - d["seen"] < 30000
+            and d.get("info", {}).get("visible") is not False
+            and (selected == "auto" or d["name"] == selected)]
+
+
+def runner_url(url, query):
+    parts = urlsplit(url)
+    additions = parse_qsl(query, keep_blank_values=True)
+    keys = {k for k, _ in additions}
+    values = [(k, v) for k, v in parse_qsl(parts.query, keep_blank_values=True) if k not in keys]
+    return urlunsplit(parts._replace(query=urlencode(values + additions)))
+
+
+def gpu_name(info):
+    gpu = info.get("gpu") or {}
+    return " / ".join(str(x) for x in (gpu.get("adapter"), info.get("webgl2_renderer")) if x) or "unknown adapter"
+
+
+@contextmanager
+def device_url(name, url):
+    parts = urlsplit(url)
+    if parts.hostname not in ("127.0.0.1", "localhost", "::1"):
+        yield url
+        return
+    if name not in ("mac", "mac-m3"):
+        raise RuntimeError("loopback recipe needs a Mac tunnel or a device-reachable HTTPS URL")
+    tunnel = subprocess.Popen(["ssh", "-S", "none", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10",
+                               "-o", "ExitOnForwardFailure=yes", "-N", "-R",
+                               f"127.0.0.1:0:127.0.0.1:{parts.port or (443 if parts.scheme == 'https' else 80)}", "mac"],
+                              stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+    try:
+        with selectors.DefaultSelector() as selector:
+            selector.register(tunnel.stderr, selectors.EVENT_READ)
+            deadline = time.monotonic() + 20
+            while time.monotonic() < deadline:
+                if selector.select(timeout=1):
+                    line = tunnel.stderr.readline()
+                    match = re.search(r"Allocated port (\d+)", line)
+                    if match:
+                        port = int(match[1])
+                        if port == 8240:
+                            raise RuntimeError("refusing reserved tunnel port")
+                        yield urlunsplit(parts._replace(netloc=f"127.0.0.1:{port}"))
+                        return
+                if tunnel.poll() is not None:
+                    break
+        raise RuntimeError("Mac reverse tunnel did not become ready")
+    finally:
+        tunnel.terminate()
+        try:
+            tunnel.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            tunnel.kill()
+            tunnel.wait()
+        tunnel.stderr.close()
+
+
+def posted_run(payload, doc, info, profile=None, hardware=True):
+    if not isinstance(payload, dict) or payload.get("gs_frames") != 1:
+        raise RuntimeError("page posted no frame stats")
+    phases = payload.get("phases")
+    expected = [p["name"] for p in doc["phases"]]
+    if not isinstance(phases, list) or any(not isinstance(p, dict) for p in phases) or [p.get("id") for p in phases] != expected:
+        raise RuntimeError("page frame phases missing or out of order")
+    if not isinstance(payload.get("viewport"), dict) or any(
+        not isinstance(payload.get(key), bool) for key in ("webgl", "reduced")
+    ):
+        raise RuntimeError("page frame stats missing viewport/webgl/reduced")
+    for key in ("w", "h", "dpr"):
+        positive(payload["viewport"].get(key), f"viewport {key}")
+    profile = profile or ("phone" if re.search(r"iPhone|Android|Mobile", info.get("ua", ""), re.I) else "desktop")
+    limits = thresholds(doc)
+    judged, uncertain = [], []
+    for phase in phases:
+        for key in ("ms", "count", "fps", "p50", "p95", "worst"):
+            positive(phase.get(key), f"{phase['id']} {key}")
+        for key in ("over_20", "over_33", "over_50", "longtasks", "longtask_ms"):
+            value = phase.get(key)
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value < 0:
+                raise RuntimeError(f"invalid {phase['id']} {key}")
+        if not phase["count"] >= phase["over_20"] >= phase["over_33"] >= phase["over_50"]:
+            raise RuntimeError("inconsistent page interval counters")
+        lower = 100 * phase["over_33"] / phase["count"]
+        upper = 100 * phase["over_20"] / phase["count"]
+        findings = []
+        if phase["id"] not in ("intro", "load"):
+            if hardware:
+                limit = limits[f"{profile}_dropped_percent"]
+                if lower > limit:
+                    findings.append(f"page dropped intervals >= {lower:.2f}% (limit {limit:g}%)")
+                elif upper > limit:
+                    uncertain.append(f"{phase['id']}: 25 ms drop rate unresolved between {lower:.2f}% and {upper:.2f}%")
+                limit = limits[f"{profile}_long_frame_ms"]
+                # Worst is rounded to 0.1 ms; over_50 retains its exact cutoff.
+                over_limit = (limit <= 50 and phase["over_50"] > 0) or phase["worst"] - .05 > limit
+                within_limit = (limit >= 50 and phase["over_50"] == 0) or phase["worst"] + .05 <= limit
+                if over_limit:
+                    findings.append(f"page frame interval > {limit:g} ms (over_50={phase['over_50']:g}, rounded worst {phase['worst']:g} ms)")
+                elif not within_limit:
+                    uncertain.append(f"{phase['id']}: {limit:g} ms frame limit unresolved from rounded worst {phase['worst']:g} ms and over_50={phase['over_50']:g}")
+            # Host SwiftShader cannot assign GPU gaps to the page. Long tasks
+            # still prove main-thread work, although aggregates cannot correlate drops.
+            elif phase["longtask_ms"] > limits[f"{profile}_long_frame_ms"]:
+                if phase["longtasks"] == 1:
+                    findings.append(f"page long task {phase['longtask_ms']:g} ms")
+                else:
+                    uncertain.append(f"{phase['id']}: aggregate long-task time cannot establish individual stall duration")
+        judged.append(dict(phase, name=phase["id"], findings=findings,
+                           dropped_percent_bounds=[round(lower, 3), round(upper, 3)]))
+    return dict(profile=profile, variant="reduced" if payload["reduced"] else "normal" if payload["webgl"] else "nowebgl",
+                phases=judged, posted=payload, device_info=info, renderer=gpu_name(info),
+                evidence="page summary; no LoAF scripts, exact 25 ms count or main-thread correlation",
+                uncertainties=uncertain, status="impossible" if uncertain else "complete",
+                reason="; ".join(uncertain) if uncertain else None)
+
+
+def device_capture(device, url, doc):
+    name = device["name"]
+    run = dict(device=name, measured_on=f"g-runner device {name}", phases=[], device_info=device.get("info", {}))
+    managed_mac = name in ("mac", "mac-m3")
+    mac_start_attempted = False
+    try:
+        if managed_mac:
+            mac_start_attempted = True
+            process = subprocess.run([str(MAC_RUNNER), "start", "--device", name], capture_output=True, text=True)
+            if process.returncode == MAC_BUSY:
+                # refused before launching anything: the running Chrome belongs to another measurement
+                mac_start_attempted = False
+                raise RuntimeError("Mac runner busy: " + process.stdout.strip())
+            if process.returncode:
+                raise RuntimeError("Mac runner start impossible: " + process.stdout.strip())
+            print(process.stdout.strip(), file=sys.stderr)
+        with device_url(name, url) as target:
+            job = runner_call("--device", name, "--duration", doc["runner_duration"],
+                              "--timeout", doc["runner_timeout"], "--wait", doc["runner_wait"], "--json", target)
+        result = job.get("result") or {}
+        payload = result.get("posted")
+        if not isinstance(payload, dict) or payload.get("gs_frames") != 1:
+            raise RuntimeError("page posted no frame stats")
+        if job.get("state") != "done" or result.get("ok") is not True:
+            raise RuntimeError("device job did not complete successfully")
+        info = result.get("device_info") or {}
+        adapter = gpu_name(info)
+        if not info.get("ua") or adapter == "unknown adapter" or any(s in adapter.lower() for s in ("swiftshader", "llvmpipe", "lavapipe", "software rasterizer")):
+            raise RuntimeError("device has no hardware adapter/user agent: " + adapter)
+        run.update(posted_run(payload, doc, info), job_id=job["id"], url=target)
+    except Exception as error:
+        run.update(status="impossible", reason=str(error))
+    finally:
+        if mac_start_attempted:
+            process = subprocess.run([str(MAC_RUNNER), "stop", "--device", name], capture_output=True, text=True)
+            if process.returncode:
+                run.update(status="impossible", reason="Mac runner cleanup failed")
+    return run
+
+
+@contextmanager
+def browser_slot():
+    lock_path = Path(os.environ.get("GSPACING_LOCK", "/tmp/g-studio-browser.lock"))
+    with lock_path.open("a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        while True:
+            subprocess.run(["free", "-m"], stdout=sys.stderr, check=True)
+            if free_mb() >= 900:
+                break
+            print("pacing: waiting 20s for 900 MB available", file=sys.stderr, flush=True)
+            time.sleep(20)
+        yield
+
+
+def fallback_capture(url, doc, out, keep_traces=False):
+    from playwright.sync_api import sync_playwright
+    runs = []
+    with sync_playwright() as playwright:
+        for profile in doc["profiles"]:
+            for variant in doc["variants"]:
+                with browser_slot():
+                    print(f"pacing: {profile}/{variant}", file=sys.stderr, flush=True)
+                    run = capture(playwright, url, doc, profile, variant, out, keep_traces)
+                run["measured_on"] = "playwright fallback, no paired device online"
+                runs.append(run)
+                (out / "findings.json").write_text(json.dumps(dict(runs=runs), indent=2))
+    return runs
+
+
 def report(data):
+    print("measured_on: " + data["measured_on"])
+    if data.get("device_selection"):
+        print("device selection: " + data["device_selection"])
+    for run in data["runs"]:
+        if run.get("device") or run.get("posted"):
+            label = run.get("device") or f"{run.get('profile')}/{run.get('variant')}"
+            print(f"{label}: {gpu_name(run.get('device_info', {}))}")
+            print("  user agent: " + run.get("device_info", {}).get("ua", "unknown"))
+            for phase in run["phases"]:
+                print(f"  {phase['name']}: {phase['count']} frames / {phase['ms']:g}ms, {phase['fps']:g} fps, "
+                      f"p50/p95/worst={phase['p50']:g}/{phase['p95']:g}/{phase['worst']:g}ms, "
+                      f"over20/33/50={phase['over_20']}/{phase['over_33']}/{phase['over_50']}, "
+                      f"longtasks={phase['longtasks']} ({phase['longtask_ms']:g}ms)")
+                if phase["findings"]:
+                    print("    blocking: " + "; ".join(phase["findings"]))
+            if run.get("reason"):
+                print(f"  {run.get('status')}: {run['reason']}")
+    if any(r.get("device") or r.get("posted") for r in data["runs"]):
+        print(f"pacing: {len(data['runs'])} runs; status={data['status']}; artefacts: {data['out']}")
+        return
     print("profile variant phase frames p50/p95/p99/max(ms) drops(%) main(%) LoAF>50 longtasks trace-drop/partial errors")
     print("rAF drops use a 60 Hz display; main = correlated main-thread work. Remaining gaps are unattributed raster/GPU candidates.")
     for run in data["runs"]:
@@ -519,49 +823,56 @@ def main(argv=None):
     parser.add_argument("--repo", default=".")
     parser.add_argument("--out")
     parser.add_argument("--json", action="store_true")
+    parser.add_argument("--device", default="auto", metavar="NAME|auto|none")
+    parser.add_argument("--keep-traces", action="store_true")
     args = parser.parse_args(argv)
     out = None
     try:
         repo = Path(args.repo).resolve()
         path = repo / ".glevels/pacing.json"
         doc = recipe_read(path)
-        from playwright.sync_api import sync_playwright
         out = Path(args.out or tempfile.mkdtemp(prefix="glevels-pacing-")).resolve()
         out.mkdir(parents=True, exist_ok=True)
         runs = []
+        selection = "disabled by --device none" if args.device == "none" else ""
+        devices = [] if args.device == "none" else online_devices(runner_call("--status", "--json"), args.device)
+        if not devices and args.device != "none":
+            selection = "no paired device online" if args.device == "auto" else f"requested device {args.device} offline or absent"
+        measured_on = ", ".join("g-runner device " + d["name"] for d in devices) if devices else "playwright fallback, no paired device online"
+        print("measured_on: " + measured_on, file=sys.stderr, flush=True)
         with RecipeServer(repo, doc, path) as server:
             server.start()
-            with sync_playwright() as playwright:
-                lock_path = Path(os.environ.get("GSPACING_LOCK", "/tmp/g-studio-browser.lock"))
-                with lock_path.open("a") as lock:
-                    print(f"pacing: acquiring browser lock {lock_path}", file=sys.stderr, flush=True)
-                    fcntl.flock(lock, fcntl.LOCK_EX)
-                    for profile in doc["profiles"]:
-                        for variant in doc["variants"]:
-                            while True:
-                                subprocess.run(["free", "-m"], stdout=sys.stderr, check=True)
-                                if free_mb() >= 700:
-                                    break
-                                print("pacing: waiting 20s for 700 MB available", file=sys.stderr, flush=True)
-                                time.sleep(20)
-                            print(f"pacing: {profile}/{variant}", file=sys.stderr, flush=True)
-                            runs.append(capture(playwright, server.url, doc, profile, variant, out))
-                            # Persist every completed run, including if a later run cannot finish.
-                            (out / "findings.json").write_text(json.dumps(dict(runs=runs), indent=2))
-        data = dict(runs=runs, webgl_comparison=comparisons(runs), out=str(out),
-                    display_interval_ms=DISPLAY_MS, playwright=importlib.metadata.version("playwright"))
+            url = runner_url(server.url, doc.get("runner_query", "gate=frames")) if devices or doc.get("runner_query") else server.url
+            if devices:
+                for device in devices:
+                    runs.append(device_capture(device, url, doc))
+                    (out / "findings.json").write_text(json.dumps(dict(measured_on=measured_on, runs=runs), indent=2))
+            else:
+                runs = fallback_capture(url, doc, out, args.keep_traces)
+        impossible = any(r.get("status") == "impossible" for r in runs)
+        blocking = any(p["findings"] for r in runs for p in r["phases"])
+        status = "impossible" if impossible else "findings" if blocking else "complete"
+        data = dict(runs=runs, webgl_comparison=comparisons([r for r in runs if not r.get("device")]), out=str(out),
+                    measured_on=measured_on, device_selection=selection, status=status,
+                    display_interval_ms=DISPLAY_MS, thresholds=thresholds(doc))
+        if not devices:
+            data["playwright"] = importlib.metadata.version("playwright")
         (out / "findings.json").write_text(json.dumps(data, indent=2))
         if args.json:
             print(json.dumps(data, indent=2))
         else:
             report(data)
-        return int(any(p["findings"] for r in runs for p in r["phases"]))
+        return 2 if impossible else int(blocking)
     except KeyboardInterrupt:
         print("impossible: pacing interrupted", file=sys.stderr)
         return 2
     except Exception as error:
         print(f"impossible: {error}", file=sys.stderr)
         if out:
+            partial = out / "findings.json"
+            data = json.loads(partial.read_text()) if partial.exists() else dict(runs=[])
+            data.update(status="impossible", reason=str(error), measured_on=locals().get("measured_on", "not measured"))
+            partial.write_text(json.dumps(data, indent=2))
             print(f"partial artefacts: {out}", file=sys.stderr)
         return 2
 

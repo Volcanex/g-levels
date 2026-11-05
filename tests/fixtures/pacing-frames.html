@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="icon" href="data:,">
+<title>Frame payload fixture</title>
+<script>
+// Deliberately synthetic numbers: this fixture tests transport and judgement.
+setTimeout(() => {
+  const gl = document.createElement('canvas').getContext('webgl');
+  const payload = {
+    gs_frames: 1,
+    viewport: {w: innerWidth, h: innerHeight, dpr: devicePixelRatio},
+    webgl: Boolean(gl), reduced: matchMedia('(prefers-reduced-motion: reduce)').matches,
+    phases: ['intro', 'hero', 'scroll', 'iso', 'work', 'features'].map(id => ({
+      id, ms: 500, count: 30, fps: 60, p50: 16.7, p95: 16.8, worst: 16.8,
+      over_20: 0, over_33: 0, over_50: 0, longtasks: 0, longtask_ms: 0
+    })), done: true
+  };
+  gl?.getExtension('WEBGL_lose_context')?.loseContext();
+  window.__gsFrames = payload;
+  parent.postMessage({gRunner: payload}, 'https://runner.gabrielpenman.com');
+}, 3000);
+</script>

@@ -25,13 +25,50 @@ produce. The theory is in Volcanex/g-research
   (with `motion.mjs`) records a page's animations and reveals; `frames.py` (with `frames.mjs`)
   reads or captures consecutive frames, or runs a repo's `.glevels/frames.json` recipe;
   `meshcheck.py` checks exported geometry. `adapters/` holds per-project mesh exporters.
-- `glevels/pacing.py`: Python Playwright sensor for `correct.motion.frame-pacing`.
-  Runs `.glevels/pacing.json` timed load/idle/scroll/scrollTo/click/drag phases on desktop
-  and a 4x CPU phone, each normal, reduced and without WebGL. Saves attributed rAF,
-  long-frame/task telemetry and streamed Chrome traces; separates main-thread drops
-  from unattributed raster/GPU candidates and compares the WebGL control. Uses
-  `GSPACING_LOCK` (default `/tmp/g-studio-browser.lock`) and waits for 700 MB available
-  before each browser. Exit 0 means no blocking findings, 1 findings, 2 impossible.
+- `glevels/pacing.py`: devices-first sensor for `correct.motion.frame-pacing`.
+  `--device auto` (default) lists g-runner devices with a heartbeat less than 30 s old,
+  measures each online device, and judges only the framed page's posted `gs_frames`
+  phases. Evidence names the device, GPU adapter and user agent; the runner's own rAF
+  cannot pass this gate. Missing page stats are impossible. `--device NAME` selects
+  one device; offline/absent selection or `--device none` uses Playwright and records
+  `measured_on: playwright fallback, no paired device online` (with the selection reason).
+  g-run loads `/etc/g-runner/token`; credentials never enter sensor argv or URLs.
+  `runner_query: "gate=frames"` in `.glevels/pacing.json` uses the same page driver in
+  both paths: gRunner `posted` on devices, `window.__gsFrames` in Playwright (60 s wait).
+  `runner_duration`, `runner_timeout`, `runner_wait` default to 70/120/150 seconds;
+  `frames_timeout` defaults to 60. Phases default to intro/hero/scroll/iso/work/features;
+  explicit `phases` use unique `name` fields in order. A public HTTPS `url` needs no
+  `serve`/`ready`; local recipes retain both. The page must permit the runner to frame it.
+  Numeric limits come from the gate TOML's `thresholds`, optionally overridden by the
+  recipe's `thresholds` object. Posted 20/33 ms counters bound the 25 ms drop rate:
+  confirmed hardware drops block; a straddling bound is impossible, never a pass.
+  Summary frame stalls use the same 50/100 ms desktop/phone limits; summaries cannot
+  supply LoAF attribution or prove a main-thread cause. Hardware video-induced 30 Hz
+  phases are page findings. A Mac result does not establish phone performance.
+  Without a page driver, the existing timed load/idle/scroll/scrollTo/click/drag recipe
+  runs on desktop and a 4x CPU phone, normal/reduced/nowebgl. Fallback retains attributed
+  rAF, LoAF/tasks and analysed Chrome trace evidence. Raw traces are deleted after
+  analysis (also on failure); `--keep-traces` retains them. Page-driver trace windows
+  use posted durations at completion polling, so phase boundaries have polling uncertainty.
+  Each browser launch on h owns `GSPACING_LOCK` (default `/tmp/g-studio-browser.lock`)
+  separately and waits for 900 MB available. Exit 0 means no blocking findings,
+  1 findings, 2 impossible. Every report and findings.json names `measured_on`.
+- `scripts/mac-runner start|stop [--device mac-m3]`: gate tooling over `ssh mac`,
+  isolated headless Chrome under `/tmp/grunner-m3` (other names: `/tmp/grunner-NAME`).
+  Start checks Mac memory, restarts the isolated instance, preserves an existing pairing,
+  and requires a fresh heartbeat with Apple/Metal, never SwiftShader. Chrome starts with
+  nohup in its own session from the SSH call, never through launchd: a GUI LaunchAgent runs
+  as a throttled Standard job and drew the landing at 7 to 10 fps where nohup holds 60.
+  Stop also unloads any LaunchAgent an older version left, kills only the exact isolated
+  profile, and removes its temp directory. Pairing uses a 0600 file and CDP message body over a loopback
+  DevTools tunnel; the file is deleted after navigation. `websocket-client` is required
+  for this helper. `pacing.py` starts/stops managed `mac`/`mac-m3` around EACH measurement:
+  video playback can leave a reused browser at 30 Hz. Local Mac URLs use a reverse SSH
+  tunnel owned by the measurement process; other devices need a reachable HTTPS URL.
+  Existing Local Network Access and background-throttling flags apply only to this
+  instance. Never touch Gabriel's own Chrome. Phone pairing is manual:
+  `python3 /home/gabriel/g-runner/bin/g-run --pair iphone`; open that link in Safari,
+  keep the tab in front and the screen on.
 - `glevels/contentpiece.py`: the sensor for `correct.content.recipe-recorded`, checking each content-lab piece
   (`~/content-lab/pieces/<id>/`) against the lab's CONTRACT.md. The `content` charter scopes that lab by `dirs` and holds
   a `[[proposed_exceptions]]` block, which lint and scope resolution ignore until Gabriel approves it into `[[exceptions]]`.

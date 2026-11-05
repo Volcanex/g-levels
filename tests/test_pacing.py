@@ -1,8 +1,11 @@
 import json
+from contextlib import nullcontext
 import os
 from pathlib import Path
 import subprocess
 import sys
+from types import SimpleNamespace
+from unittest.mock import Mock
 
 import pytest
 
@@ -144,6 +147,97 @@ def test_trace_stream_across_chunk_boundaries(tmp_path):
         list(pacing.trace_events(path))
 
 
+def mock_page_driver(monkeypatch, kind):
+    clock = [0]
+    monkeypatch.setattr(pacing.time, "monotonic", lambda: clock[0])
+
+    def launch(**kwargs):
+        clock[0] = 0
+        browser = Mock(version="145.0")
+        context, page, cdp = Mock(), Mock(), Mock()
+        browser.new_context.return_value = context
+        context.new_page.return_value = page
+        context.new_cdp_session.return_value = cdp
+        callbacks, trace_callbacks = {}, {}
+        page.on.side_effect = lambda name, callback: callbacks.update({name: callback})
+        cdp.on.side_effect = lambda name, callback: trace_callbacks.update({name: callback})
+        webgl = "--disable-webgl" not in kwargs["args"]
+
+        def emit(stamp):
+            clock[0] = stamp
+            error = RuntimeError("page failure") if kind == "pageerror" else SimpleNamespace(type="error", text="WebGL fallback")
+            callbacks[kind](error)
+
+        def goto(*args, **kwargs):
+            emit(.01)
+            return SimpleNamespace(status=200)
+
+        def wait_for_function(*args, **kwargs):
+            emit(7)
+            emit(25)
+            clock[0] = 36
+            return Mock()
+
+        def wait_for_timeout(ms):
+            emit(clock[0] + ms / 1000)
+
+        def evaluate(script):
+            if "payload: window.__gsFrames" in script:
+                stats = dict(gs_frames=1, viewport=dict(w=390, h=844, dpr=3), webgl=webgl,
+                             reduced=browser.new_context.call_args.kwargs["reduced_motion"] == "reduce",
+                             phases=[dict(id=name, ms=6000, count=375, fps=60, p50=16, p95=16, worst=16,
+                                          over_20=0, over_33=0, over_50=0, longtasks=0, longtask_ms=0)
+                                     for name in pacing.FRAME_PHASES])
+                return dict(payload=stats, end=36000)
+            if script == "window.__pacing.snapshot()":
+                return dict(telemetry([16] * 2260), supported=["long-animation-frame", "longtask"])
+            if "performance.now()" == script or "performance.mark(" in script:
+                return clock[0] * 1000
+            if "createElement('canvas')" in script:
+                return "SwiftShader" if webgl else None
+            raise AssertionError(script)
+
+        def send(method, *args):
+            if method == "Tracing.end":
+                trace_callbacks["Tracing.tracingComplete"](dict(stream="trace"))
+            if method == "IO.read":
+                event = dict(name="__pacing_sync", ts=clock[0] * 1000000, pid=1, tid=1)
+                return dict(data=json.dumps(dict(traceEvents=[event])), eof=True)
+
+        page.goto.side_effect = goto
+        page.wait_for_function.side_effect = wait_for_function
+        page.wait_for_timeout.side_effect = wait_for_timeout
+        page.evaluate.side_effect = evaluate
+        cdp.send.side_effect = send
+        return browser
+
+    playwright = SimpleNamespace(chromium=Mock())
+    playwright.chromium.launch.side_effect = launch
+    api = SimpleNamespace(sync_playwright=lambda: nullcontext(playwright))
+    monkeypatch.setitem(sys.modules, "playwright.sync_api", api)
+    monkeypatch.setattr(pacing, "browser_slot", nullcontext)
+    monkeypatch.setattr(pacing.importlib.metadata, "version", lambda name: "mock")
+    return playwright
+
+
+@pytest.mark.parametrize("kind", ["console", "pageerror"])
+def test_page_driver_errors_are_tagged_and_remaining_runs_complete(tmp_path, monkeypatch, kind):
+    playwright = mock_page_driver(monkeypatch, kind)
+    write_recipe(tmp_path, dict(url="https://example.org/", runner_query="gate=frames"))
+    out = tmp_path / "out"
+    result = pacing.main(["--repo", str(tmp_path), "--out", str(out), "--device", "none", "--json"])
+    assert result == (1 if kind == "pageerror" else 0)
+    data = json.loads((out / "findings.json").read_text())
+    assert playwright.chromium.launch.call_count == 6
+    assert {(run["profile"], run["variant"]) for run in data["runs"]} == {
+        (profile, variant) for profile in pacing.PROFILES for variant in pacing.VARIANTS}
+    for run in data["runs"]:
+        assert [error["phase"] for error in run["errors"]] == ["intro", "hero", "work", "features"]
+        for phase in run["phases"]:
+            assert all(error["phase"] == phase["name"] for error in phase["errors"])
+            assert bool(phase["findings"]) == (kind == "pageerror" and phase["name"] in {"intro", "hero", "work", "features"})
+
+
 BASE = """<!doctype html><html><head><link rel="icon" href="data:,"><style>
 body {margin:0; height:6000px} #box {position:fixed; top:20px; width:40px;
 height:40px; background:coral; will-change:transform; animation:slide 2s ease-in-out infinite alternate}
@@ -172,7 +266,8 @@ def test_browser_failure_classes_and_clean_both_profiles(tmp_path, case):
     write_recipe(tmp_path, recipe())
     (tmp_path / "index.html").write_text(BASE + FIXTURES[case] + "</script></body></html>")
     out = tmp_path / "out"
-    process = subprocess.run([sys.executable, str(Path(pacing.__file__)), "--repo", str(tmp_path), "--out", str(out)],
+    process = subprocess.run([sys.executable, str(Path(pacing.__file__)), "--repo", str(tmp_path), "--out", str(out), "--device", "none",
+                              *(["--keep-traces"] if case == "clean" else [])],
                              env=dict(os.environ, PLAYWRIGHT_BROWSERS_PATH="/home/gabriel/.cache/ms-playwright",
                                       GSPACING_LOCK="/tmp/g-studio-browser.lock"),
                              capture_output=True, text=True, timeout=7200)
@@ -180,7 +275,8 @@ def test_browser_failure_classes_and_clean_both_profiles(tmp_path, case):
     runs = json.loads((out / "findings.json").read_text())["runs"]
     assert {r["profile"] for r in runs} == {"desktop", "phone"}
     for run in runs:
-        assert Path(run["trace"]).is_file()
+        assert Path(run["trace"]).is_file() if case == "clean" else run["trace"] is None
+        assert bool(list(out.glob("*.trace.json"))) == (case == "clean")
         assert not run["errors"]
         if case == "clean":
             assert not any(p["findings"] for p in run["phases"])
