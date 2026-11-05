@@ -1,0 +1,28 @@
+id = "correct.video.smoothness"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-motion"
+principle = "Every shipped video plays smoothly: real constant 60 fps, distinct frames during motion, calm holds, eased starts and stops, continuous scroll speed, enough encoded detail, and an ordinary frame step across its loop seam. Nothing on the page is choppy."
+guidance = "Load g-motion Part 1, especially rules 4, 5, 7 and 8. Capture deterministic frame-stepped motion at 60 fps with eased paths and time to read. Run videocheck.py on every shipped video, then watch the clips and inspect their native frames. The sensor checks H.264 yuv420p MP4, no audio, moov before mdat, both frame-rate fields, every presentation timestamp, decoded frame count and duration, short repeats within motion, holds, vertical row-profile shifts (difference magnitude for other footage), motion spikes, ramps and the loop seam. It also prints an independent mpdecimate count; this includes valid holds and is not itself a fault. Default --loop checks the shipped looping use; --no-loop is for clips actually played once. Speed for other footage is explicitly a difference-equivalent proxy, not a measured displacement."
+pass = "met: every matching file exits 0 at the default 60 fps and intended loop setting, with no encoding, timing, duplicate, motion, bitrate or seam fault. Holds are allowed. The encoded stream clears 0.020 bits per pixel per frame. A clean mechanical result still needs an honest answer: did the clip look smooth and retain detail at its shipped size, or merely pass the measurements? attempted: remaining faults are named by file, frame and measurement. Exit 2 is impossible, never met."
+remediation = "Fix the capture: render a deterministic path one frame at a time at real 60 fps, waiting for each frame to finish. Ease the path into and out of every move, keep scroll speed continuous, and join looping endpoints with an ordinary motion step. Recapture dropped frames; duplicating a 30 fps source into a 60 fps container cannot restore motion. Encode the finished frames as H.264 yuv420p without audio and with +faststart, preserving detail at the shipped resolution. Inspect native frames when choosing compression. Never quiet the sensor by changing its thresholds, skipping shipped clips, blurring detail or relabelling a looping clip as one-shot."
+written_against = { model = "gpt-6", date = "2026-11-05" }
+
+[sensor]
+type = "command"
+run = "python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/videocheck.py {file}"
+cannot_run_exit = 2
+# Bitrate evidence, 2026-11-05, FFmpeg 6.1.1/libx264, preset fast, yuv420p:
+# tests/test_videocheck.py's encode(), 121 frames at 60 fps, 320x180 viewport
+# of its 320x800 textured image, y=300*(1-cos(linspace(0,pi,121)))/2.
+# CRF 18: 302237 bit/s, 0.08745 bpp/frame; 28: 109221, 0.03160;
+# 36: 51332, 0.01485; 44: 25261, 0.00731. Opened native frame 60
+# from each encode: CRF 28 retained checker detail, 36 smeared its fine edges,
+# 44 merged blocks and broke the smooth bands. Floor 0.020 separates the
+# visibly damaged samples from the retained-detail samples. This is a floor,
+# not proof of perceptual quality for every content type.
+
+[origin]
+date = "2026-11-05"
+incident = "G-Studio's landing page shipped fast scroll-capture videos of client sites at low frame rates with no smoothness gate; Gabriel called them choppy: 'NOTHING on this page can be choppy.'"
