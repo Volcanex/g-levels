@@ -213,3 +213,9 @@ def test_a_box_scrolled_under_a_bar_is_clipped_but_a_real_overlap_blocks(render)
     said = [f["selector"] + " " + f["detail"] for f in collide]
     assert not any("DK" in s or '"J"' in s for s in said), said
     assert any(f["severity"] == "block" and '"A"' in f["selector"] + f["detail"] for f in collide), said
+
+
+def test_a_sandboxed_preview_adds_no_console_error_of_playwrights(render):
+    p, results = render("sandboxed.html", "--viewports", "desktop=1440x900", "--states", "loaded")
+    errors = [e for r in results for e in r.get("consoleErrors", [])]
+    assert not errors, errors

@@ -836,10 +836,15 @@ try {
       const touch = vp.width < 720;
       const context = await browser.newContext({
         viewport: { width: vp.width, height: vp.height }, deviceScaleFactor: 1,
-        reducedMotion: "reduce", isMobile: false, hasTouch: touch, serviceWorkers: "block",
+        reducedMotion: "reduce", isMobile: false, hasTouch: touch,
         extraHTTPHeaders: options.headers, storageState: options.storageState,
       });
       await context.addInitScript(() => {
+        // Not serviceWorkers: "block": its script reads this getter in sandboxed frames and throws
+        // an error that is Playwright's, not the page's (as in walk.mjs).
+        try {
+          if (navigator.serviceWorker) navigator.serviceWorker.register = () => new Promise(() => {});
+        } catch {}
         window.__glevelsCls = 0;
         try {
           new PerformanceObserver((list) => {
