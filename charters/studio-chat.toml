@@ -50,3 +50,33 @@ paths = ["gstudio/chat/**", "gstudio/tickets.py", "web/src/**", "tests/**"]
 id = "correct.calls.connect"
 version = 1
 paths = ["gstudio/calls*.py", "gstudio/chat/**", "deploy/h2/calls/**", "web/src/**"]
+
+# Waivers for the Studio Chat ship (feat/chat-int, worktree chat-int). Gabriel approved waiving these
+# on 2026-11-06 where there is a good reason; each names it. They do not reach the main checkout.
+[[exceptions]]
+gate = "correct.cowork.converge"
+repo = "chat-int"
+reason = "The co-editing layer this gate runs (test:cowork, bd0999b) lives on bt/int, which is not merged, so there is nothing on this branch for it to check. Chat changes no co-editing code."
+review = "2026-12-06"
+approved_by = "Gabriel"
+
+[[exceptions]]
+gate = "correct.cowork.alone-still-works"
+repo = "chat-int"
+reason = "Its test (tests/e2e/ui/test_cowork_alone.py) arrives with bt/int's co-editing layer (bd0999b), not yet merged. Chat changes no co-editing code."
+review = "2026-12-06"
+approved_by = "Gabriel"
+
+[[exceptions]]
+gate = "correct.kit.studio-unchanged"
+repo = "chat-int"
+reason = "Chat never touches web/src/kit (git log --first-parent --no-merges 8eb25e8..HEAD -- web/src/kit is empty). The only kit change in range is another session's g-design 1.7.0 vendoring (eb93d75), judged under that session's own review."
+review = "2026-12-06"
+approved_by = "Gabriel"
+
+[[exceptions]]
+gate = "correct.motion.frame-pacing"
+repo = "chat-int"
+reason = "It needs a paired hardware device (the Mac or an iPhone in Safari) and h has only a software GPU. The pacing recipe measures the signed-out landing, another session's page, and has no chat phases yet. Follow-up: add bubble open and close, the phone sheet, expand to Chat and long-thread scroll to .glevels/pacing.json, then measure on a device."
+review = "2026-11-20"
+approved_by = "Gabriel"
