@@ -80,3 +80,24 @@ repo = "chat-int"
 reason = "It needs a paired hardware device (the Mac or an iPhone in Safari) and h has only a software GPU. The pacing recipe measures the signed-out landing, another session's page, and has no chat phases yet. Follow-up: add bubble open and close, the phone sheet, expand to Chat and long-thread scroll to .glevels/pacing.json, then measure on a device."
 review = "2026-11-20"
 approved_by = "Gabriel"
+
+[[exceptions]]
+gate = "correct.security.sandbox-escape"
+repo = "chat-int"
+reason = "Fails on h from disk, not from chat: the broker refuses new homes below its free-space floor (sandbox/sandboxd.py:1715) with / at 96%, and 5 probes need runsc on an isolated Docker daemon that h lacks. No chat commit touches the broker, container flags, image or overlay. Gabriel loosened the gates for this ship on 2026-11-06 and wants more moved to h2. Follow-up: rerun on h2 or once h has disk."
+review = "2026-11-20"
+approved_by = "Gabriel"
+
+[[exceptions]]
+gate = "correct.security.tenant-isolation"
+repo = "chat-int"
+reason = "No single run passes on h: one test needs root and eight chmod(0) tests need a user without root's file bypass. As gabriel the suite passes with only the root-only skip, and the eight tests came from main before chat. Gabriel loosened the gates for this ship on 2026-11-06. Follow-up: give the sensor one method (root with dac_override dropped through setpriv) so it can pass."
+review = "2026-11-20"
+approved_by = "Gabriel"
+
+[[exceptions]]
+gate = "correct.delivery.operator-report-clarity"
+repo = "chat-int"
+reason = "Gabriel asked on 2026-11-06 to ease off the gates for this ship and reads the ship report himself."
+review = "2026-11-20"
+approved_by = "Gabriel"
