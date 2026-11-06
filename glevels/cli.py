@@ -61,11 +61,16 @@ def fill(cmd, **values):
     return cmd
 
 
+def page_gate(gate, pages):
+    """A sensor reads the repo's running pages unless it declares input = "files" (a video or source scan)."""
+    return pages is not None and pages.present and uses_pages(gate["sensor"]["run"]) and gate["sensor"].get("input") != "files"
+
+
 def run_sensor(gate, entry, repo, rel, pages=None):
     """Returns (result, output): met, caught, or impossible when every failure exits with the sensor's
     cannot_run_exit. {file} runs per tracked file, or per named page when the repo supplies pages."""
     cmd = gate["sensor"]["run"]
-    if pages is not None and pages.present and uses_pages(cmd):
+    if page_gate(gate, pages):
         error = pages.start()
         if error:
             return "impossible", error
@@ -136,10 +141,10 @@ def check_gates(a, gates, scoped, repo, rel, triggers, pages):
                 if not review:
                     record(g["id"], g["version"], e["charter"], repo.name, rel, "met")
                 print(f"  {'mechanical' if review else 'met       '} {g['id']}{tag}{' passed' if review else ''}")
-                if pages.present and uses_pages(g["sensor"]["run"]) and out:
+                if page_gate(g, pages) and out:
                     print("    " + out.replace("\n", "\n    "))
             else:
-                caught += result == "caught" or pages.present and uses_pages(g["sensor"]["run"]) and result == "impossible"
+                caught += result == "caught" or page_gate(g, pages) and result == "impossible"
                 record(g["id"], g["version"], e["charter"], repo.name, rel, result, out[:500])
                 print(f"  {result:<10} {g['id']}{tag}\n    fix: {g['remediation'].strip()}\n    {out.replace(chr(10), chr(10) + '    ')}")
             if review:

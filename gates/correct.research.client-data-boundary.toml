@@ -20,6 +20,7 @@ written_against = { model = "claude-opus-5-5", date = "2026-10-19" }
 [sensor]
 type = "review"
 run = "! grep -rIlE '\"private_key\"|BEGIN PRIVATE KEY' {file}"
+input = "files"
 rubric = "A separate reviewer reads the query log and the stored collections for writes and uncapped scans (names in collected public text are not a finding), then greps every served analytics file for visitor ids (user_pseudo_id, ga_session_id, client_id, user_id) and checks the items are aggregate cells. For Svea the department verifier ~/research/svea/explorers/verify_dept.py enforces the field allowlist."
 
 [origin]

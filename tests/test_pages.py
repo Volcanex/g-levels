@@ -53,10 +53,10 @@ def manifest(repo, **changes):
     (repo / ".glevels/pages.json").write_text(json.dumps(doc))
 
 
-def check(repo, monkeypatch, commands=None, rel="src"):
+def check(repo, monkeypatch, commands=None, rel="src", sensor=None):
     commands = commands or [f'{sys.executable} {{repo}}/sensor.py {{file}}']
     gates = {f"correct.test.page-{i}": {"id": f"correct.test.page-{i}", "version": 1, "remediation": "Read the failure",
-             "sensor": {"type": "command", "run": command}} for i, command in enumerate(commands)}
+             "sensor": {"type": "command", "run": command, **(sensor or {})}} for i, command in enumerate(commands)}
     entries = [{"id": gid, "paths": ["src/**"], "charter": "test", "waiver": None} for gid in gates]
     monkeypatch.setattr(cli.registry, "load_gates", lambda: gates)
     monkeypatch.setattr(cli.registry, "load_charters", lambda: {})
@@ -105,6 +105,14 @@ def test_multiple_gates_share_one_server_and_unmatched_sources_stay_out(repo, mo
 
 def test_repo_without_pages_keeps_per_file_behavior(repo, monkeypatch):
     assert check(repo, monkeypatch) == 0
+    runs = [json.loads(line) for line in (repo / "runs.jsonl").read_text().splitlines()]
+    assert [row["body"] for row in runs] == ["a.js", "b.css"]
+    assert not (repo / "server.pid").exists()
+
+
+def test_file_input_sensor_keeps_tracked_files_beside_pages(repo, monkeypatch):
+    manifest(repo)
+    assert check(repo, monkeypatch, sensor={"input": "files"}) == 0
     runs = [json.loads(line) for line in (repo / "runs.jsonl").read_text().splitlines()]
     assert [row["body"] for row in runs] == ["a.js", "b.css"]
     assert not (repo / "server.pid").exists()

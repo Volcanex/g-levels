@@ -13,6 +13,7 @@ written_against = { model = "gpt-6", date = "2026-11-05" }
 type = "command"
 run = "python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/videocheck.py {file}"
 cannot_run_exit = 2
+input = "files"
 # Bitrate evidence, 2026-11-05, FFmpeg 6.1.1/libx264, preset fast, yuv420p:
 # tests/test_videocheck.py's encode(), 121 frames at 60 fps, 320x180 viewport
 # of its 320x800 textured image, y=300*(1-cos(linspace(0,pi,121)))/2.

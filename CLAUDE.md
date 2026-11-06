@@ -137,8 +137,9 @@ report impossible and fail the check for page gates. The entire server process g
 normal exit, errors, Ctrl-C, SIGTERM and SIGHUP. SIGKILL cannot run cleanup handlers.
 
 Source paths still scope gates. For each gate in scope, a `{file}` command runs once per
-named page URL, quoted for the shell. This includes every `{file}` gate, so do not add
-this manifest to a repo whose charter pins a source-file sensor such as the copy gates.
+named page URL, quoted for the shell. This includes every `{file}` gate unless its sensor sets `input = "files"`
+(videos, source scans), which keeps it on tracked files. Without that, do not add this
+manifest to a repo whose charter pins a source-file sensor such as the copy gates.
 The runtime, frames, parity, option-tree and screens sensors also get the server. Every
 other gate never starts it, so a broken manifest cannot change its result. Without this
 manifest the original per-file behavior is unchanged. `viewports` is optional and may be overridden per page.
