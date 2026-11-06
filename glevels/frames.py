@@ -1,6 +1,6 @@
 """Sensor: candidate frame glitches for correct.render.frame-integrity.
 
-    python3 glevels/frames.py [--out DIR] [--json] [--stills] [--baseline DIR]
+    python3 glevels/frames.py [--out DIR] [--json] [--keep-frames] [--stills] [--baseline DIR]
         [--tiles] [--every N] [--path SCRIPT.mjs --frames N --fps F
         --viewport WxH] SOURCE
 
@@ -13,6 +13,8 @@ those files, in order. Fallback scans ignore contact*, diff-* and *.judge.*.
 and animation frames, unless window.__glevelsFrame(i) supplies the engine step.
 
 findings.json and judge/ PNGs land in --out (default: a printed temp directory).
+Without --out, captured or decoded frames are deleted after the check unless
+--keep-frames is given, so temp runs leave only findings and judge crops.
 Each finding includes frame-pixel boxes, 1:1 crops and 3x nearest-neighbour zooms.
 Temporal crops join a,b,c at native resolution. --tiles adds native quadrants.
 Moving cameras use local integer block matches at quarter, half and full resolution.
@@ -904,6 +906,7 @@ def main():
     parser.add_argument("--recipe")
     parser.add_argument("--out")
     parser.add_argument("--json", action="store_true")
+    parser.add_argument("--keep-frames", action="store_true")
     parser.add_argument("--stills", action="store_true")
     parser.add_argument("--baseline")
     parser.add_argument("--tiles", action="store_true")
@@ -922,7 +925,11 @@ def main():
         out.mkdir(parents=True, exist_ok=True)
         if args.repo or args.recipe:
             return recipe_run(args, out)
-        data, code = check_frames(args, out)
+        try:
+            data, code = check_frames(args, out)
+        finally:
+            if not args.out and not args.keep_frames:
+                shutil.rmtree(out / "frames", ignore_errors=True)
         if args.json:
             print(json.dumps(data, indent=2))
         else:

@@ -622,3 +622,15 @@ def test_transient_duration_limit_and_single_frame_deduplication(tmp_path, durat
         assert pops == []
     if duration == 1:
         assert any(f["kind"] == "single-frame-spike" for f in findings)
+
+
+def test_temp_out_drops_captured_frames_unless_kept(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(frames, "capture", lambda args, out: save(out / "frames", smooth_sequence()[:4]))
+    temps = iter([tmp_path / "dropped", tmp_path / "kept"])
+    monkeypatch.setattr(frames.tempfile, "mkdtemp", lambda prefix: str(next(temps)))
+    monkeypatch.setattr(sys, "argv", ["frames.py", "--json", "https://example.com"])
+    assert frames.main() == 0
+    assert (tmp_path / "dropped/findings.json").exists() and not (tmp_path / "dropped/frames").exists()
+    monkeypatch.setattr(sys, "argv", ["frames.py", "--json", "--keep-frames", "https://example.com"])
+    assert frames.main() == 0
+    assert any((tmp_path / "kept/frames").iterdir())
