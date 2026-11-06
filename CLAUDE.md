@@ -33,7 +33,9 @@ produce. The theory is in Volcanex/g-research
   measures each online device, and judges only the framed page's posted `gs_frames`
   phases. Evidence names the device, GPU adapter and user agent; the runner's own rAF
   cannot pass this gate. Missing page stats are impossible. `--device NAME` selects
-  one device; offline/absent selection or `--device none` uses Playwright and records
+  one device. A managed Mac (`mac`, `mac-m3`) rests offline between measurements, so a named
+  one is always started and measured, and `auto` adds it when `ssh mac` answers. Other
+  offline/absent selection or `--device none` uses Playwright and records
   `measured_on: playwright fallback, no paired device online` (with the selection reason).
   g-run loads `/etc/g-runner/token`; credentials never enter sensor argv or URLs.
   `runner_query: "gate=frames"` in `.glevels/pacing.json` uses the same page driver in
