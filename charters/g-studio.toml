@@ -143,6 +143,13 @@ version = 1
 paths = ["web/static/landing/**/*.mp4"]
 blocking = true
 
+# The landing must hold 60 fps on a real Mac (g-runner device, ?gate=frames phases), never choppy.
+[[gates]]
+id = "correct.motion.frame-pacing"
+version = 2
+paths = ["web/src/screens/landing*", "web/src/screens/landing/**", "web/src/styles/landing*", "web/static/landing/**"]
+blocking = true
+
 [[gates]]
 id = "correct.assets.real-sourced"
 version = 1

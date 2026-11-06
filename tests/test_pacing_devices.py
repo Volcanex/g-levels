@@ -252,3 +252,16 @@ def test_busy_mac_is_left_alone(monkeypatch):
     result = pacing.device_capture(dict(name="mac-m3"), "https://example.org/", {})
     assert result["status"] == "impossible" and "busy" in result["reason"]
     assert calls == ["start"]
+
+
+@pytest.mark.parametrize("selected, reachable, expected", [
+    ("mac-m3", False, ["mac-m3"]),        # named: measured even at rest, a failed start is impossible
+    ("auto", True, ["iphone", "mac-m3"]),  # auto: a resting managed Mac joins when it answers
+    ("auto", False, ["iphone"]),
+    ("iphone", True, ["iphone"]),
+])
+def test_resting_managed_mac_is_selected(monkeypatch, selected, reachable, expected):
+    monkeypatch.setattr(pacing, "mac_reachable", lambda: reachable)
+    state = dict(now=100001, devices=[dict(name="iphone", online=True, seen=100000, info={}),
+                                      dict(name="mac-m3", online=False, seen=1, info={})])
+    assert [d["name"] for d in pacing.select_devices(state, selected)] == expected

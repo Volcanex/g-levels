@@ -581,6 +581,33 @@ def runner_call(*args):
     return data
 
 
+MANAGED_MACS = ("mac", "mac-m3")
+
+
+def mac_reachable():
+    try:
+        return subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5", "mac", "true"],
+                              capture_output=True, timeout=15).returncode == 0
+    except subprocess.TimeoutExpired:
+        return False
+
+
+def select_devices(state, selected="auto"):
+    """Online devices, plus a managed Mac at rest: its isolated Chrome is stopped after every
+    measurement, so it is offline between runs and device_capture starts it. Named, it is
+    always measured (a failed start is impossible, never a fallback); under auto, only when
+    the Mac answers over SSH."""
+    devices = online_devices(state, selected)
+    names = {d["name"] for d in devices}
+    known = {d["name"]: d for d in state["devices"]}
+    for name in MANAGED_MACS:
+        if name in names or (selected != "auto" and selected != name):
+            continue
+        if selected == name or (name in known and mac_reachable()):
+            devices.append(known.get(name) or dict(name=name))
+    return devices
+
+
 def online_devices(state, selected="auto"):
     return [d for d in state["devices"] if d.get("online") and d.get("seen") is not None
             and 0 <= state["now"] - d["seen"] < 30000
@@ -702,7 +729,7 @@ def posted_run(payload, doc, info, profile=None, hardware=True):
 def device_capture(device, url, doc):
     name = device["name"]
     run = dict(device=name, measured_on=f"g-runner device {name}", phases=[], device_info=device.get("info", {}))
-    managed_mac = name in ("mac", "mac-m3")
+    managed_mac = name in MANAGED_MACS
     mac_start_attempted = False
     try:
         if managed_mac:
@@ -735,7 +762,8 @@ def device_capture(device, url, doc):
         if mac_start_attempted:
             process = subprocess.run([str(MAC_RUNNER), "stop", "--device", name], capture_output=True, text=True)
             if process.returncode:
-                run.update(status="impossible", reason="Mac runner cleanup failed")
+                first = run.get("reason") if run.get("status") == "impossible" else None
+                run.update(status="impossible", reason="; ".join(filter(None, [first, "Mac runner cleanup failed: " + process.stdout.strip()])))
     return run
 
 
@@ -835,7 +863,7 @@ def main(argv=None):
         out.mkdir(parents=True, exist_ok=True)
         runs = []
         selection = "disabled by --device none" if args.device == "none" else ""
-        devices = [] if args.device == "none" else online_devices(runner_call("--status", "--json"), args.device)
+        devices = [] if args.device == "none" else select_devices(runner_call("--status", "--json"), args.device)
         if not devices and args.device != "none":
             selection = "no paired device online" if args.device == "auto" else f"requested device {args.device} offline or absent"
         measured_on = ", ".join("g-runner device " + d["name"] for d in devices) if devices else "playwright fallback, no paired device online"
