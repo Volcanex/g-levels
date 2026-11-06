@@ -1,7 +1,7 @@
 """Check shipped video timing, encoding, repeated frames and motion continuity.
 
 Exit 0: clean. Exit 1: faults. Exit 2: cannot inspect at least one input.
-Only a few small grayscale frames are kept; timing and motion series are O(frames).
+Only a few decoded frames are kept; timing, motion and change series are O(frames).
 
 Automatically reads <video>.events.json when present, for example:
 {"fps": 60, "events": [{"kind": "ui", "frame": 212, "label": "click hero image"},
@@ -25,6 +25,9 @@ import sys
 BPP_FLOOR = 0.02
 STILL_DIFFERENCE = 0.25  # Mean luma levels out of 255; tolerates small codec noise.
 HOLD_FRAMES = 6  # At 60 fps, a pause lasts at least 100 ms, unlike a short stutter.
+POP_DIFFERENCE = 12  # Native max-channel delta; ignore low-level codec noise.
+POP_GRID = 8
+POP_RATIO = 4
 # Fixed capture windows, never sidecar settings. 50 frames at 60 fps cover the
 # slowest house spring token, --spring-slow-dur at 825 ms, including its settle.
 UI_EVENT_FRAMES = 50
@@ -33,7 +36,7 @@ ROUTE_EVENT_BEFORE = 1
 ROUTE_EVENT_AFTER = 3
 EVENT_FINDINGS = {
     "ui": {"uneased-start", "uneased-stop", "motion-spike"},
-    "route": {"motion-spike", "scroll-discontinuity", "uneased-start", "uneased-stop"},
+    "route": {"motion-spike", "scroll-discontinuity", "uneased-start", "uneased-stop", "hold-pop"},
 }
 
 
@@ -136,13 +139,97 @@ def decode(path, width, height):
     return count, np.array(differences), np.array(shifts), np.array(reliable), step(previous, first)
 
 
+def change_stats(previous, current):
+    """Native RGB detail survives here even when downscaling hides the pop."""
+    difference = np.abs(current.astype(np.int16) - previous.astype(np.int16)).max(axis=2)
+    changed = difference > POP_DIFFERENCE
+    height, width = changed.shape
+    rows = np.linspace(0, height, min(POP_GRID, height) + 1, dtype=int)[:-1]
+    columns = np.linspace(0, width, min(POP_GRID, width) + 1, dtype=int)[:-1]
+    cells = np.add.reduceat(np.add.reduceat(changed, rows, axis=0), columns, axis=1)
+    ys, xs = np.nonzero(changed)
+    area = int((ys.max() - ys.min() + 1) * (xs.max() - xs.min() + 1)) if len(ys) else 0
+    return dict(changed_pixels=int(changed.sum()), max_difference=int(difference.max()),
+                mean_difference=float(difference.mean()),
+                bounding_area=area, cells=cells.ravel())
+
+
+def decode_changes(path, width, height):
+    command = ["ffmpeg", "-v", "error", "-xerror", "-threads", "2", "-i", str(path),
+               "-map", "0:v:0", "-an", "-sn", "-dn", "-filter_threads", "2",
+               "-pix_fmt", "rgb24", "-threads", "2", "-fps_mode", "passthrough",
+               "-f", "rawvideo", "pipe:1"]
+    changes, previous = [], None
+    size = width * height * 3
+    with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as process:
+        try:
+            while raw := process.stdout.read(size):
+                if len(raw) != size:
+                    raise ValueError("incomplete native decoded frame")
+                current = np.frombuffer(raw, dtype=np.uint8).reshape(height, width, 3)
+                if previous is not None:
+                    changes.append(change_stats(previous, current))
+                previous = current
+            error = process.stderr.read().decode(errors="replace")
+            if process.wait() or len(changes) < 2:
+                raise ValueError(f"cannot decode native frames: {error[-1200:]}")
+        finally:
+            if process.poll() is None:
+                process.kill()
+                process.wait()
+    return {key: np.array([row[key] for row in changes]) for key in changes[0]}
+
+
+def hold_pops(changes, width, height):
+    """Find isolated, spatially broad changes against each hold's own baseline."""
+    findings = []
+    counts, cells = changes["changed_pixels"], changes["cells"]
+    for index, count in enumerate(counts):
+        if count < max(32, width * height / 10000) or changes["bounding_area"][index] < width * height / 4:
+            continue
+        neighbours = np.r_[np.arange(max(0, index - HOLD_FRAMES), index),
+                           np.arange(index + 1, min(len(counts), index + HOLD_FRAMES + 1))]
+        # At a clip boundary the available side must still establish a hold.
+        if len(neighbours) < HOLD_FRAMES or count <= POP_RATIO * np.median(counts[neighbours]):
+            continue
+        baseline_difference = float(np.median(changes["mean_difference"][neighbours]))
+        if (baseline_difference > STILL_DIFFERENCE or
+                changes["mean_difference"][index] <= max(STILL_DIFFERENCE, POP_RATIO * baseline_difference)):
+            continue
+        baseline = cells[neighbours].max(axis=0)
+        # A compact animation can span a large bounding box. Demand changes in
+        # at least an eighth of the grid beyond *every* neighbouring step there.
+        spread = int((cells[index] > POP_RATIO * baseline).sum())
+        if spread < max(8, cells.shape[1] // 8):
+            continue
+        maximum = int(changes["max_difference"][index])
+        area = int(changes["bounding_area"][index])
+        findings.append(dict(kind="hold-pop", frames=[index + 1], changed_pixels=int(count),
+                             max_difference=maximum, bounding_area=area, grid_cells=spread,
+                             detail=f"{count} changed pixels, max difference {maximum}, "
+                                    f"bounding area {area} px ({area / (width * height):.1%}); "
+                                    f"{spread}/{cells.shape[1]} grid cells exceed the hold baseline"))
+    return findings
+
+
 def runs(mask):
     edges = np.flatnonzero(np.diff(np.r_[False, mask, False].astype(np.int8)))
     return list(zip(edges[::2].tolist(), edges[1::2].tolist()))
 
 
-def motion(differences, shifts, reliable, scale, native_height, fps, seam, loop):
-    findings = []
+def motion(differences, shifts, reliable, scale, native_height, fps, seam, loop, pops=()):
+    findings = list(pops)
+    # A classified detail repaint is not displacement. Use its neighbouring
+    # baseline in the motion series; retain the frame-integrity finding above.
+    if pops:
+        original_differences, original_shifts = differences, shifts
+        differences, shifts = differences.copy(), shifts.copy()
+        for pop in pops:
+            index = pop["frames"][0] - 1
+            neighbours = np.r_[np.arange(max(0, index - HOLD_FRAMES), index),
+                               np.arange(index + 1, min(len(differences), index + HOLD_FRAMES + 1))]
+            differences[index] = np.median(original_differences[neighbours])
+            shifts[index] = np.median(original_shifts[neighbours])
 
     def fault(kind, detail, frames):
         findings.append(dict(kind=kind, detail=detail, frames=frames))
@@ -339,7 +426,11 @@ def inspect(path, loop=True, fps=60):
     if not kept:
         raise ValueError("mpdecimate did not report a frame count")
     result["mpdecimate_dropped"] = count - kept[-1]
-    measured = motion(differences, shifts, reliable, height / sample_height, height, float(actual_fps), seam, loop)
+    changes = decode_changes(path, width, height)
+    if len(changes["changed_pixels"]) != count - 1:
+        raise ValueError("native and motion decoded frame counts disagree")
+    measured = motion(differences, shifts, reliable, height / sample_height, height, float(actual_fps),
+                      seam, loop, hold_pops(changes, width, height))
     result["findings"].extend(measured.pop("findings"))
     result.update(measured)
     exempt_events(result)

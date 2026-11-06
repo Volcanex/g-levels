@@ -144,6 +144,100 @@ def test_bethdarroch_slow_scroll_stays_one_bout_per_move():
     assert result["ramp_out_frames"] > 2
 
 
+def hold_changes(pop=None, animated=False):
+    vc.dependencies()
+    y, x = np.mgrid[:180, :320]
+    image = np.full((180, 320, 3), 100, dtype=np.uint8)
+    detail = ((x % 11 == 0) & (y % 7 == 0))
+    changes = []
+    previous = None
+    for index in range(48):
+        frame = image.copy()
+        if pop is not None and index >= pop:
+            frame[detail] += 24
+        if animated:
+            # Two distant patches give a large bounding box but little spread.
+            frame[8:20, 8:24] += (index // 4 % 2) * 40
+            frame[140:152, 272:288] += (index // 5 % 2) * 40
+        if previous is not None:
+            changes.append(vc.change_stats(previous, frame))
+        previous = frame
+    return {key: np.array([row[key] for row in changes]) for key in changes[0]}
+
+
+@pytest.mark.parametrize("animated", [False, True])
+@pytest.mark.parametrize("frame", [1, 24, 47])
+def test_requantization_inside_static_hold_fails(frame, animated):
+    changes = hold_changes(pop=frame, animated=animated)
+    findings = vc.hold_pops(changes, 320, 180)
+    assert [row["frames"] for row in findings] == [[frame]]
+    finding = findings[0]
+    assert finding["kind"] == "hold-pop"
+    assert finding["changed_pixels"] >= 700
+    assert finding["max_difference"] >= 24
+    assert finding["bounding_area"] > 320 * 180 * .9
+    assert "bounding area" in finding["detail"]
+
+
+@pytest.mark.parametrize("animated", [False, True])
+def test_static_hold_with_compact_animation_passes(animated):
+    assert vc.hold_pops(hold_changes(animated=animated), 320, 180) == []
+
+
+def test_sustained_broad_motion_is_not_a_hold_pop():
+    vc.dependencies()
+    frames = [np.full((180, 320, 3), 40 + (index % 2) * 24, dtype=np.uint8)
+              for index in range(48)]
+    changes = [vc.change_stats(a, b) for a, b in zip(frames, frames[1:])]
+    changes = {key: np.array([row[key] for row in changes]) for key in changes[0]}
+    assert vc.hold_pops(changes, 320, 180) == []
+
+
+def test_sparse_codec_noise_during_hold_is_not_a_pop():
+    changes = hold_changes(pop=24)
+    changes["mean_difference"][:] /= 10
+    assert vc.hold_pops(changes, 320, 180) == []
+
+
+def test_real_hold_pops_with_local_gifs_are_not_ramps():
+    vc.dependencies()
+    # mariaslaughter.mp4 (landing-work/v60): native RGB change stats and
+    # decode(video, 160, 100) motion stats for frames 0-24, 588-612, 1115-1139.
+    # The page's two compact animated images keep changing during these holds.
+    fixture = Path(__file__).parent / "fixtures" / "mariaslaughter-hold-pops.npz"
+    frames = []
+    with np.load(fixture) as data:
+        for index, offset in enumerate(data["offsets"]):
+            changes = {key: data[key][index] for key in (
+                "changed_pixels", "max_difference", "mean_difference", "bounding_area", "cells")}
+            pops = vc.hold_pops(changes, 800, 500)
+            frames.extend(row["frames"][0] + int(offset) for row in pops)
+            before = vc.motion(data["differences"][index], data["shifts"][index],
+                               data["reliable"][index], 5, 500, 60, (0., 0., True), False)
+            assert {"uneased-start", "uneased-stop"} & kinds(before)
+            result = vc.motion(data["differences"][index], data["shifts"][index],
+                               data["reliable"][index], 5, 500, 60, (0., 0., True), False, pops)
+            assert kinds(result) == {"hold-pop"}
+            # Removing the isolated repaint leaves only legitimate local animation.
+            for row in pops:
+                changes["changed_pixels"][row["frames"][0] - 1] = 0
+            assert vc.hold_pops(changes, 800, 500) == []
+    assert frames == [1, 600, 1139]
+
+
+@pytest.mark.parametrize("kind,frame,exempt", [
+    ("ui", 24, False), ("route", 24, True),
+    ("route", 21, True), ("route", 25, True),
+    ("route", 20, False), ("route", 26, False),
+])
+def test_only_route_window_exempts_hold_pop(kind, frame, exempt):
+    findings = vc.hold_pops(hold_changes(pop=24), 320, 180)
+    result = dict(findings=findings, events=[dict(kind=kind, frame=frame, label="change")])
+    vc.exempt_events(result)
+    assert bool(result["exempt"]) == exempt
+    assert bool(result["findings"]) != exempt
+
+
 @pytest.mark.parametrize("hard_start", [False, True])
 def test_slow_scroll_ramps(hard_start):
     vc.dependencies()
