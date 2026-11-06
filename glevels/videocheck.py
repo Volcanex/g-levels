@@ -1,7 +1,16 @@
 """Check shipped video timing, encoding, repeated frames and motion continuity.
 
-Exit 0: clean; 1: faults; 2: cannot inspect at least one input.
+Exit 0: clean. Exit 1: faults. Exit 2: cannot inspect at least one input.
 Only a few small grayscale frames are kept; timing and motion series are O(frames).
+
+Automatically reads <video>.events.json when present, for example:
+{"fps": 60, "events": [{"kind": "ui", "frame": 212, "label": "click hero image"},
+                       {"kind": "route", "frame": 455, "label": "open version 3"}]}
+The capture script records 0-based decoded frames when it dispatches actions.
+UI windows are [frame, frame + 50], inclusive. Optional ui "until" is an inclusive
+end frame that may only shorten the window. Route cuts use [frame - 1, frame + 3].
+UI feedback is judged on the live app by correct.motion.rhythm. Narrative scroll,
+camera and cursor motion must still ramp. Invalid sidecars are impossible.
 """
 import argparse
 from fractions import Fraction
@@ -16,6 +25,16 @@ import sys
 BPP_FLOOR = 0.02
 STILL_DIFFERENCE = 0.25  # Mean luma levels out of 255; tolerates small codec noise.
 HOLD_FRAMES = 6  # At 60 fps, a pause lasts at least 100 ms, unlike a short stutter.
+# Fixed capture windows, never sidecar settings. 50 frames at 60 fps cover the
+# slowest house spring token, --spring-slow-dur at 825 ms, including its settle.
+UI_EVENT_FRAMES = 50
+# A route cut can straddle the dispatched action by one frame and settle in three.
+ROUTE_EVENT_BEFORE = 1
+ROUTE_EVENT_AFTER = 3
+EVENT_FINDINGS = {
+    "ui": {"uneased-start", "uneased-stop", "motion-spike"},
+    "route": {"motion-spike", "scroll-discontinuity", "uneased-start", "uneased-stop"},
+}
 
 
 def dependencies():
@@ -195,6 +214,59 @@ def motion(differences, shifts, reliable, scale, native_height, fps, seam, loop)
                 loop_seam=dict(checked=loop, difference=seam_diff, px_frame=seam_speed * scale))
 
 
+def load_events(path, fps, count):
+    sidecar = Path(str(path) + ".events.json")
+    if not sidecar.exists() and not sidecar.is_symlink():
+        return []
+    try:
+        data = json.loads(sidecar.read_text())
+        if not isinstance(data, dict) or set(data) != {"fps", "events"}:
+            raise ValueError("need exactly fps and events")
+        if type(data["fps"]) not in (int, float) or Fraction(str(data["fps"])) != fps:
+            raise ValueError(f"fps must match the clip's actual frame rate {fps}")
+        if not isinstance(data["events"], list):
+            raise ValueError("events must be a list")
+        for index, event in enumerate(data["events"]):
+            if (not isinstance(event, dict) or not {"kind", "frame", "label"} <= set(event)
+                    or set(event) - {"kind", "frame", "label", "until"}):
+                raise ValueError(f"event {index}: need kind, frame, label and optional ui until")
+            if not isinstance(event["kind"], str) or event["kind"] not in EVENT_FINDINGS:
+                raise ValueError(f"event {index}: unknown kind")
+            frame = event["frame"]
+            if type(frame) is not int or not 0 <= frame < count:
+                raise ValueError(f"event {index}: frame must be a decoded index in [0, {count - 1}]")
+            if not isinstance(event["label"], str) or not event["label"].strip():
+                raise ValueError(f"event {index}: label must be a nonempty string")
+            if "until" in event:
+                until = event["until"]
+                if (event["kind"] != "ui" or type(until) is not int
+                        or not frame <= until <= min(frame + UI_EVENT_FRAMES, count - 1)):
+                    raise ValueError(f"event {index}: until may only shorten the fixed ui window")
+        return data["events"]
+    except (OSError, ValueError) as error:
+        raise ValueError(f"events sidecar {sidecar}: {error}") from error
+
+
+def exempt_events(result):
+    findings, exempt = [], []
+    for finding in result["findings"]:
+        frames = finding.get("frames", [])
+        for event in result["events"]:
+            if finding["kind"] not in EVENT_FINDINGS[event["kind"]] or not frames:
+                continue
+            frame = event["frame"]
+            if event["kind"] == "ui":
+                start, end = frame, event.get("until", frame + UI_EVENT_FRAMES)
+            else:
+                start, end = frame - ROUTE_EVENT_BEFORE, frame + ROUTE_EVENT_AFTER
+            if all(start <= index <= end for index in frames):
+                exempt.append(dict(finding, event={key: event[key] for key in ("kind", "frame", "label")}))
+                break
+        else:
+            findings.append(finding)
+    result.update(findings=findings, exempt=exempt)
+
+
 def inspect(path, loop=True, fps=60):
     dependencies()
     path = Path(path).resolve(strict=True)
@@ -209,7 +281,7 @@ def inspect(path, loop=True, fps=60):
         raise ValueError("invalid video dimensions")
     result = dict(file=str(path), width=width, height=height, codec=stream.get("codec_name"),
                   pixel_format=stream.get("pix_fmt"), r_frame_rate=stream.get("r_frame_rate"),
-                  avg_frame_rate=stream.get("avg_frame_rate"), findings=[])
+                  avg_frame_rate=stream.get("avg_frame_rate"), findings=[], events=[], exempt=[])
 
     def fault(kind, detail):
         result["findings"].append(dict(kind=kind, detail=detail))
@@ -245,6 +317,7 @@ def inspect(path, loop=True, fps=60):
     sample_height = max(8, round(height * sample_width / width / 2) * 2)
     count, differences, shifts, reliable, seam = decode(path, sample_width, sample_height)
     result["frames"] = count
+    result["events"] = load_events(path, actual_fps, count)
     duration = Fraction(stream["duration_ts"]) * time_base if "duration_ts" in stream else None
     result["duration"] = float(duration) if duration is not None else None
     result["nb_frames"] = stream.get("nb_frames")
@@ -266,11 +339,13 @@ def inspect(path, loop=True, fps=60):
     measured = motion(differences, shifts, reliable, height / sample_height, height, float(actual_fps), seam, loop)
     result["findings"].extend(measured.pop("findings"))
     result.update(measured)
+    exempt_events(result)
     return result
 
 
 def report(result):
     print(f"\n{result['file']}")
+    print(f"  events={len(result['events'])}; exempt findings={len(result['exempt'])}")
     if "error" in result:
         print(f"  impossible: {result['error']}")
         return
@@ -294,11 +369,17 @@ def report(result):
         frames = finding.get("frames", [])
         print(f"  FAULT {finding['kind']}: {finding['detail']}" +
               (f"; frames {frames[:12]}" + (f" (+{len(frames) - 12} more)" if len(frames) > 12 else "") if frames else ""))
+    for finding in result["exempt"]:
+        event = finding["event"]
+        reason = ("ui-feedback, judged by correct.motion.rhythm" if event["kind"] == "ui"
+                  else "route cut, g-motion rule 11")
+        print(f"  EXEMPT {finding['kind']}: {finding['detail']}, frames {finding['frames']}, "
+              f"event {event['kind']} at frame {event['frame']}: {event['label']} ({reason})")
     print(f"  {'FAULT' if result['findings'] else 'clean'}: {len(result['findings'])} findings")
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("videos", nargs="+")
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--loop", action=argparse.BooleanOptionalAction, default=True)
@@ -312,7 +393,7 @@ def main(argv=None):
             results.append(inspect(video, loop=args.loop, fps=args.fps))
         except (ImportError, OSError, ValueError, KeyError, TypeError, MemoryError, ZeroDivisionError,
                 subprocess.SubprocessError) as error:
-            results.append(dict(file=video, error=str(error), findings=[]))
+            results.append(dict(file=video, error=str(error), findings=[], events=[], exempt=[]))
     if args.json:
         print(json.dumps(results, indent=2))
     else:

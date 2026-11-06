@@ -137,9 +137,12 @@ version = 1
 paths = ["web/src/**", "web/inject/**"]
 
 # The landing's shipped videos (Work recaptures, feature loops): real 60 fps, nothing choppy.
+# Narrative scroll, camera and cursor motion must ramp. Capture-written events sidecars
+# exempt UI feedback and route cuts only within the sensor's fixed windows.
+# The UI feedback itself must pass correct.motion.rhythm on the live app.
 [[gates]]
 id = "correct.video.smoothness"
-version = 1
+version = 2
 paths = ["web/static/landing/**/*.mp4"]
 blocking = true
 

@@ -28,6 +28,8 @@ produce. The theory is in Volcanex/g-research
 - `glevels/videocheck.py`: the shipped-video sensor for `correct.video.smoothness`;
   checks MP4 encoding, real constant frame timing, repeats, holds, eased motion,
   bitrate and loop seams with ffprobe, ffmpeg and numpy (exit 0 clean, 1 faults, 2 impossible).
+  Automatically reads capture-written `<video>.events.json` sidecars for UI feedback and route cuts
+  within fixed windows. UI feedback is judged on the live app by `correct.motion.rhythm`.
 - `glevels/pacing.py`: devices-first sensor for `correct.motion.frame-pacing`.
   `--device auto` (default) lists g-runner devices with a heartbeat less than 30 s old,
   measures each online device, and judges only the framed page's posted `gs_frames`

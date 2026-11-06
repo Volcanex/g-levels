@@ -10,7 +10,7 @@ import pytest
 from glevels import videocheck as vc
 
 
-def encode(path, positions, fps=60, crf=18):
+def encode(path, positions, fps=60, crf=18, block_frame=None):
     y, x = np.mgrid[:800, :320]
     plane = 115 + 45 * np.sin(y / 13) + 25 * np.cos(y / 7 + x / 19)
     plane += 30 * ((x // 9 + y // 5) % 2)
@@ -22,10 +22,17 @@ def encode(path, positions, fps=60, crf=18):
                "-preset", "fast", "-crf", str(crf), "-pix_fmt", "yuv420p",
                "-movflags", "+faststart", str(path)]
     with subprocess.Popen(command, stdin=subprocess.PIPE, stderr=subprocess.PIPE) as process:
-        for position in positions:
+        for index, position in enumerate(positions):
             top = int(position)
             fraction = position - top
             frame = (1 - fraction) * image[top:top + 180] + fraction * image[top + 1:top + 181]
+            if block_frame is not None and index >= block_frame:
+                block = frame[24:56, 24:88]
+                mean = block.mean(axis=1, keepdims=True)
+                contrast = np.minimum(mean, 255 - mean) * .9
+                # Preserve row means so the block does not impersonate a scroll jump.
+                block[:, :32] = mean + contrast
+                block[:, 32:] = mean - contrast
             process.stdin.write(frame.astype(np.uint8).tobytes())
         process.stdin.close()
         error = process.stderr.read().decode()
@@ -173,3 +180,146 @@ def test_loop_seam_uses_the_neighbouring_holds():
     shifts[:10] = shifts[-10:] = 0
     result = vc.motion(differences, shifts, np.ones(60, dtype=bool), 2, 180, 60, (5., 0., True), True)
     assert "loop-seam" in kinds(result)
+
+
+def write_events(path, events, fps=60):
+    sidecar = Path(str(path) + ".events.json")
+    sidecar.write_text(json.dumps(dict(fps=fps, events=events)))
+    return sidecar
+
+
+def test_ui_feedback_sidecar_exempts_local_change(clips, tmp_path, capsys):
+    path = encode(tmp_path / "feedback.mp4", clips["positions"][:121], block_frame=8)
+    assert vc.main([str(path), "--no-loop", "--json"]) == 1
+    before = json.loads(capsys.readouterr().out)[0]
+    assert "motion-spike" in kinds(before)
+    event = dict(kind="ui", frame=8, label="show toolbar")
+    write_events(path, [event])
+    assert vc.main([str(path), "--no-loop", "--json"]) == 0
+    result = json.loads(capsys.readouterr().out)[0]
+    assert result["events"] == [event]
+    assert result["exempt"] and result["findings"] == []
+    assert all(row["event"] == event for row in result["exempt"])
+    assert {row["kind"] for row in result["exempt"]} <= {
+        "motion-spike", "uneased-start", "uneased-stop"}
+    vc.report(result)
+    output = capsys.readouterr().out
+    assert "events=1; exempt findings=" in output
+    assert "EXEMPT motion-spike:" in output
+    assert "(ui-feedback, judged by correct.motion.rhythm)" in output
+    assert "show toolbar" in output
+
+
+def test_route_sidecar_exempts_cut(clips, tmp_path, capsys):
+    positions = clips["positions"][:121].copy()
+    positions[70:] += 120
+    path = encode(tmp_path / "route.mp4", positions)
+    assert vc.main([str(path), "--no-loop", "--json"]) == 1
+    before = json.loads(capsys.readouterr().out)[0]
+    assert {"motion-spike", "scroll-discontinuity"} & kinds(before)
+    write_events(path, [dict(kind="route", frame=70, label="open version 3")])
+    assert vc.main([str(path), "--no-loop", "--json"]) == 0
+    result = json.loads(capsys.readouterr().out)[0]
+    assert result["findings"] == [] and result["exempt"]
+    vc.report(result)
+    assert "(route cut, g-motion rule 11)" in capsys.readouterr().out
+
+
+def test_events_leave_narrative_start_outside_window(tmp_path):
+    positions = np.r_[np.zeros(70), np.arange(0, 300, 4), np.full(15, 296)]
+    path = encode(tmp_path / "abrupt.mp4", positions)
+    write_events(path, [dict(kind="ui", frame=0, label="click button")])
+    result = vc.inspect(path, loop=False)
+    assert {"uneased-start", "uneased-stop"} <= kinds(result)
+    assert vc.main([str(path), "--no-loop"]) == 1
+
+
+@pytest.mark.parametrize("frame,until,block,clean", [
+    (10, None, 60, True),
+    (10, None, 61, False),
+    (10, 12, 13, False),
+])
+def test_ui_window_boundary_and_shortened_until(tmp_path, frame, until, block, clean):
+    outward = 300 * (1 - np.cos(np.linspace(0, np.pi, 91))) / 2
+    positions = np.r_[np.zeros(75), outward, np.full(15, 300)]
+    path = encode(tmp_path / "boundary.mp4", positions, block_frame=block)
+    event = dict(kind="ui", frame=frame, label="show toolbar")
+    if until is not None:
+        event["until"] = until
+    write_events(path, [event])
+    result = vc.inspect(path, loop=False)
+    assert (not result["findings"]) == clean
+    if not clean:
+        assert "motion-spike" in kinds(result)
+        assert any(block in row.get("frames", []) for row in result["findings"])
+
+
+@pytest.mark.parametrize("payload", [
+    "{",
+    "[]",
+    '{"fps": 60, "events": [], "window": 500}',
+    '{"fps": 30, "events": []}',
+    '{"fps": true, "events": []}',
+    '{"fps": 60, "events": {}}',
+    '{"fps": 60, "events": [null]}',
+    '{"fps": 60, "events": [{"kind": "scroll", "frame": 10, "label": "scroll"}]}',
+    '{"fps": 60, "events": [{"kind": "ui", "frame": -1, "label": "click"}]}',
+    '{"fps": 60, "events": [{"kind": "ui", "frame": 227, "label": "click"}]}',
+    '{"fps": 60, "events": [{"kind": "ui", "frame": true, "label": "click"}]}',
+    '{"fps": 60, "events": [{"kind": "ui", "frame": 1.5, "label": "click"}]}',
+    '{"fps": 60, "events": [{"kind": "ui", "frame": 10}]}',
+    '{"fps": 60, "events": [{"kind": "ui", "frame": 10, "label": 5}]}',
+    '{"fps": 60, "events": [{"kind": "ui", "frame": 10, "label": "click", "until": 61}]}',
+    '{"fps": 60, "events": [{"kind": "ui", "frame": 10, "label": "click", "until": 9}]}',
+    '{"fps": 60, "events": [{"kind": "ui", "frame": 220, "label": "click", "until": 227}]}',
+    '{"fps": 60, "events": [{"kind": "route", "frame": 10, "label": "open", "until": 11}]}',
+])
+def test_malformed_events_are_impossible(clips, tmp_path, capsys, payload):
+    path = tmp_path / "malformed.mp4"
+    shutil.copyfile(clips["clean"], path)
+    Path(str(path) + ".events.json").write_text(payload)
+    assert vc.main([str(path), "--json"]) == 2
+    result = json.loads(capsys.readouterr().out)[0]
+    assert "events" in result["error"]
+
+
+def test_ui_event_cannot_exempt_duplicate(clips, tmp_path):
+    path = tmp_path / "duplicate.mp4"
+    shutil.copyfile(clips["duplicate"], path)
+    write_events(path, [dict(kind="ui", frame=60, label="click image")])
+    result = vc.inspect(path)
+    assert "duplicate-frame" in kinds(result)
+    assert all(row["kind"] != "duplicate-frame" for row in result["exempt"])
+    assert vc.main([str(path)]) == 1
+
+
+def test_ui_event_cannot_exempt_scroll_discontinuity(clips, tmp_path):
+    path = tmp_path / "scroll.mp4"
+    shutil.copyfile(clips["jump"], path)
+    write_events(path, [dict(kind="ui", frame=59, label="click image")])
+    assert "scroll-discontinuity" in kinds(vc.inspect(path))
+
+
+def test_event_counts_without_sidecar(clips, capsys):
+    assert vc.main([str(clips["clean"])]) == 0
+    assert "events=0; exempt findings=0" in capsys.readouterr().out
+    result = vc.inspect(clips["clean"])
+    assert result["events"] == result["exempt"] == []
+
+
+def test_exemptions_preserve_other_checks_and_window_edges():
+    protected = ["duplicate-frame", "loop-seam", "bitrate", "frame-rate", "frame-timing",
+                 "frame-count", "faststart", "video-stream", "audio-stream"]
+    allowed = ["motion-spike", "scroll-discontinuity", "uneased-start", "uneased-stop"]
+    for kind, start, end in (("ui", 10, 60), ("route", 9, 13)):
+        findings = [dict(kind=name, frames=[10]) for name in protected + allowed]
+        findings += [dict(kind="motion-spike", frames=frames) for frames in (
+            [start], [end], [start - 1], [end + 1], [start - 1, start], [end, end + 1], [])]
+        result = dict(findings=findings, events=[dict(kind=kind, frame=10, label="click")])
+        vc.exempt_events(result)
+        assert set(protected) <= kinds(result)
+        assert ("scroll-discontinuity" in kinds(result)) == (kind == "ui")
+        for edge in (start, end):
+            assert any(row["kind"] == "motion-spike" and row["frames"] == [edge]
+                       for row in result["exempt"])
+        assert all(row in result["findings"] for row in findings[-5:])
