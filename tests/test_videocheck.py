@@ -131,6 +131,45 @@ def test_abrupt_start_and_stop(clips):
     assert {"uneased-start", "uneased-stop"} <= kinds(vc.inspect(path, loop=False))
 
 
+def test_bethdarroch_slow_scroll_stays_one_bout_per_move():
+    vc.dependencies()
+    # decode(video, 160, 100) from bethdarroch-retry.mp4: 800x500, 1140 frames,
+    # 640 CSS px sine scrolls at frames 60-540 and 612-1092, with holds.
+    fixture = Path(__file__).parent / "fixtures" / "bethdarroch-motion.npz"
+    with np.load(fixture) as data:
+        result = vc.motion(data["differences"], data["shifts"], data["reliable"],
+                           5, 500, 60, data["seam"], True)
+    assert result["findings"] == []
+    assert result["ramp_in_frames"] > 2
+    assert result["ramp_out_frames"] > 2
+
+
+@pytest.mark.parametrize("hard_start", [False, True])
+def test_slow_scroll_ramps(hard_start):
+    vc.dependencies()
+    move = np.full(241, .18) if hard_start else .18 * np.sin(np.linspace(0, np.pi, 241))
+    shifts = np.r_[np.zeros(15), move, np.zeros(15)]
+    result = vc.motion(shifts * 20, shifts, np.ones(len(shifts), dtype=bool),
+                       5, 500, 60, (0., 0., True), False)
+    assert result["motion_method"] == "vertical-shift"
+    assert result["peak_px_frame"] < 1
+    if hard_start:
+        assert {"uneased-start", "uneased-stop"} <= kinds(result)
+    else:
+        assert result["findings"] == []
+
+
+def test_slow_bouts_still_separate_at_a_sustained_hold():
+    vc.dependencies()
+    eased = .18 * np.sin(np.linspace(0, np.pi, 241))
+    shifts = np.r_[np.zeros(15), eased, np.zeros(15), np.full(60, .18), np.zeros(15)]
+    result = vc.motion(shifts * 20, shifts, np.ones(len(shifts), dtype=bool),
+                       5, 500, 60, (0., 0., True), False)
+    assert {"uneased-start", "uneased-stop"} <= kinds(result)
+    assert any(row["kind"] == "uneased-start" and row["frames"] == [272]
+               for row in result["findings"])
+
+
 def test_container_audio_and_pixel_format(clips):
     path = clips["directory"] / "audio-tail-moov.mp4"
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-threads", "2", "-i", str(clips["clean"]),

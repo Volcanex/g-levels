@@ -1,5 +1,5 @@
 id = "correct.video.smoothness"
-version = 2
+version = 3
 kind = "correcting"
 trigger = "every-run"
 skill = "g-motion"

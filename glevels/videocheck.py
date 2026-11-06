@@ -177,9 +177,12 @@ def motion(differences, shifts, reliable, scale, native_height, fps, seam, loop)
                 fault("scroll-discontinuity", f"vertical speed changes by {change * scale:.2f} px/frame",
                       [index, index + 1])
     active = speed > max(.12, float(np.percentile(speed, 95)) * .05)
-    # Bridge short gaps so a duplicate or the slowest subpixel steps do not split a motion bout.
+    # Subpixel row-profile estimates can cross the activity floor for many frames
+    # during a continuous slow scroll. Merge across slower steps and short codec-
+    # quiet gaps, but keep bouts separate when a sustained hold ends the move.
     for start, end in runs(~active):
-        if start > 0 and end < len(active) and end - start < HOLD_FRAMES:
+        if (start > 0 and end < len(active) and
+                all(b - a < HOLD_FRAMES for a, b in runs(quiet[start:end]))):
             active[start:end] = True
     ramps_in, ramps_out = [], []
     for start, end in runs(active):

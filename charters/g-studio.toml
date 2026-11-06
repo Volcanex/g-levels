@@ -142,7 +142,7 @@ paths = ["web/src/**", "web/inject/**"]
 # The UI feedback itself must pass correct.motion.rhythm on the live app.
 [[gates]]
 id = "correct.video.smoothness"
-version = 2
+version = 3
 paths = ["web/static/landing/**/*.mp4"]
 blocking = true
 
