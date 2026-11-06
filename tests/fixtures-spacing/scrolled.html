@@ -1,0 +1,41 @@
+<!doctype html>
+<meta name="viewport" content="width=device-width">
+<style>
+  body { margin: 0; font: 15px/1.5 sans-serif; display: grid; grid-template-columns: 360px 1fr; height: 100vh; }
+  .pane { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid #ccc; }
+  .head { flex: none; height: 48px; display: flex; align-items: center; gap: 12px; padding: 0 16px; border-bottom: 1px solid #ccc; }
+  .mark { flex: none; width: 32px; height: 32px; border-radius: 8px; background: #ddd; display: grid; place-items: center; }
+  .scroll { flex: 1; min-height: 0; overflow: auto; padding: 0 16px; }
+  .row { display: flex; gap: 12px; padding: 16px 0; }
+  .av { flex: none; width: 28px; height: 28px; border-radius: 50%; background: #ddd; display: grid; place-items: center; font-size: 11px; }
+  main { padding: 24px; }
+  .stack { display: flex; }
+  .stack .mark + .mark { margin-left: -16px; }
+</style>
+<section class="pane">
+  <header class="head"><span class="mark">J</span><b>Thread</b></header>
+  <div class="scroll">
+    <div class="row"><span class="av">AB</span><p>One</p></div>
+    <div class="row"><span class="av" id="cut">DK</span><p>Two</p></div>
+    <div class="row"><span class="av">CD</span><p>Three</p></div>
+    <div class="row"><span class="av">EF</span><p>Four</p></div>
+    <div class="row"><span class="av">GH</span><p>Five</p></div>
+    <div class="row"><span class="av">IJ</span><p>Six</p></div>
+    <div class="row"><span class="av">KL</span><p>Seven</p></div>
+    <div class="row"><span class="av">MN</span><p>Eight</p></div>
+    <div class="row"><span class="av">OP</span><p>Nine</p></div>
+    <div class="row"><span class="av">QR</span><p>Ten</p></div>
+    <div class="row"><span class="av">ST</span><p>Eleven</p></div>
+    <div class="row"><span class="av">UV</span><p>Twelve</p></div>
+    <div class="row"><span class="av">WX</span><p>Thirteen</p></div>
+    <div class="row"><span class="av">YZ</span><p>Fourteen</p></div>
+    <div class="row"><span class="av">AA</span><p>Fifteen</p></div>
+    <div class="row"><span class="av">BB</span><p>Sixteen</p></div>
+  </div>
+</section>
+<main><h1>People</h1><p>Two marks pushed over each other.</p><div class="stack"><span class="mark">A</span><span class="mark">B</span></div></main>
+<script>
+  // Scroll the thread so DK's avatar sits half under the bar, right below the bar's mark.
+  const sc = document.querySelector(".scroll"), cut = document.getElementById("cut");
+  sc.scrollTop += cut.getBoundingClientRect().top - 32;
+</script>

@@ -205,3 +205,11 @@ def test_each_deck_compares_its_own_titles_and_ignores_title_width():
     assert len(findings) == 2
     assert {f["url"] for f in findings} == {"first", "second"}
     assert all(f["render"] == "step 1" and "96px" in f["detail"] for f in findings)
+
+
+def test_a_box_scrolled_under_a_bar_is_clipped_but_a_real_overlap_blocks(render):
+    p, results = render("scrolled.html", "--viewports", "desktop=1440x900", "--states", "loaded")
+    collide = [f for r in results for f in r["findings"] if f["check"] == "boxes-collide"]
+    said = [f["selector"] + " " + f["detail"] for f in collide]
+    assert not any("DK" in s or '"J"' in s for s in said), said
+    assert any(f["severity"] == "block" and '"A"' in f["selector"] + f["detail"] for f in collide), said

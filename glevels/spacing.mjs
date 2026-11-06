@@ -572,7 +572,9 @@ function analyse(o) {
       const { dx, dy } = sep(ar, zr);
       if (dx > 1 || dy > 1) continue;
       if (dx < -0.5 && dy < -0.5) {
-        const ov = inter(ar, zr);
+        // Only what shows counts: a row scrolled up under a bar is clipped by its own scroller.
+        const ac = clamp(ar, clipOf(A)), zc = clamp(zr, clipOf(Z));
+        const ov = ac && zc ? inter(ac, zc) : 0;
         if (ov < 0.1 * Math.min(area(ar), area(zr))) continue;
         add("boxes-collide", placedUp(A) || placedUp(Z) ? "review" : "block", A, `overlaps ${describe(Z)} by ${Math.round(ov)}px²`, ar);
       } else if (A.parentElement !== Z.parentElement || cs(A.parentElement).gap !== "0px") {
