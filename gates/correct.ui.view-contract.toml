@@ -1,0 +1,30 @@
+id = "correct.ui.view-contract"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-design"
+principle = "Every G-Command view is made from one mould: the shared page head under the top bar, the shell gutter, the shell page transition, alias tokens only, and designed empty, loading and error states wherever it fetches data."
+guidance = """
+Start a new view with `python3 scripts/new-view.py <slug> --group <group>` in g-command-web
+(pages/CLAUDE.md, "New views"); it lays down PageHead, Loaded/Empty/ErrorState and a token-only app.css.
+Keep to it: the top bar names the page, so add no visible title or title spacing of your own; never
+pad or margin .content-page/.site-main; add no @keyframes that fades or slides the page in (the
+cross-document view transition, g-vt-in, does that); colours and spacing come from alias tokens
+(var(--sp-*), var(--text-*), ...), never hex or raw px; every fetch gets a skeleton, an ErrorState
+with retry and an Empty. Run `python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/viewcontract.py <repo> --page <slug>`.
+"""
+pass = "met: the sensor reports PASS for every page. attempted: pages WARN; the note names the worst offenders. Warn-only for now: the charter pins it non-blocking while existing pages are brought in."
+remediation = "Each WARN line names the page, the file and the check. Header: drop the title/gutter override and use PageHead. Tokens: swap the hex or px for the alias token it means. Transition: delete the local entry animation. States: wrap the fetch in useJson + Loaded and add an Empty. Never quiet a line by moving the CSS somewhere the sensor does not read."
+written_against = { model = "claude-opus-5-5", date = "2026-11-07" }
+
+[sensor]
+# Static read of every pages/<slug>/ folder (pages/_* skipped): CSS files, <style> blocks, style
+# attributes and strings, page scripts and the /js/*.js they load. Exit 1 on any WARN, 2 cannot run.
+# Raw px excludes 0 and 1px hairlines. The states check is a lenient keyword match.
+type = "command"
+run = "python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/viewcontract.py {repo}"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-11-07"
+incident = "G-Command views were each hand-built, so title spacing, margins, entry motion, tokens and load states drifted page by page; a scaffold and this gate make views mass-producible and consistent."

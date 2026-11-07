@@ -7,3 +7,10 @@ principles = ["Laid out with care, on the house system, with real assets."]
 [[gates]]
 id = "correct.ui.shared-layout"
 version = 1
+
+# Warn-only until the existing pages are brought in (2026-11-07).
+[[gates]]
+id = "correct.ui.view-contract"
+version = 1
+blocking = false
+paths = ["pages/**"]
