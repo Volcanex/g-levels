@@ -10,6 +10,10 @@ The optional script
 exports async (page, mark); await mark('name') before each interaction. Duration
 is the observation window after load, each automatic action, and script return;
 30+ second windows are supported with frames streamed to disk, not held in RAM.
+Visible watched graphics and ongoing narrative loops also receive a fixed ten-
+second observation, sampled four times per second from the full composed stream.
+Small pointers/carets/hands are traced on rAF to distinguish resting jitter from
+deliberate travel. Short --duration values do not shorten these measurements.
 --seed N replaces Math.random before page scripts, in both fresh contexts.
 Normal and reduced-motion runs use the real clock. Declared animations are then
 paused and sought separately. findings.json, per-step videos and consecutive,
@@ -38,7 +42,7 @@ except ImportError:
 
 HERE = Path(__file__).resolve().parent
 TOKENS = Path('/home/gabriel/g-design/packages/g-tokens/dist/tokens.css')
-LOCK = Path(os.environ.get('GSPACING_LOCK', '/tmp/glevels-browser.lock'))
+LOCK = Path(os.environ.get('GSPACING_LOCK', '/tmp/g-studio-browser.lock'))
 MIN_FREE_MB = 600  # Chromium needs headroom on this shared host.
 FRAME_MS = 1000 / 60  # Measure travel in nominal display frames, independent of host speed.
 VISUAL_TRAVEL = .98  # Sub-pixel spring settling is outside the visible duration.
@@ -58,6 +62,12 @@ ENERGY_FLOOR, ENERGY_ACTIVE = .002, .02  # Require motion above noise and a smal
 EPISODE_GAP_MS = FRAME_MS * 2.5  # A quiet gap separates discrete visible changes.
 DECLARED_COVERAGE = .8  # Mostly declared regions belong to the curve analysis.
 DROPPED_INTERVAL_RATIO = 1.5  # Long rAF intervals are pacing leads on this renderer.
+WATCH_MS = 10000  # Independent of the interaction/entrance observation duration.
+WATCH_AREA = .01  # At least 1% of a watched graphic must visibly change per second.
+WATCH_QUIET = .6  # Most of the ten-second window must not read as still.
+POINTER_WINDOW_MS = 1000
+POINTER_REVERSALS_HZ = 8  # Two reversals per cycle: more than four oscillations/second.
+POINTER_EXCURSION = .08  # Hysteresis ignores numerical noise, retains a .3 px tremor.
 LAYOUT = re.compile(r'^(width|height|top|left|right|bottom|margin.*|padding.*|inset.*|flex.*|grid.*)$')
 MOVEMENT = {'transform', 'translate', 'scale', 'rotate', 'left', 'top', 'right', 'bottom',
             'width', 'height', 'scrollTop', 'scrollLeft', 'offsetDistance'}
@@ -334,6 +344,154 @@ def union_boxes(boxes):
             max(b[2] for b in boxes), max(b[3] for b in boxes)] if boxes else None
 
 
+def narrative_findings(step):
+    """Compare full composed screenshots; never hide siblings or change a layer's paint."""
+    np, Image = dependencies()
+    frames = step.get('watchedFrames', [])
+    if len(frames) < 2:
+        return []
+    regions = {r['selector']: r for r in frames[0]['regions']}
+    measures = {selector: [] for selector in regions}
+    accumulated = {}
+    previous = None
+    for index, frame in enumerate(frames):
+        with Image.open(frame['file']) as im:
+            pixels = np.asarray(im.convert('RGB'), dtype=np.int16)
+        if previous is not None:
+            diff = np.max(np.abs(pixels - previous), axis=2) >= PIXEL_DIFF
+            current = {r['selector']: r for r in frame['regions']}
+            prior = {r['selector'] for r in frames[index - 1]['regions']}
+            for selector, region in regions.items():
+                if selector not in current or selector not in prior:
+                    accumulated.pop(selector, None)
+                    continue
+                x, y, w, h = region['rect']
+                other = current[selector]['rect']
+                # The common viewport footprint avoids counting newly uncovered edges.
+                left, top = max(0, math.ceil(x), math.ceil(other[0])), max(0, math.ceil(y), math.ceil(other[1]))
+                right = min(pixels.shape[1], math.floor(x + w), math.floor(other[0] + other[2]))
+                bottom = min(pixels.shape[0], math.floor(y + h), math.floor(other[1] + other[3]))
+                if right <= left or bottom <= top:
+                    continue
+                visible = np.ones((bottom - top, right - left), dtype=bool)
+                for f in (region, current[selector]):
+                    for fx, fy, fw, fh in f.get('foreground', []):
+                        visible[max(0, math.floor(fy) - top):max(0, min(bottom, math.ceil(fy + fh)) - top),
+                                max(0, math.floor(fx) - left):max(0, min(right, math.ceil(fx + fw)) - left)] = False
+                mask = np.zeros_like(diff)
+                mask[top:bottom, left:right] = visible
+                acc = accumulated.setdefault(selector, dict(start=frames[index - 1]['time'],
+                    changed=np.zeros_like(diff), visible=np.ones_like(diff)))
+                acc['changed'] |= diff
+                acc['visible'] &= mask
+                elapsed = frame['time'] - acc['start']
+                if elapsed >= 950:
+                    area = int(acc['visible'].sum())
+                    if area:
+                        fraction = float(np.count_nonzero(acc['changed'] & acc['visible']) / area) * 1000 / max(1, elapsed)
+                        measures[selector].append({'start': acc['start'], 'end': frame['time'], 'visible_area_px': area,
+                                                   'changed_fraction_per_second': fraction})
+                    accumulated.pop(selector)
+        previous = pixels
+    for selector, acc in accumulated.items():
+        elapsed = frames[-1]['time'] - acc['start']
+        area = int(acc['visible'].sum())
+        if elapsed > 0 and area:
+            fraction = float(np.count_nonzero(acc['changed'] & acc['visible']) / area) * 1000 / elapsed
+            measures[selector].append({'start': acc['start'], 'end': frames[-1]['time'], 'visible_area_px': area,
+                                       'changed_fraction_per_second': fraction})
+    out = []
+    step['perceptibility'] = []
+    for selector, intervals in measures.items():
+        observed = sum(m['end'] - m['start'] for m in intervals)
+        quiet = longest = hold = 0
+        quiet_start = quiet_end = None
+        for m in intervals:
+            dt = m['end'] - m['start']
+            if m['changed_fraction_per_second'] < WATCH_AREA:
+                quiet += dt
+                hold += dt
+                if hold > longest:
+                    longest = hold
+                    quiet_start, quiet_end = m['end'] - hold, m['end']
+            else:
+                hold = 0
+        metrics = dict(observed_ms=observed, quiet_fraction=quiet / max(1, observed), longest_quiet_ms=longest,
+                       area_threshold=WATCH_AREA, intervals=intervals)
+        step['perceptibility'].append(dict(selector=selector, **metrics))
+        if observed < WATCH_MS - 100 or observed > WATCH_MS + 1000 or len(intervals) < 9:
+            out.append(finding('unmeasured-narrative', 'narrative layer needs ten seconds continuously visible at the capture cadence',
+                               selector, metrics, rect=regions[selector]['rect']))
+        elif quiet / observed >= WATCH_QUIET:
+            out.append(finding('imperceptible-narrative',
+                               f'{quiet / observed:.0%} of ten seconds below {WATCH_AREA:.0%} changed area/s; longest quiet stretch {longest / 1000:.1f}s',
+                               selector, metrics, severity='block' if regions[selector]['sustained'] else 'review',
+                               rect=regions[selector]['rect'], start=quiet_start, end=quiet_end))
+    return out
+
+
+def pointer_findings(pointers):
+    np, _ = dependencies()
+    out = []
+    for pointer in pointers:
+        samples = np.asarray(pointer['samples'], dtype=float)
+        if len(samples) < 2:
+            continue
+        times, positions = samples[:, 0], samples[:, 1:3]
+        measured = 0
+        windows = []
+        for start in np.arange(times[0], times[-1] - POINTER_WINDOW_MS + 1, 250):
+            mask = (times >= start) & (times <= start + POINTER_WINDOW_MS)
+            t, xy = times[mask], positions[mask]
+            if len(t) < 12 or t[-1] - t[0] < 800:
+                continue
+            # Gaps can hide reversals but cannot invent observed ones. Sparse traces
+            # may prove jitter; only well resolved windows can establish its absence.
+            measured += int(len(t) >= 20 and np.max(np.diff(t)) <= 75)
+            span = float(np.max(np.ptp(xy, axis=0)))
+            net = float(np.linalg.norm(xy[-1] - xy[0]))
+            if span > 6 or net > 3:
+                continue  # Deliberate reaches and drags are not resting windows.
+            rates = []
+            for axis in xy.T:
+                direction = 0
+                extreme = axis[0]
+                reversals = 0
+                for value in axis[1:]:
+                    delta = value - extreme
+                    if not direction:
+                        if abs(delta) >= POINTER_EXCURSION:
+                            direction = 1 if delta > 0 else -1
+                            extreme = value
+                    elif direction * delta >= 0:
+                        extreme = value
+                    elif abs(delta) >= POINTER_EXCURSION:
+                        reversals += 1
+                        direction = -direction
+                        extreme = value
+                rates.append(reversals * 1000 / (t[-1] - t[0]))
+            rate = max(rates)
+            if span >= .2 and rate > POINTER_REVERSALS_HZ:
+                sample = samples[mask][0]
+                sx, sy = sample[3:5] if len(sample) >= 5 else (0, 0)
+                windows.append(dict(start=float(t[0]), end=float(t[-1]), reversals_per_second=rate,
+                                    span_px=span, net_px=net, samples=len(t),
+                                    rect=[float(xy[0, 0] - sx), float(xy[0, 1] - sy), *pointer['rect'][2:]]))
+        pointer['measurement'] = dict(samples=len(times), resolved_windows=measured,
+                                      median_interval_ms=float(np.median(np.diff(times))),
+                                      longest_interval_ms=float(np.max(np.diff(times))))
+        if not measured and not windows and times[-1] - times[0] >= POINTER_WINDOW_MS:
+            out.append(finding('unmeasured-pointer', 'trajectory cadence cannot resolve resting jitter; capture again on a renderer with sufficient cadence',
+                               pointer['selector'], pointer['measurement'], rect=pointer['rect']))
+        if windows:
+            worst = max(windows, key=lambda w: w['reversals_per_second'])
+            out.append(finding('pointer-jitter',
+                               f"{worst['reversals_per_second']:.1f} direction reversals/s at rest, span {worst['span_px']:.2f}px, net travel {worst['net_px']:.2f}px",
+                               pointer['selector'], dict(worst, windows=len(windows)), severity='block',
+                               rect=worst['rect'], start=worst['start'], end=worst['end']))
+    return out
+
+
 def episode_findings(energies, times, boxes):
     if not energies or max(energies) == 0:
         return []
@@ -541,6 +699,8 @@ def analyse_run(run, tokens, out_dir):
         step['energy'] = energies
         step['moving_boxes'] = boxes
         if not run['reduced']:
+            leads.extend(narrative_findings(step))
+            leads.extend(pointer_findings(step.get('pointers', [])))
             for hover in step.get('hovers', []):
                 if hover['fraction'] > .03 + 1e-6:
                     leads.append(finding('hover-movement', f"hover translates or scales by {hover['fraction']:.1%}, above 3%",

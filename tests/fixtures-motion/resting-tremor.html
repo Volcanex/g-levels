@@ -1,0 +1,14 @@
+<!doctype html><meta charset="utf-8"><title>Watched field that reads as still and a trembling pointer</title>
+<style>
+body{margin:0;background:#111}
+#field{position:fixed;inset:0;background:repeating-linear-gradient(90deg,#122 0 12px,#48a 12px 24px);animation:hold 30s linear infinite}
+@keyframes hold{from{opacity:1}to{opacity:1}}
+.presence-ptr{position:absolute;width:12px;height:18px;background:white}
+</style>
+<div id="field" data-motion="narrative"></div><div id="pointer" class="presence-ptr"></div>
+<script>
+const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function frame(now){const t=now/1000;
+pointer.style.transform=`translate(${100+(reduced?0:.35*Math.sin(2*Math.PI*9*t)+1.8*Math.sin(2*t))}px,100px)`;
+requestAnimationFrame(frame)}requestAnimationFrame(frame);
+</script>

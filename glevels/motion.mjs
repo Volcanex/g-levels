@@ -37,6 +37,51 @@ function instrument({ selectors, seed }) {
   window.__motion = state;
   state.interactions = [];
   state.hovers = [];
+  const pointers = new Map();
+  state.pointers = pointers;
+  const pointerSelector = '[data-motion="pointer"], .presence-ptr, .lp-hand, [class*="cursor"], [class*="caret"]';
+  const visibleRect = el => {
+    const r = el.getBoundingClientRect();
+    if (!r.width || !r.height || r.right <= 0 || r.bottom <= 0 || r.x >= innerWidth || r.y >= innerHeight) return null;
+    for (let n = el; n; n = n.parentElement) {
+      const cs = getComputedStyle(n);
+      if (cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity) < .05) return null;
+    }
+    return [r.x, r.y, r.width, r.height];
+  };
+  state.graphic = el => {
+    if (el.textContent.trim()) return false;
+    const cs = getComputedStyle(el);
+    return el.matches('canvas, img, video, svg') || !!el.querySelector('canvas, img, video, svg') ||
+      cs.backgroundImage !== 'none' || !['transparent', 'rgba(0, 0, 0, 0)'].includes(cs.backgroundColor);
+  };
+  state.watched = () => [...document.querySelectorAll(selectors.join(','))].flatMap(el => {
+    const rect = visibleRect(el);
+    if (!rect) return [];
+    // A completed log/reveal need not keep moving. Watched graphics and ongoing loops do.
+    const sustained = document.getAnimations({ subtree: true }).some(a =>
+      a.playState === 'running' && a.effect?.target === el &&
+      (a.effect.getTiming().iterations === Infinity || a.effect.getComputedTiming().activeDuration >= 10000));
+    // Foreground media/text cannot demonstrate that a layer behind them moves.
+    // Keep them painted in the capture; exclude only their footprints in analysis.
+    const above = other => {
+      const ancestry = n => { const a = []; for (; n; n = n.parentElement) a.unshift(n); return a; };
+      const a = ancestry(el), b = ancestry(other);
+      let i = 0;
+      while (a[i] && a[i] === b[i]) i++;
+      const az = parseFloat(getComputedStyle(a[i]).zIndex) || 0;
+      const bz = parseFloat(getComputedStyle(b[i]).zIndex) || 0;
+      return az !== bz ? bz > az : !!(el.compareDocumentPosition(other) & Node.DOCUMENT_POSITION_FOLLOWING);
+    };
+    const foreground = [...document.querySelectorAll('canvas, img, video, iframe, svg, h1, h2, h3, p, button, input, textarea, ' + pointerSelector)]
+      .flatMap(n => {
+        if (el.contains(n) || n.contains(el) || !above(n)) return [];
+        const r = visibleRect(n);
+        if (!r || n.matches(pointerSelector) && (r[2] > 200 || r[3] > 200)) return [];
+        return [r];
+      });
+    return [{ selector: describe(el), rect, foreground, sustained, graphic: state.graphic(el) }];
+  });
   const restRects = new WeakMap();
   const hoverVector = el => {
     const cs = getComputedStyle(el), m = new DOMMatrix(cs.transform === 'none' ? undefined : cs.transform);
@@ -190,6 +235,13 @@ function instrument({ selectors, seed }) {
   };
   function tick() {
     state.raf.push(now());
+    for (const el of document.querySelectorAll(pointerSelector)) {
+      const rect = visibleRect(el);
+      if (!rect || rect[2] > 200 || rect[3] > 200) continue;
+      if (!pointers.has(el)) pointers.set(el, { selector: describe(el), rect, samples: [] });
+      // Document coordinates keep a scroll from becoming a simulated pointer movement.
+      pointers.get(el).samples.push([now(), rect[0] + scrollX, rect[1] + scrollY, scrollX, scrollY]);
+    }
     collect();
     scan();
     for (const el of document.querySelectorAll('button, input, summary, [role="button"], [data-hover], a')) {
@@ -388,12 +440,13 @@ async function capture(browser, reduced) {
   page.on('dialog', dialog => dialog.dismiss());
   const result = { reduced, steps: [], errors: [], capture: page.screencast ? 'playwright-screencast-disk' : 'cdp-screencast-disk' };
   page.on('pageerror', error => result.errors.push(String(error)));
-  let step = null, cdp = null;
+  let step = null, cdp = null, lastFrame = null;
   const append = (data, time) => {
     if (!step) return;
     const file = path.join(step.directory, `frame-${String(step.captured++).padStart(6, '0')}.jpg`);
     fs.writeFileSync(file, data);
     step.frames.push({ file, time });
+    lastFrame = { file, time };
   };
   async function finish() {
     if (!step) return;
@@ -408,11 +461,12 @@ async function capture(browser, reduced) {
       const encoded = spawnSync('ffmpeg', ['-v', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', list, '-c:v', 'libvpx-vp9', '-threads', '1', '-pix_fmt', 'yuv420p', step.video], { encoding: 'utf8' });
       if (encoded.status) throw new Error(`ffmpeg: ${encoded.stderr}`);
     }
-    const telemetry = await page.evaluate(selectors => {
+    const telemetry = await page.evaluate(({ selectors, stepStart, stepEnd }) => {
       const s = window.__motion;
       if (!s) return { raf: [], events: [], loaf: [], loafSupported: false, smoothScroll: [] };
       s.collect();
       return { raf: s.raf, events: s.events, interactions: s.interactions,
+        pointers: [...s.pointers.values()].map(p => ({ ...p, samples: p.samples.filter(v => v[0] >= stepStart && v[0] <= stepEnd) })),
         hovers: s.hovers.map(({ target, ...h }) => h), loaf: s.loaf, loafSupported: s.loafSupported,
         narrativeRegions: [...document.querySelectorAll(selectors.join(','))].map(el => {
           const r = el.getBoundingClientRect();
@@ -421,7 +475,7 @@ async function capture(browser, reduced) {
         firstPaint: performance.timeOrigin + (performance.getEntriesByName('first-paint')[0]?.startTime || 0),
         smoothScroll: [...document.querySelectorAll('*')].filter(el => getComputedStyle(el).scrollBehavior === 'smooth' &&
           (el.scrollHeight > el.clientHeight || el.scrollWidth > el.clientWidth)).map(s.describe) };
-    }, ['[data-motion="narrative"]', ...config.narrative]);
+    }, { selectors: ['[data-motion="narrative"]', ...config.narrative], stepStart: step.start, stepEnd: step.end });
     Object.assign(step, telemetry, { raf: telemetry.raf.filter(t => t >= step.start && t <= step.end),
       events: telemetry.events.filter(e => e.time > Math.max(step.start, telemetry.firstPaint || 0) && e.time <= step.end),
       hovers: telemetry.hovers.filter(h => h.time <= step.end && h.end >= step.start),
@@ -452,6 +506,32 @@ async function capture(browser, reduced) {
       await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 100, maxWidth: config.viewport.width, maxHeight: config.viewport.height, everyNthFrame: 1 });
     }
   }
+  async function perceptibility() {
+    if (reduced) return;
+    // Let entrances settle. The measurement itself always spans ten real seconds;
+    // --duration cannot shorten it. Screenshots retain the complete composition.
+    const candidate = await page.evaluate(selectors =>
+      [...document.querySelectorAll(selectors.join(','))].some(window.__motion.graphic) ||
+      window.__motion?.watched().some(r => r.sustained) || window.__motion?.pointers.size > 0,
+      ['[data-motion="narrative"]', ...config.narrative]);
+    if (!candidate) return;
+    await page.waitForTimeout(2500);
+    const needed = await page.evaluate(() => window.__motion?.watched().some(r => r.sustained || r.graphic) || window.__motion?.pointers.size > 0);
+    if (!needed) throw new Error('watched graphics never became visible; provide a script or longer load observation');
+    await mark('perceptibility');
+    step.watchedFrames = [];
+    const start = Date.now();
+    for (let i = 0; i <= 40; i++) {
+      await page.waitForTimeout(Math.max(0, start + i * 250 - Date.now()));
+      const regions = await page.evaluate(() => window.__motion.watched());
+      if (!lastFrame) throw new Error('no composed frame available for perceptibility');
+      // Reuse the full-viewport stream. A compositor need not emit another frame
+      // while still; repeating its last paint is then the visible evidence.
+      const file = path.join(step.directory, `watched-${i}.jpg`);
+      fs.copyFileSync(lastFrame.file, file);
+      step.watchedFrames.push({ file, time: Date.now(), paintedAt: lastFrame.time, regions });
+    }
+  }
   try {
     await mark('load');
     const response = await page.goto(config.target, { waitUntil: 'load', timeout: 30000 });
@@ -472,7 +552,11 @@ async function capture(browser, reduced) {
       if (typeof script !== 'function') throw new Error('interaction script must default export async (page, mark)');
       await script(page, mark);
       await page.waitForTimeout(config.duration);
-    } else await automatic(page, mark);
+      await perceptibility();
+    } else {
+      await perceptibility();
+      await automatic(page, mark);
+    }
     await finish();
     return result;
   } finally {
