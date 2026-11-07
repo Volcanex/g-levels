@@ -18,11 +18,13 @@ from .pages import PageInputs, uses_pages
 LOG = Path(os.environ.get("GLEVELS_LOG", registry.ROOT / "var" / "results.jsonl"))
 
 
-def record(gate, version, charter, repo, rel, result, note="", by=None):
+def record(gate, version, charter, repo, rel, result, note="", by=None, candidate=None):
     LOG.parent.mkdir(parents=True, exist_ok=True)
     row = {"ts": datetime.datetime.now().isoformat(timespec="seconds"), "gate": gate, "version": version,
            "charter": charter, "repo": repo, "path": rel, "result": result, "note": note,
            "by": by or os.environ.get("GLEVELS_BY", "agent")}
+    if candidate is not None:
+        row["candidate"] = candidate
     row["id"] = row_id(row)
     with LOG.open("a") as f:
         f.write(json.dumps(row) + "\n")
@@ -59,6 +61,30 @@ def fill(cmd, **values):
     for k, v in values.items():
         cmd = cmd.replace("{" + k + "}", str(v))
     return cmd
+
+
+def candidate_id(repo):
+    """Bind a review to the working files, including staged and untracked changes."""
+    listed = subprocess.run(["git", "-C", str(repo), "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+                            capture_output=True)
+    names = (set(os.fsdecode(name) for name in listed.stdout.split(b"\0") if name) if not listed.returncode else
+             {str(p.relative_to(repo)) for p in repo.rglob("*") if p.is_file() or p.is_symlink()})
+    digest = hashlib.sha256(os.fsencode(repo.resolve()))
+    try:
+        for name in sorted(names):
+            path = repo / name
+            if path.resolve() == LOG.resolve():
+                continue
+            digest.update(os.fsencode(name) + b"\0")
+            if not path.exists() and not path.is_symlink():
+                digest.update(b"deleted\0")
+                continue
+            digest.update(str(path.lstat().st_mode).encode() + b"\0")
+            digest.update(os.fsencode(os.readlink(path)) if path.is_symlink() else path.read_bytes())
+            digest.update(b"\0")
+    except OSError:
+        return None
+    return digest.hexdigest()
 
 
 def page_gate(gate, pages):
@@ -99,6 +125,8 @@ def run_sensor(gate, entry, repo, rel, pages=None):
                 for f in files_under(repo, rel, entry.get("paths", ["**"]))]
     else:
         runs = [(rel, subprocess.run(fill(cmd, repo=repo, path=repo / rel), shell=True, capture_output=True, text=True))]
+    if not runs:
+        return "impossible", "no inputs"
     fails = [(f, p) for f, p in runs if p.returncode]
     if not fails:
         return "met", f"{len(runs)} files"
@@ -129,6 +157,8 @@ def check_gates(a, gates, scoped, repo, rel, triggers, pages):
         if g.get("trigger", "every-run") not in triggers and not a.gate:
             continue
         tag = " (blocking)" if e.get("blocking") else ""
+        review = g["sensor"]["type"] == "review"
+        result = "met"
         if e["waiver"]:
             record(g["id"], g["version"], e["charter"], repo.name, rel, "waived", e["waiver"]["reason"])
             print(f"  waived     {g['id']}{tag}: {e['waiver']['reason']}")
@@ -136,7 +166,6 @@ def check_gates(a, gates, scoped, repo, rel, triggers, pages):
             # A review gate with a run command has a mechanical half: it runs here, and its catch is
             # logged, then the rubric still goes to an independent reviewer.
             result, out = run_sensor(g, e, repo, rel, pages)
-            review = g["sensor"]["type"] == "review"
             if result == "met":
                 if not review:
                     record(g["id"], g["version"], e["charter"], repo.name, rel, "met")
@@ -144,17 +173,29 @@ def check_gates(a, gates, scoped, repo, rel, triggers, pages):
                 if page_gate(g, pages) and out:
                     print("    " + out.replace("\n", "\n    "))
             else:
-                caught += result == "caught" or page_gate(g, pages) and result == "impossible"
+                caught += result in ("caught", "impossible")
                 record(g["id"], g["version"], e["charter"], repo.name, rel, result, out[:500])
                 print(f"  {result:<10} {g['id']}{tag}\n    fix: {g['remediation'].strip()}\n    {out.replace(chr(10), chr(10) + '    ')}")
-            if review:
-                print(f"  review     {g['id']}{tag}: {g['sensor']['rubric'].strip()}\n"
-                      f"    then: glevels record {g['id']} met|attempted|impossible {a.path} --honest \"...\"")
-        elif g["sensor"]["type"] == "review":
-            print(f"  review     {g['id']}{tag}: {g['sensor']['rubric'].strip()}\n"
-                  f"    then: glevels record {g['id']} met|attempted|impossible {a.path} --honest \"...\"")
-        else:
+        elif not review:
             print(f"  hook       {g['id']}{tag}: enforced at tool time by {g['sensor']['hook']}")
+        if review and not e["waiver"]:
+            if result == "met":
+                candidate = candidate_id(repo)
+                verdict = next((r for r in reversed(rows()) if candidate is not None
+                                and r.get("candidate") == candidate and r["gate"] == g["id"]
+                                and r["version"] == g["version"] and r["charter"] == e["charter"]
+                                and r["repo"] == repo.name and r["path"] == rel
+                                and r["by"] in ("reviewer", "gabriel") and r["result"] in registry.RESULTS), None)
+                if verdict is None:
+                    result, note = "attempted", f"missing independent review for {g['id']} on this candidate"
+                    record(g["id"], g["version"], e["charter"], repo.name, rel, result, note,
+                           by="agent", candidate=candidate)
+                else:
+                    result, note = verdict["result"], verdict["note"]
+                caught += result == "impossible" or bool(e.get("blocking") and result != "met")
+                print(f"  {result:<10} {g['id']}{tag}: {note}")
+            print(f"  review     {g['id']}{tag}: {g['sensor']['rubric'].strip()}\n"
+                  f"    then: glevels record {g['id']} met|attempted|impossible {a.path} --by reviewer --honest \"...\"")
     print(f"\nEvery gate: {registry.HONESTY}")
     return 1 if caught else 0
 
@@ -174,7 +215,9 @@ def cmd_record(a):
     if entry is None:
         sys.exit(f"{a.gate} is not in scope at {a.path} (charter {cid})")
     note = " | ".join(x for x in (a.note, a.honest and f"honest: {a.honest}") if x)
-    record(a.gate, gates[a.gate]["version"], entry["charter"], repo.name, rel, a.result, note, by=a.by)
+    candidate = candidate_id(repo) if gates[a.gate]["sensor"]["type"] == "review" else None
+    record(a.gate, gates[a.gate]["version"], entry["charter"], repo.name, rel, a.result, note, by=a.by,
+           candidate=candidate)
     if a.result == "impossible":
         print("recorded. impossible does not ship: tell Gabriel, or raise it at charter review if the charter allows")
     return 0
