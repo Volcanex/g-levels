@@ -1,0 +1,67 @@
+id = "correct.content.figure-truth"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-assets"
+principle = "An explanatory figure tells the truth about the system it explains. Its containment, public and private boundaries, connections and meaningful front-to-back relationships agree with the specification and its captions."
+guidance = """
+Load g-assets for how the figure is made and sourced. Before drawing a system, list
+the relationships it must explain and their sources in the product's specification
+and contracts. Distinguish deployment containment, access boundaries and public
+interfaces: a publicly reachable service can still execute in a sandbox through
+controlled ingress. Make clear which kind of boundary each enclosure represents.
+Keep public outputs distinguishable from private working copies and client devices
+from hosted services. A line, enclosing wall, port or overlapping object makes a
+claim even without a label. Draw only supported relationships and keep captions,
+labels and every revealed state consistent with them. Simplification and cutaways
+are allowed when they preserve those relationships. Provenance and attractive
+geometry alone do not establish that a figure is true. Supply full-size renders,
+captions and the specification to an independent reviewer.
+"""
+pass = "met: the independent reviewer opened every figure and explanatory state at full size, listed every visible relationship, and reconciled each with the specification and captions, with no false or unsupported relationship left. attempted: the review is complete but names each false, unsupported or ambiguous containment, boundary, connection or meaningful overlap, with image and source evidence. impossible: the figure, a required state, captions or authoritative model cannot be inspected; name what is missing."
+remediation = "For each finding, correct the figure's relationship and its captions together: move the public interface across the private boundary, show the enclosing host, distinguish a deployed runtime from its public endpoint, or remove an invented connection as the specification requires. Use a labelled cutaway or legend when a literal enclosure would hide the mechanism. Fix the generator as well as its output. Do not relabel a false model as an example, hide a revealing state or change the specification to excuse the picture. Render again and repeat the full claims review."
+written_against = { model = "gpt-6 (Codex)", date = "2026-11-07" }
+
+[sensor]
+type = "review"
+rubric = """
+You did not build the figure. Use a strong model capable of judging images and
+reasoning about system boundaries; a text-only or thumbnail review is insufficient.
+1. Identify the figure, its revision, generator, captions and authoritative model.
+   Read the product specification and contracts (in g-studio, agents/spec.md and
+   agents/contracts.md), not just the generator's comments or the worker's account.
+   If required evidence is missing, record impossible with the missing input.
+2. Render vector figures in a browser at their full intrinsic or viewBox size and
+   open the resulting PNGs at full resolution. Also inspect the figure with its
+   captions at its displayed size. Inspect every explanatory reveal or tour state;
+   record image paths and states. Never decide from source alone or a contact sheet.
+3. Before accepting the captions' explanation, inventory what the picture says:
+   what contains what; which boundary is physical, private, public or an access
+   boundary; what is inside and outside each; what connects to what, through which
+   port and in which direction if shown; and what is drawn in front of what where
+   overlap implies attachment, entry or containment. Include unlabelled walls,
+   floors, lines and objects. Separate visual claims from inferred author intent.
+4. Reconcile EVERY claim, not a sample. For each write: visible claim, image/state
+   and region, specification/contract section or line, caption/label, and verdict
+   (supported, contradicted, unsupported or ambiguous). Check that all three agree.
+   In particular, does a public website or client app read as private work inside
+   a sealed workspace? Does a hosted sandbox read as inside its servers, or merely
+   beside racks? Does a connector appear to bypass the access boundary? Public
+   reachability alone does not prove a process runs outside a sandbox: distinguish
+   the endpoint from the runtime using the model and the drawing's own labels.
+5. Abstraction is allowed: a plinth or an open cutaway need not be a literal room,
+   and an isolated feature vignette need not explain the whole deployment. Judge
+   only relationships it asserts, using its labels, caption and visible enclosure.
+   An omitted unrelated component is not an invented relationship. Conversely, a
+   caption cannot rescue a picture that visibly asserts the opposite. A misleading
+   overlap belongs here when it changes the model; geometric occlusion alone is
+   checked by the rendering gates. Record the closest call on a clean figure.
+6. Return the complete claims list and evidence. Record met only when every claim
+   is supported; otherwise attempted with each contradiction, unsupported relation
+   or ambiguity and the correction needed. Say whether the figure meets the
+   principle, rather than merely having plausible labels and tidy geometry.
+"""
+
+[origin]
+date = "2026-11-07"
+incident = "G-Studio's landing diagram passed look reviews while putting public website and app surfaces inside the private sandbox and depicting its hosting servers as neighbouring racks rather than an enclosing host."
