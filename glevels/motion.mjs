@@ -62,6 +62,7 @@ function instrument({ selectors, seed }) {
   }, true);
   const collect = () => {
     for (const animation of document.getAnimations({ subtree: true })) {
+      if (animation.timeline && !(animation.timeline instanceof DocumentTimeline)) continue;
       const effect = animation.effect;
       const target = effect?.target;
       if (!(target instanceof Element)) continue;
