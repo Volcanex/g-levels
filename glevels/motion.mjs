@@ -13,7 +13,7 @@ const config = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
 const FRAME_MS = 1000 / 60; // Seek at display cadence, independently of the renderer.
 const MAX_SAMPLE_MS = 60000; // Bound pathological declarations; flag incomplete measurements.
 
-function instrument({ selectors, seed }) {
+function instrument({ selectors, pointerSelectors, seed }) {
   if (seed !== null && seed !== undefined) {
     let value = seed >>> 0;
     Math.random = () => {
@@ -39,7 +39,7 @@ function instrument({ selectors, seed }) {
   state.hovers = [];
   const pointers = new Map();
   state.pointers = pointers;
-  const pointerSelector = '[data-motion="pointer"], .presence-ptr, .lp-hand, [class*="cursor"], [class*="caret"]';
+  const pointerSelector = ['[data-motion="pointer"]', ...pointerSelectors].join(',');
   const visibleRect = el => {
     const r = el.getBoundingClientRect();
     if (!r.width || !r.height || r.right <= 0 || r.bottom <= 0 || r.x >= innerWidth || r.y >= innerHeight) return null;
@@ -55,13 +55,50 @@ function instrument({ selectors, seed }) {
     return el.matches('canvas, img, video, svg') || !!el.querySelector('canvas, img, video, svg') ||
       cs.backgroundImage !== 'none' || !['transparent', 'rgba(0, 0, 0, 0)'].includes(cs.backgroundColor);
   };
+  // Repeated writes/draws inside page rAF callbacks establish an ongoing loop,
+  // even when it has no CSS/WAAPI declaration. Entrances expire after a second.
+  const activity = new WeakMap();
+  const noteActivity = el => {
+    const root = el?.closest(selectors.join(','));
+    if (!root) return;
+    const t = now(), old = activity.get(root);
+    if (!old || t - old.last >= 1) activity.set(root, { last: t, previous: old?.last });
+  };
+  const writes = new MutationObserver(() => {});
+  writes.observe(document, { subtree: true, childList: true, characterData: true, attributes: true });
+  const raf = window.requestAnimationFrame.bind(window);
+  let inFrame = false;
+  window.requestAnimationFrame = callback => raf(time => {
+    writes.takeRecords();
+    inFrame = true;
+    try { callback(time); }
+    finally {
+      inFrame = false;
+      for (const r of writes.takeRecords()) noteActivity(r.target instanceof Element ? r.target : r.target.parentElement);
+    }
+  });
+  for (const name of ['clearRect', 'fillRect', 'strokeRect', 'drawImage', 'putImageData', 'fill', 'stroke', 'fillText', 'strokeText']) {
+    const draw = CanvasRenderingContext2D.prototype[name];
+    CanvasRenderingContext2D.prototype[name] = function (...args) {
+      if (inFrame) noteActivity(this.canvas);
+      return draw.apply(this, args);
+    };
+  }
+  state.unmeasured = () => [...document.querySelectorAll(selectors.join(','))]
+    .filter(el => !visibleRect(el)).map(describe);
+  state.hasPointers = () => [...document.querySelectorAll(pointerSelector)].some(el => {
+    const r = visibleRect(el);
+    return r && r[2] <= 200 && r[3] <= 200;
+  });
   state.watched = () => [...document.querySelectorAll(selectors.join(','))].flatMap(el => {
     const rect = visibleRect(el);
     if (!rect) return [];
     // A completed log/reveal need not keep moving. Watched graphics and ongoing loops do.
-    const sustained = document.getAnimations({ subtree: true }).some(a =>
-      a.playState === 'running' && a.effect?.target === el &&
-      (a.effect.getTiming().iterations === Infinity || a.effect.getComputedTiming().activeDuration >= 10000));
+    const recent = activity.get(el);
+    const sustained = !!(recent?.previous && now() - recent.last < 1000 && recent.last - recent.previous < 1000) ||
+      document.getAnimations({ subtree: true }).some(a =>
+        a.playState === 'running' && a.effect?.target && el.contains(a.effect.target) &&
+        (a.effect.getTiming().iterations === Infinity || a.effect.getComputedTiming().activeDuration >= 10000));
     // Foreground media/text cannot demonstrate that a layer behind them moves.
     // Keep them painted in the capture; exclude only their footprints in analysis.
     const above = other => {
@@ -233,8 +270,9 @@ function instrument({ selectors, seed }) {
     state.events.push(...[...grouped.values()].map(({ units, ...event }) => ({ ...event, count: units.size })));
     initialized = true;
   };
-  function tick() {
-    state.raf.push(now());
+  // A separate timer avoids tying pointer evidence to the sensor's rAF scans.
+  // Host stalls are still possible; unresolved windows remain review leads.
+  setInterval(() => {
     for (const el of document.querySelectorAll(pointerSelector)) {
       const rect = visibleRect(el);
       if (!rect || rect[2] > 200 || rect[3] > 200) continue;
@@ -242,6 +280,9 @@ function instrument({ selectors, seed }) {
       // Document coordinates keep a scroll from becoming a simulated pointer movement.
       pointers.get(el).samples.push([now(), rect[0] + scrollX, rect[1] + scrollY, scrollX, scrollY]);
     }
+  }, 16);
+  function tick() {
+    state.raf.push(now());
     collect();
     scan();
     for (const el of document.querySelectorAll('button, input, summary, [role="button"], [data-hover], a')) {
@@ -434,7 +475,8 @@ async function automatic(page, mark) {
 
 async function capture(browser, reduced) {
   const context = await browser.newContext({ viewport: config.viewport, deviceScaleFactor: 1, reducedMotion: reduced ? 'reduce' : 'no-preference' });
-  await context.addInitScript(instrument, { selectors: ['[data-motion="narrative"]', ...config.narrative], seed: config.seed });
+  await context.addInitScript(instrument, { selectors: ['[data-motion="narrative"]', ...config.narrative],
+    pointerSelectors: config.pointers || [], seed: config.seed });
   const page = await context.newPage();
   page.setDefaultTimeout(8000);
   page.on('dialog', dialog => dialog.dismiss());
@@ -510,14 +552,16 @@ async function capture(browser, reduced) {
     if (reduced) return;
     // Let entrances settle. The measurement itself always spans ten real seconds;
     // --duration cannot shorten it. Screenshots retain the complete composition.
-    const candidate = await page.evaluate(selectors =>
-      [...document.querySelectorAll(selectors.join(','))].some(window.__motion.graphic) ||
-      window.__motion?.watched().some(r => r.sustained) || window.__motion?.pointers.size > 0,
-      ['[data-motion="narrative"]', ...config.narrative]);
+    step.unmeasuredNarrative = await page.evaluate(() => window.__motion.unmeasured());
+    const candidate = await page.evaluate(() =>
+      window.__motion.watched().some(r => r.sustained || r.graphic) || window.__motion.hasPointers());
     if (!candidate) return;
     await page.waitForTimeout(2500);
-    const needed = await page.evaluate(() => window.__motion?.watched().some(r => r.sustained || r.graphic) || window.__motion?.pointers.size > 0);
-    if (!needed) throw new Error('watched graphics never became visible; provide a script or longer load observation');
+    const needed = await page.evaluate(() => window.__motion.watched().some(r => r.sustained || r.graphic) || window.__motion.hasPointers());
+    if (!needed) {
+      step.unmeasuredNarrative = await page.evaluate(() => window.__motion.unmeasured());
+      return;
+    }
     await mark('perceptibility');
     step.watchedFrames = [];
     const start = Date.now();
@@ -538,7 +582,7 @@ async function capture(browser, reduced) {
     if (response && response.status() >= 400) throw new Error(`HTTP ${response.status()}`);
     await page.evaluate(selectors => {
       for (const s of selectors) document.querySelector(s);
-    }, config.narrative);
+    }, [...config.narrative, ...(config.pointers || [])]);
     const paint = await page.evaluate(() => performance.timeOrigin + (performance.getEntriesByName('first-paint')[0]?.startTime || 0));
     step.eventStart = paint;
     step.loadEnd = await page.evaluate(() => performance.timeOrigin + (performance.getEntriesByType('navigation')[0]?.loadEventEnd || 0));

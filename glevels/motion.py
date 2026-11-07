@@ -1,7 +1,7 @@
 """Sensor: motion rhythm, with evidence for gate correct.motion.rhythm.
 
     python3 glevels/motion.py [--out DIR] [--json] [--script SCRIPT.mjs]
-        [--narrative SELECTOR]... [--tokens tokens.css] [--viewport WxH]
+        [--narrative SELECTOR]... [--pointer SELECTOR]... [--tokens tokens.css] [--viewport WxH]
         [--duration MS] [--seed N] TARGET
 
 TARGET uses spacing.resolve: a URL, HTML served with its relative assets, or a
@@ -12,8 +12,10 @@ is the observation window after load, each automatic action, and script return;
 30+ second windows are supported with frames streamed to disk, not held in RAM.
 Visible watched graphics and ongoing narrative loops also receive a fixed ten-
 second observation, sampled four times per second from the full composed stream.
-Small pointers/carets/hands are traced on rAF to distinguish resting jitter from
-deliberate travel. Short --duration values do not shorten these measurements.
+Explicit pointers are sampled by a 16 ms timer to distinguish resting jitter from
+deliberate travel. Extra selectors use --pointer or GLEVELS_POINTER_SELECTORS (a
+JSON list). Sparse traces and offscreen graphics remain unmeasured review leads.
+Short --duration values do not shorten these measurements.
 --seed N replaces Math.random before page scripts, in both fresh contexts.
 Normal and reduced-motion runs use the real clock. Declared animations are then
 paused and sought separately. findings.json, per-step videos and consecutive,
@@ -42,7 +44,7 @@ except ImportError:
 
 HERE = Path(__file__).resolve().parent
 TOKENS = Path('/home/gabriel/g-design/packages/g-tokens/dist/tokens.css')
-LOCK = Path(os.environ.get('GSPACING_LOCK', '/tmp/g-studio-browser.lock'))
+LOCK = Path(os.environ.get('GSPACING_LOCK', '/tmp/glevels-browser.lock'))
 MIN_FREE_MB = 600  # Chromium needs headroom on this shared host.
 FRAME_MS = 1000 / 60  # Measure travel in nominal display frames, independent of host speed.
 VISUAL_TRAVEL = .98  # Sub-pixel spring settling is outside the visible duration.
@@ -353,6 +355,8 @@ def narrative_findings(step):
     regions = {r['selector']: r for r in frames[0]['regions']}
     measures = {selector: [] for selector in regions}
     accumulated = {}
+    references = {}
+    reference_times = {selector: frames[0]['time'] for selector in regions}
     previous = None
     for index, frame in enumerate(frames):
         with Image.open(frame['file']) as im:
@@ -364,6 +368,8 @@ def narrative_findings(step):
             for selector, region in regions.items():
                 if selector not in current or selector not in prior:
                     accumulated.pop(selector, None)
+                    references[selector] = pixels.copy()
+                    reference_times[selector] = frame['time']
                     continue
                 x, y, w, h = region['rect']
                 other = current[selector]['rect']
@@ -380,9 +386,27 @@ def narrative_findings(step):
                                 max(0, math.floor(fx) - left):max(0, min(right, math.ceil(fx + fw)) - left)] = False
                 mask = np.zeros_like(diff)
                 mask[top:bottom, left:right] = visible
+                # Retain gradual drift from the window's first frame. Require
+                # coherent colour travel across the visible region at the same
+                # 8/255 floor: accumulating texture noise is not visible drift.
+                reference = references[selector]
+                reference[diff] = pixels[diff]
+                drift = pixels - reference
+                gradual = np.zeros_like(diff)
+                if mask.any() and np.max(np.abs(drift[mask].mean(axis=0))) >= PIXEL_DIFF:
+                    gradual = np.max(np.abs(drift), axis=2) >= PIXEL_DIFF
+                    # Confirm the slow travel over its whole accumulated span,
+                    # rather than turning it into a pulse at the threshold.
+                    elapsed = frame['time'] - reference_times[selector]
+                    rate = np.count_nonzero(gradual & mask) / mask.sum() * 1000 / max(1, elapsed)
+                    for interval in measures[selector]:
+                        if interval['end'] > reference_times[selector]:
+                            interval['changed_fraction_per_second'] = max(interval['changed_fraction_per_second'], float(rate))
+                    references[selector] = pixels.copy()
+                    reference_times[selector] = frame['time']
                 acc = accumulated.setdefault(selector, dict(start=frames[index - 1]['time'],
                     changed=np.zeros_like(diff), visible=np.ones_like(diff)))
-                acc['changed'] |= diff
+                acc['changed'] |= diff | gradual
                 acc['visible'] &= mask
                 elapsed = frame['time'] - acc['start']
                 if elapsed >= 950:
@@ -392,6 +416,8 @@ def narrative_findings(step):
                         measures[selector].append({'start': acc['start'], 'end': frame['time'], 'visible_area_px': area,
                                                    'changed_fraction_per_second': fraction})
                     accumulated.pop(selector)
+        else:
+            references = {selector: pixels.copy() for selector in regions}
         previous = pixels
     for selector, acc in accumulated.items():
         elapsed = frames[-1]['time'] - acc['start']
@@ -425,7 +451,8 @@ def narrative_findings(step):
         elif quiet / observed >= WATCH_QUIET:
             out.append(finding('imperceptible-narrative',
                                f'{quiet / observed:.0%} of ten seconds below {WATCH_AREA:.0%} changed area/s; longest quiet stretch {longest / 1000:.1f}s',
-                               selector, metrics, severity='block' if regions[selector]['sustained'] else 'review',
+                               selector, metrics, severity='block' if any(r.get('sustained') for f in frames
+                                   for r in f['regions'] if r['selector'] == selector) else 'review',
                                rect=regions[selector]['rect'], start=quiet_start, end=quiet_end))
     return out
 
@@ -439,15 +466,15 @@ def pointer_findings(pointers):
             continue
         times, positions = samples[:, 0], samples[:, 1:3]
         measured = 0
+        unresolved = 0
         windows = []
         for start in np.arange(times[0], times[-1] - POINTER_WINDOW_MS + 1, 250):
             mask = (times >= start) & (times <= start + POINTER_WINDOW_MS)
             t, xy = times[mask], positions[mask]
-            if len(t) < 12 or t[-1] - t[0] < 800:
+            if len(t) < 20 or t[-1] - t[0] < 800 or np.max(np.diff(t)) > 75:
+                unresolved += 1
                 continue
-            # Gaps can hide reversals but cannot invent observed ones. Sparse traces
-            # may prove jitter; only well resolved windows can establish its absence.
-            measured += int(len(t) >= 20 and np.max(np.diff(t)) <= 75)
+            measured += 1
             span = float(np.max(np.ptp(xy, axis=0)))
             net = float(np.linalg.norm(xy[-1] - xy[0]))
             if span > 6 or net > 3:
@@ -478,12 +505,13 @@ def pointer_findings(pointers):
                                     span_px=span, net_px=net, samples=len(t),
                                     rect=[float(xy[0, 0] - sx), float(xy[0, 1] - sy), *pointer['rect'][2:]]))
         pointer['measurement'] = dict(samples=len(times), resolved_windows=measured,
+                                      unresolved_windows=unresolved,
                                       median_interval_ms=float(np.median(np.diff(times))),
                                       longest_interval_ms=float(np.max(np.diff(times))))
-        if not measured and not windows and times[-1] - times[0] >= POINTER_WINDOW_MS:
+        if (not measured or unresolved) and times[-1] - times[0] >= POINTER_WINDOW_MS:
             out.append(finding('unmeasured-pointer', 'trajectory cadence cannot resolve resting jitter; capture again on a renderer with sufficient cadence',
                                pointer['selector'], pointer['measurement'], rect=pointer['rect']))
-        if windows:
+        if measured and windows:
             worst = max(windows, key=lambda w: w['reversals_per_second'])
             out.append(finding('pointer-jitter',
                                f"{worst['reversals_per_second']:.1f} direction reversals/s at rest, span {worst['span_px']:.2f}px, net travel {worst['net_px']:.2f}px",
@@ -699,6 +727,8 @@ def analyse_run(run, tokens, out_dir):
         step['energy'] = energies
         step['moving_boxes'] = boxes
         if not run['reduced']:
+            leads.extend(finding('unmeasured-narrative', 'watched region is offscreen or hidden; provide a script that makes it visible',
+                                 selector) for selector in step.get('unmeasuredNarrative', []))
             leads.extend(narrative_findings(step))
             leads.extend(pointer_findings(step.get('pointers', [])))
             for hover in step.get('hovers', []):
@@ -774,6 +804,7 @@ def main():
     ap.add_argument('--json', action='store_true')
     ap.add_argument('--script')
     ap.add_argument('--narrative', action='append', default=[])
+    ap.add_argument('--pointer', action='append', default=[])
     ap.add_argument('--tokens', default=str(TOKENS))
     ap.add_argument('--viewport', default='1280x800')
     ap.add_argument('--duration', type=float, default=1000)
@@ -788,6 +819,9 @@ def main():
         if not re.fullmatch(r'[1-9]\d*x[1-9]\d*', a.viewport) or not math.isfinite(a.duration) or a.duration <= 0:
             raise ValueError('viewport must be WxH and duration must be positive milliseconds')
         tokens = parse_tokens(a.tokens)
+        pointer_selectors = json.loads(os.environ.get('GLEVELS_POINTER_SELECTORS') or '[]')
+        if not isinstance(pointer_selectors, list) or not all(isinstance(s, str) and s.strip() for s in pointer_selectors):
+            raise ValueError('GLEVELS_POINTER_SELECTORS must be a JSON list of selectors')
         script = Path(a.script).resolve() if a.script else None
         if script and not script.is_file():
             raise ValueError(f'no such interaction script: {script}')
@@ -804,7 +838,8 @@ def main():
             if mb < MIN_FREE_MB:
                 raise RuntimeError(f'only {mb} MB available, a browser needs {MIN_FREE_MB}')
             config = dict(target=target, out=str(out_dir), script=str(script) if script else None,
-                          narrative=a.narrative, viewport=dict(zip(('width', 'height'), map(int, a.viewport.split('x')))),
+                          narrative=a.narrative, pointers=[*pointer_selectors, *a.pointer],
+                          viewport=dict(zip(('width', 'height'), map(int, a.viewport.split('x')))),
                           duration=a.duration, seed=a.seed)
             config_path = out_dir / 'config.json'
             config_path.write_text(json.dumps(config))

@@ -269,7 +269,7 @@ def test_browser_failure_classes_and_clean_both_profiles(tmp_path, case):
     process = subprocess.run([sys.executable, str(Path(pacing.__file__)), "--repo", str(tmp_path), "--out", str(out), "--device", "none",
                               *(["--keep-traces"] if case == "clean" else [])],
                              env=dict(os.environ, PLAYWRIGHT_BROWSERS_PATH="/home/gabriel/.cache/ms-playwright",
-                                      GSPACING_LOCK="/tmp/g-studio-browser.lock"),
+                                      GSPACING_LOCK=os.environ.get("GSPACING_LOCK", "/tmp/glevels-browser.lock")),
                              capture_output=True, text=True, timeout=7200)
     assert process.returncode == (0 if case == "clean" else 1), process.stdout + process.stderr
     runs = json.loads((out / "findings.json").read_text())["runs"]

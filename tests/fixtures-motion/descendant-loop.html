@@ -1,0 +1,9 @@
+<!doctype html><meta charset="utf-8"><title>A small animated child in a watched graphic</title>
+<style>
+body{margin:0;background:#111}
+#field{width:400px;height:200px;background:#222}
+i{display:block;width:2px;height:200px;background:#eee;animation:pulse 2s ease-in-out infinite alternate}
+@keyframes pulse{to{opacity:.2}}
+@media(prefers-reduced-motion:reduce){i{animation:none}}
+</style>
+<div id="field" data-motion="narrative"><i></i></div>

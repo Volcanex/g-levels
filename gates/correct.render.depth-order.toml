@@ -1,18 +1,18 @@
 id = "correct.render.depth-order"
-version = 1
+version = 2
 kind = "correcting"
 trigger = "every-run"
 skill = "g-motion"
 principle = "An isometric painter never paints a face behind a face it covers. Decals and labels follow their supporting surface. Invalid depth order cannot cross the asset bake boundary."
-guidance = "Keep world-space face geometry through painting. For boxes with overlapping screen projections, derive back-to-front constraints from separation of their per-axis extents; a centroid may only break unrelated ties. Check every overlapping projected face pair along the isometric view ray, including decals and labels and pairs within a solid. Equal-depth overlays must follow their supporting face. A crossing that has no valid whole-face order needs split geometry or a corrected route. Run node web/scripts/landing-iso/check.mjs to bake the structure and feature models in memory, and --self-test to replay the regression cases. Scene.paintSolids also checks every real bake."
-pass = "met: both scenes bake in memory with no depth-order or support-order violation, every feature model passes, and the regression cases reject the original and a related fault while clean geometry passes. attempted: one scene was checked but another remains unchecked, naming it; no asset with a reported violation may ship. Missing source or an unavailable sensor is impossible."
+guidance = "Keep world-space face geometry through painting. For boxes with overlapping screen projections, derive back-to-front constraints from separation of their per-axis extents; a centroid may only break unrelated ties. Check every overlapping projected face pair along the isometric view ray, including decals and labels and pairs within a solid. Equal-depth overlays must follow their supporting face. A crossing that has no valid whole-face order needs split geometry or a corrected route. Name the repo-relative sensor script in .glevels/depth-order.json as {\"script\":\"path/to/check.mjs\"}. Run its default suite: all registered scenes, regression self-tests and byte comparisons against every committed SVG it generates. Keep the depth check at the asset bake boundary as well."
+pass = "met: the default suite checks all three scenes (structure, features and build), including every feature model, with no depth-order or support-order violation; its self-test rejects the original and differently shaped related faults and accepts clean geometry, and every generated SVG matches the committed bytes. Include a shipped, unrelated clean asset run before making the charter pin blocking. attempted: a scene, regression case or committed-asset comparison remains unchecked, naming it; no asset with a reported violation may ship. Missing source or an unavailable sensor is impossible."
 remediation = "Use the diagnostic's face IDs, solid IDs, planes and depth difference to locate the overlapping pair. Fix extent constraints if the solid sort is wrong. Otherwise split crossing faces or route the solid clear of the screen and its decals; keep overlays after their supporting surface. Rerun the same scene and the regression cases. Do not increase tolerances, ignore small overlaps, exclude decals or labels, or disable the bake check."
 written_against = { model = "gpt-6", date = "2026-11-07" }
 
 [sensor]
 type = "command"
 input = "files"
-run = "if test -f \"{repo}/web/scripts/landing-iso/check.mjs\"; then node \"{repo}/web/scripts/landing-iso/check.mjs\"; else echo 'Isometric depth-order sensor missing' >&2; exit 2; fi"
+run = "python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/depthorder.py \"{repo}\""
 cannot_run_exit = 2
 
 [origin]

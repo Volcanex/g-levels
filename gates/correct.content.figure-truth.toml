@@ -1,5 +1,5 @@
 id = "correct.content.figure-truth"
-version = 1
+version = 2
 kind = "correcting"
 trigger = "every-run"
 skill = "g-assets"
@@ -18,7 +18,7 @@ are allowed when they preserve those relationships. Provenance and attractive
 geometry alone do not establish that a figure is true. Supply full-size renders,
 captions and the specification to an independent reviewer.
 """
-pass = "met: the independent reviewer opened every figure and explanatory state at full size, listed every visible relationship, and reconciled each with the specification and captions, with no false or unsupported relationship left. attempted: the review is complete but names each false, unsupported or ambiguous containment, boundary, connection or meaningful overlap, with image and source evidence. impossible: the figure, a required state, captions or authoritative model cannot be inspected; name what is missing."
+pass = "met: the independent reviewer inspected the full figure and every explanatory state at full size, reconciled the relationship inventory with the specification and captions, and found each claim supported. attempted: the review names contradicted, unsupported or ambiguous relationships with image and source evidence; ambiguity is a review lead, not a blocking contradiction. Only a contradicted relationship blocks acceptance. A full system figure must record met on main before the charter makes this gate blocking; feature vignettes alone do not establish that calibration. impossible: the figure, a required state, captions or authoritative model cannot be inspected; name what is missing."
 remediation = "For each finding, correct the figure's relationship and its captions together: move the public interface across the private boundary, show the enclosing host, distinguish a deployed runtime from its public endpoint, or remove an invented connection as the specification requires. Use a labelled cutaway or legend when a literal enclosure would hide the mechanism. Fix the generator as well as its output. Do not relabel a false model as an example, hide a revealing state or change the specification to excuse the picture. Render again and repeat the full claims review."
 written_against = { model = "gpt-6 (Codex)", date = "2026-11-07" }
 
@@ -28,8 +28,8 @@ rubric = """
 You did not build the figure. Use a strong model capable of judging images and
 reasoning about system boundaries; a text-only or thumbnail review is insufficient.
 1. Identify the figure, its revision, generator, captions and authoritative model.
-   Read the product specification and contracts (in g-studio, agents/spec.md and
-   agents/contracts.md), not just the generator's comments or the worker's account.
+   Read the product specification and contracts, not just the generator's comments
+   or the worker's account.
    If required evidence is missing, record impossible with the missing input.
 2. Render vector figures in a browser at their full intrinsic or viewBox size and
    open the resulting PNGs at full resolution. Also inspect the figure with its
@@ -41,14 +41,11 @@ reasoning about system boundaries; a text-only or thumbnail review is insufficie
    port and in which direction if shown; and what is drawn in front of what where
    overlap implies attachment, entry or containment. Include unlabelled walls,
    floors, lines and objects. Separate visual claims from inferred author intent.
-4. Reconcile EVERY claim, not a sample. For each write: visible claim, image/state
-   and region, specification/contract section or line, caption/label, and verdict
-   (supported, contradicted, unsupported or ambiguous). Check that all three agree.
-   In particular, does a public website or client app read as private work inside
-   a sealed workspace? Does a hosted sandbox read as inside its servers, or merely
-   beside racks? Does a connector appear to bypass the access boundary? Public
-   reachability alone does not prove a process runs outside a sandbox: distinguish
-   the endpoint from the runtime using the model and the drawing's own labels.
+4. Reconcile the inventory from step 3. For each relationship write: visible claim,
+   image/state and region, specification/contract section or line, caption/label,
+   and verdict (supported, contradicted, unsupported or ambiguous). Inventory each
+   enclosure and boundary, connection and meaningful overlap once per distinct
+   explanatory state; repeated decorative marks are not separate system claims.
 5. Abstraction is allowed: a plinth or an open cutaway need not be a literal room,
    and an isolated feature vignette need not explain the whole deployment. Judge
    only relationships it asserts, using its labels, caption and visible enclosure.
@@ -56,12 +53,15 @@ reasoning about system boundaries; a text-only or thumbnail review is insufficie
    caption cannot rescue a picture that visibly asserts the opposite. A misleading
    overlap belongs here when it changes the model; geometric occlusion alone is
    checked by the rendering gates. Record the closest call on a clean figure.
-6. Return the complete claims list and evidence. Record met only when every claim
-   is supported; otherwise attempted with each contradiction, unsupported relation
-   or ambiguity and the correction needed. Say whether the figure meets the
+6. Return the relationship inventory and evidence. A contradiction is a blocking
+   finding. Unsupported or ambiguous claims are review leads: record attempted
+   with the missing evidence or clarification, rather than calling them false.
+   Record met when the inventory is supported with no unresolved leads. Calibration
+   needs a full system figure on main and a shipped, unrelated clean figure; small
+   feature vignettes alone do not establish it. Say whether the figure meets the
    principle, rather than merely having plausible labels and tidy geometry.
 """
 
 [origin]
 date = "2026-11-07"
-incident = "G-Studio's landing diagram passed look reviews while putting public website and app surfaces inside the private sandbox and depicting its hosting servers as neighbouring racks rather than an enclosing host."
+incident = "G-Studio's landing diagram passed look reviews while putting public website and app surfaces inside the private sandbox and depicting its hosting servers as neighbouring racks rather than an enclosing host. Incident questions: does the public site read as private work inside the sandbox, does the sandbox read as beside rather than hosted by the racks, and does a connector bypass the access boundary? Public reachability alone does not place a runtime outside its sandbox."

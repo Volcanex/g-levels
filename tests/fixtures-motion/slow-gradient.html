@@ -1,0 +1,15 @@
+<!doctype html><meta charset="utf-8"><title>Slow smooth gradient drift</title>
+<style>
+body{margin:0;background:#111}
+#field{width:400px;height:200px;background:linear-gradient(90deg,#202020,#e8e8e8);background-size:2000px 100%}
+</style>
+<div id="field" data-motion="narrative"></div>
+<script>
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const start = performance.now();
+function frame(now) {
+  if (!reduced) field.style.backgroundPosition = `${-(now - start) * .04}px 0`;
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>

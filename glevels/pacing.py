@@ -769,7 +769,7 @@ def device_capture(device, url, doc):
 
 @contextmanager
 def browser_slot():
-    lock_path = Path(os.environ.get("GSPACING_LOCK", "/tmp/g-studio-browser.lock"))
+    lock_path = Path(os.environ.get("GSPACING_LOCK", "/tmp/glevels-browser.lock"))
     with lock_path.open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         while True:

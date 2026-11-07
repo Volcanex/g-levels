@@ -25,6 +25,14 @@ produce. The theory is in Volcanex/g-research
   (with `motion.mjs`) records a page's animations and reveals; `frames.py` (with `frames.mjs`)
   reads or captures consecutive frames, or runs a repo's `.glevels/frames.json` recipe;
   `meshcheck.py` checks exported geometry. `adapters/` holds per-project mesh exporters.
+  Motion traces only `data-motion="pointer"` by default; repeat `--pointer SELECTOR`
+  or set `GLEVELS_POINTER_SELECTORS` to a JSON list in the repo's pages.json `env`
+  for additional pointers. Offscreen watched regions and sparse pointer samples
+  are review leads, not impossible runs or evidence of clean motion.
+- `glevels/depthorder.py`: runs the repo-relative `script` named by
+  `.glevels/depth-order.json` (for example `{"script":"tools/check-depth.mjs"}`).
+  Its default suite must check every scene, run regression self-tests and compare
+  generated SVGs against committed bytes. Missing manifests or scripts exit 2.
 - `glevels/videocheck.py`: the shipped-video sensor for `correct.video.smoothness`;
   checks MP4 encoding, real constant frame timing, repeats, holds, eased motion,
   bitrate and loop seams with ffprobe, ffmpeg and numpy (exit 0 clean, 1 faults, 2 impossible).
@@ -57,7 +65,7 @@ produce. The theory is in Volcanex/g-research
   rAF, LoAF/tasks and analysed Chrome trace evidence. Raw traces are deleted after
   analysis (also on failure); `--keep-traces` retains them. Page-driver trace windows
   use posted durations at completion polling, so phase boundaries have polling uncertainty.
-  Each browser launch on h owns `GSPACING_LOCK` (default `/tmp/g-studio-browser.lock`)
+  Each browser launch on h owns `GSPACING_LOCK` (default `/tmp/glevels-browser.lock`)
   separately and waits for 900 MB available. Exit 0 means no blocking findings,
   1 findings, 2 impossible. Every report and findings.json names `measured_on`.
 - `scripts/mac-runner start|stop [--device mac-m3]`: gate tooling over `ssh mac`,
