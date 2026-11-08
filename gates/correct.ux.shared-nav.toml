@@ -1,0 +1,28 @@
+id = "correct.ux.shared-nav"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-design"
+principle = "Every g app navigates with one primitive from g-design, so G Command, Studio and Studio inside Command move the same way at every width, and an improvement lands in all of them at once."
+guidance = """
+Navigation (desktop rail and phone navigation) comes from g-design's navigation component, configured by
+data: the app supplies its destinations, groups and primary actions, never its own markup or CSS for the
+nav. When one app mounts another (Studio inside Command), the host's navigation stays the outer frame and
+the guest's navigation renders in the shared nested mode, so there is one back behaviour and one place to
+leave. A need the primitive does not meet is added to g-design, then used.
+"""
+pass = "met: neither app defines its own navigation markup or styles beyond configuration, and the reviewer finds both apps and the nested Studio move the same way at phone and desktop widths. attempted: a local override remains, named with its reason."
+remediation = "Move the override into g-design's navigation as an option, re-vendor, and delete the local copy."
+written_against = { model = "claude-opus-5-5", date = "2026-11-08" }
+
+[sensor]
+type = "review"
+rubric = """
+You did not build this. In each app repo find where navigation is rendered and styled: is it the g-design component fed by configuration, or local markup and CSS? Then open Command, Studio, and Studio inside Command at 390x844 and 1440x900. Move between three destinations, go back, and leave Studio.
+Ask: same component and same gestures in both apps? One back behaviour inside nested Studio? A single obvious way out of Studio back to Command?
+Record met only if you can point at no local nav and no inconsistency.
+"""
+
+[origin]
+date = "2026-11-08"
+incident = "Phone navigation for G Command and Studio was being redesigned together; Gabriel asked that the two stay in harmony, which drifts unless the navigation is one shared component."

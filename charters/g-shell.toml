@@ -1,0 +1,26 @@
+id = "g-shell"
+title = "Shells: the native apps that host the g web apps"
+extends = ["delivery", "look"]
+repos = ["g-shell-ios", "g-command-mac", "g-studio-desktop"]
+principles = [
+  "The web app is the product on every device; a shell adds only what a browser tab cannot do.",
+  "A shell opens onto content at once and never shows a blank frame, online or off.",
+  "Every shell speaks the same small bridge, so the web feature-detects one thing.",
+]
+
+[[gates]]
+id = "correct.shell.web-faithful"
+version = 1
+blocking = true
+
+[[gates]]
+id = "correct.shell.instant-launch"
+version = 1
+
+[[gates]]
+id = "correct.shell.bridge-contract"
+version = 1
+
+[[gates]]
+id = "correct.ui.app-craft"
+version = 2

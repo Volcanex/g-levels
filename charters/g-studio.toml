@@ -163,3 +163,13 @@ paths = ["web/src/**", "web/inject/**"]
 [[gates]]
 id = "correct.hosts.service-file-owner"
 version = 1
+
+# Phone: one comfortable, shared navigation (2026-11-08, the g-shell rewrite).
+
+[[gates]]
+id = "correct.ux.phone-ergonomics"
+version = 1
+
+[[gates]]
+id = "correct.ux.shared-nav"
+version = 1

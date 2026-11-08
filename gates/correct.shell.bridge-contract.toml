@@ -1,0 +1,26 @@
+id = "correct.shell.bridge-contract"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "The web talks to native through one small, documented bridge that every shell implements the same way and that refuses calls from origins it does not trust."
+guidance = """
+`window.gshell` is the only bridge. BRIDGE.md in the shell repo lists every method, its arguments, its
+reply and which origins may call it. The web feature-detects (`window.gshell?.haptic`) and works without
+it, so the same page runs in a browser. Every message handler checks the frame's origin against the app's
+trusted origins before acting. A new capability is added to BRIDGE.md, the injected script and the tests
+together, and to every shell that claims it (iOS now, the Mac and Rune shells later).
+"""
+pass = "met: tests cover each bridge method and the origin refusal, BRIDGE.md matches the injected script, and the web pages using the bridge still work in a plain browser. attempted: a method is undocumented or untested, named."
+remediation = "Add the missing method to BRIDGE.md and the tests, or remove it from the script. Add the origin check in the shared handler, not per method."
+written_against = { model = "claude-opus-5-5", date = "2026-11-08" }
+
+[sensor]
+type = "review"
+rubric = """
+You did not build this. List the methods the injected bridge script exposes and compare them with BRIDGE.md. Run the shell's tests and find the origin-refusal test. Open a web page that calls the bridge in a desktop browser: does it still work without gshell?
+Record met only if the script, BRIDGE.md and the tests agree and an untrusted origin is refused.
+"""
+
+[origin]
+date = "2026-11-08"
+incident = "The new web shells add a native bridge; an undocumented or unguarded bridge is how a shell drifts from its siblings or lets a third-party page drive the device."

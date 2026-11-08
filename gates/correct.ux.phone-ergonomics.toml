@@ -1,0 +1,29 @@
+id = "correct.ux.phone-ergonomics"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-design"
+principle = "On a phone the web app is comfortable one-handed: what you do most is within thumb reach, targets fit a fingertip, nothing scrolls sideways, and nothing hides under the notch, the home bar or the keyboard."
+guidance = """
+Design phone width (390x844, also 375x667 and 430x932) as its own layout, not the desktop squeezed. Put
+the navigation and the primary action of each screen in the bottom half. Targets are at least 44 px with
+8 px between them. Respect env(safe-area-inset-*) with viewport-fit=cover. With the keyboard up, the input
+and the latest content stay visible (visualViewport), and nothing fixed covers them. No horizontal page
+scroll, no hover-only control, no text under 16 px in inputs (iOS zooms). Use the shared phone navigation
+from g-design rather than an app-local one.
+"""
+pass = "met: the reviewer's screenshots at the three phone sizes, with and without the keyboard, show no fault against the rubric on every page the app lists. attempted: faults are fixed on the main pages but named ones remain."
+remediation = "Fix a repeated fault in the shared component or g-design's phone navigation, not page by page. Rerun the screenshots."
+written_against = { model = "claude-opus-5-5", date = "2026-11-08" }
+
+[sensor]
+type = "review"
+rubric = """
+You did not build this. Open every page in the repo's .glevels/pages.json (or its page list) at 390x844, 375x667 and 430x932 with a touch device profile, and on the main input pages with the keyboard up (or the shell on a simulator). Screenshot each.
+For each ask: is the navigation and the primary action reachable by a right thumb in the bottom half? Is any target under 44 px or crowded? Does anything scroll sideways, sit under the notch or home bar, or get covered by the keyboard? Is any control hover-only? Do inputs zoom on focus? Is the navigation the shared g-design one?
+Record met only if you can point at nothing. Otherwise attempted, naming page, size and fault.
+"""
+
+[origin]
+date = "2026-11-08"
+incident = "Gabriel noticed G Command and Studio on the phone were the desktop navigation squeezed down: nobody had designed phone UX for either."

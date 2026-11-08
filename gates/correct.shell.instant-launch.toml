@@ -1,0 +1,29 @@
+id = "correct.shell.instant-launch"
+version = 1
+kind = "correcting"
+trigger = "milestone"
+skill = "g-product"
+principle = "A shell app opens straight onto useful content and never shows a white or blank frame, even offline, so a web-view app feels as quick as a native one."
+guidance = """
+Create the web view at launch before any network work. Show the last good snapshot of the page until the
+first contentful paint, keep the HTTP cache, and when the network is down show the bundled offline page
+with retry, never a browser error. Measure cold and warm launch to first contentful paint on a simulator
+and, when available, a device, and write the numbers and how they were taken into the README. Budgets:
+warm launch to content under 400 ms, cold launch under 1200 ms on a current iPhone, offline to the offline
+page under 500 ms.
+"""
+pass = "met: measured numbers within budget are in the README with the method, and the reviewer sees no white frame in a screen recording of cold launch, warm launch and offline launch. attempted: numbers are recorded but one budget is missed, with the cause."
+remediation = "Find where the time goes (process start, web view creation, network, script) from a trace, fix the largest cost first, and re-measure. Never hide a slow load behind a spinner the budget does not count."
+written_against = { model = "claude-opus-5-5", date = "2026-11-08" }
+
+[sensor]
+type = "review"
+rubric = """
+You did not build this. Read the README's launch numbers and method. Record a screen capture (xcrun simctl io booted recordVideo) of: cold launch, warm launch from background, and launch with the network off. Step through the frames.
+Is any frame white, blank or a raw error page? Does the first frame already show the last content or the bundled page? Are the numbers within budget and taken the way the README says?
+Record met only with all three captures clean and the numbers within budget.
+"""
+
+[origin]
+date = "2026-11-08"
+incident = "Moving G Command and Studio's iPhone apps from SwiftUI to web shells; the known weakness of web-view apps is a slow or white first frame."

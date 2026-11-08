@@ -14,3 +14,13 @@ id = "correct.ui.view-contract"
 version = 1
 blocking = false
 paths = ["pages/**"]
+
+# Phone: one comfortable, shared navigation (2026-11-08, the g-shell rewrite).
+
+[[gates]]
+id = "correct.ux.phone-ergonomics"
+version = 1
+
+[[gates]]
+id = "correct.ux.shared-nav"
+version = 1

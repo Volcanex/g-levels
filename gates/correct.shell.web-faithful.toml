@@ -1,0 +1,30 @@
+id = "correct.shell.web-faithful"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-design"
+principle = "A native shell draws nothing the web already draws. The web app is the product on every device, so the phone, the Mac and the browser look and behave the same, and a change to the web reaches every app with no port."
+guidance = """
+The shell hosts the web app in a web view and adds only what a browser tab cannot do: push, haptics,
+share, keychain sign-in, fast launch, offline. Any surface the shell must show itself (connect, offline,
+launch) is a bundled HTML page on g-design, never a SwiftUI or AppKit screen. No hand-ported copy of a web
+page, no native list, form or tab bar. A capability the web lacks goes into the web first, then the bridge
+exposes what the web needs. If something truly must be native (a call's audio engine, a terminal's key
+handling), keep it behind the bridge with a web-drawn UI and record why in the repo's CLAUDE.md.
+"""
+pass = "met: the mechanical check finds no SwiftUI View or hand-built UIKit screen in the shell's sources and the reviewer finds every visible screen in the running app is the web or a bundled g-design page. attempted: a native surface remains with its reason written down and a plan to move it."
+remediation = "Move the surface into the web app (or a bundled HTML page using the g-design CSS) and expose any native capability it needs through the bridge. Do not restyle the native screen to look like the web."
+written_against = { model = "claude-opus-5-5", date = "2026-11-08" }
+
+[sensor]
+type = "review"
+run = "sh -c '! grep -rlE \"(struct|class) [A-Za-z_]+ *: *(some )?(View|UITableViewController|UICollectionViewController)\\b\" --include=*.swift {repo}'"
+rubric = """
+You did not build this. The mechanical half lists Swift files declaring SwiftUI views or table/collection screens; any hit is a catch unless the repo's CLAUDE.md records it as a bridge-backed exception.
+Then launch the app (fixture mode and, if paired, the real server) and walk every screen it can show, including connect, offline and launch. For each ask: is this the web app or a bundled page built from g-design's CSS? Does anything look or behave differently from the same page in a desktop browser at the same width, other than safe areas? Is any web page hand-copied into native code?
+Record met only if every screen is web-drawn. Otherwise attempted, naming each native surface.
+"""
+
+[origin]
+date = "2026-11-08"
+incident = "The SwiftUI G-Command and Studio apps hand-ported web screens, drifted from the web, needed a staleness manifest to fall back, and looked unlike the kit Gabriel likes. He asked for apps that feel the same on every device."
