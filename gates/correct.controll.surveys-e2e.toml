@@ -1,0 +1,21 @@
+id = "correct.controll.surveys-e2e"
+version = 1
+kind = "correcting"
+trigger = "milestone"
+skill = "webapp-testing"
+principle = "Both surveys, for users and for professionals, can be filled in and submitted on the live site, at phone and desktop widths, and the answer lands on the server."
+guidance = """
+The landing's way in is the survey, so a broken survey is a broken product. After each deploy, walk both surveys at 390 and 1440 wide, submit one marked test entry each (the marker says GATE TEST, ignore), and check it reached var/survey/responses*.jsonl on h. Test entries are marked so the owners and the export can ignore them.
+"""
+pass = "met: both surveys walk clean at both widths, both marked submissions show the thank-you state and appear in the jsonl. impossible: no browser or the site is down, with the reason."
+remediation = "Read the failing step and its screenshot in /tmp/survey_e2e. Reproduce in a browser, fix the page or api/survey.py, redeploy, rerun. Never drop a width or skip the server check."
+written_against = { model = "claude-opus-5-5", date = "2026-11-08" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && python3 scripts/gates/survey_e2e.py --base https://controllhealth.com --submit --jsonl-dir {repo}/var/survey"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-11-08"
+incident = "Gabriel: keep both surveys and prove a submission works end to end with a marked test entry."

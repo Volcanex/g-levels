@@ -1,0 +1,81 @@
+id = "controll"
+title = "Controll: the landing, surveys and design pages at controllhealth.com, and the native app's look"
+extends = ["g-system"]
+repos = ["state", "gsp-controll", "kontrol-src"]
+principles = [
+  "Black and white, and clean. Ochre marks the one thing worth doing, Nordic green marks the way in, twilight blue is data, no red. The native app's Tokens.swift is the source of the look.",
+  "Short. The landing says what Controll does, who made it, and how to get in, and shows how it thinks in three figures.",
+  "Honest. Every figure is drawn from the real model, and what the model does not measure is shown as not measured.",
+  "Both languages, English and Norwegian, in the same register.",
+  "The surveys are the way in and must work end to end.",
+]
+
+# Controll has its own design system (web/landing/design/), so g-system's on-system gate is not pinned here.
+
+[[gates]]
+id = "correct.controll.tokens-match-app"
+version = 1
+paths = ["ios/Kontrol/Theme/**", "web/landing/index.html", "web/landing/design/index.html"]
+blocking = true
+
+[[gates]]
+id = "correct.controll.copy-length"
+version = 1
+paths = ["web/landing/index.html"]
+blocking = true
+
+[[gates]]
+id = "correct.controll.both-languages"
+version = 1
+paths = ["web/landing/index.html"]
+blocking = true
+
+[[gates]]
+id = "correct.controll.page-weight"
+version = 1
+paths = ["web/landing/**"]
+
+[[gates]]
+id = "correct.controll.surveys-e2e"
+version = 1
+paths = ["web/landing/survey/**", "api/survey.py", "api/server.py"]
+blocking = true
+
+[[gates]]
+id = "correct.render.frame-integrity"
+version = 1
+paths = ["web/landing/index.html"]
+
+[[gates]]
+id = "correct.motion.rhythm"
+version = 1
+paths = ["web/landing/index.html"]
+
+[[gates]]
+id = "correct.copy.house-glyphs"
+version = 1
+paths = ["web/landing/index.html"]
+
+[[gates]]
+id = "correct.copy.voice"
+version = 2
+paths = ["web/landing/index.html"]
+
+[[gates]]
+id = "correct.product.data-truth"
+version = 1
+paths = ["web/landing/index.html", "web/landing/model.json", "ios/KontrolCore/**"]
+
+[[gates]]
+id = "correct.assets.real-sourced"
+version = 1
+paths = ["web/landing/index.html"]
+
+[[gates]]
+id = "correct.ui.spacing"
+version = 2
+paths = ["web/landing/index.html"]
+
+[[gates]]
+id = "correct.delivery.runtime-clean"
+version = 1

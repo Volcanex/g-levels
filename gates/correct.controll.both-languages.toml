@@ -1,0 +1,28 @@
+id = "correct.controll.both-languages"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "anti-ai-voice"
+principle = "Every word on the landing exists in English and in Norwegian, in the same short register, and a Norwegian visitor lands on Norwegian."
+guidance = """
+One COPY table, two languages, identical keys. Norwegian is Bokmål as a Norwegian founder would write it: short, plain, no calques from the English (no "det er verdt å nevne"), decimal commas, "t" for hours. CF-IPCountry NO, a stored choice, or an nb/nn/no browser language picks Norwegian; the toggle swaps both ways. Do not break nginx's sub_filter: the page names the country placeholder exactly once.
+"""
+pass = "met: the mechanical half passes and the reviewer finds the Norwegian correct and natural, in the English register. attempted: correct but stiff in places, with the lines named."
+remediation = "Fix the keys the script names. For the review half, rewrite each line the reviewer quotes, keeping its meaning and length."
+written_against = { model = "claude-opus-5-5", date = "2026-11-08" }
+
+[sensor]
+type = "review"
+run = "cd {repo} && python3 scripts/gates/both_languages.py web/landing/index.html --url https://controllhealth.com/"
+cannot_run_exit = 2
+rubric = """
+You did not write this copy. Read the COPY table's en and no columns side by side (web/landing/index.html), and the live page in both languages.
+1. Is every Norwegian line correct Bokmål (grammar, spelling, gender, word order, decimal comma)?
+2. Does it read as written by a Norwegian, not translated: no English word order, no calques, the same short register as the English?
+3. Does it say the same thing as the English, with nothing added or lost (closed alpha, not a medical device, the survey is in English)?
+Quote every line you would change, with your version. met when you would change nothing of substance.
+"""
+
+[origin]
+date = "2026-11-08"
+incident = "Gabriel: make sure the Norwegian copy is correct, in the same short register. The landing is shown to Norwegian clinicians and users by Josefine."

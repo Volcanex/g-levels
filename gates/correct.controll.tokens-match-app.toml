@@ -1,0 +1,20 @@
+id = "correct.controll.tokens-match-app"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-design"
+principle = "The web pages wear the native app's colours and motion, copied from one source, ios/Kontrol/Theme/Tokens.swift, and no token is a red."
+guidance = """
+Tokens.swift is the source of truth for Controll's look. The design page copies all four palettes into `[data-palette]` blocks and the app's Motion into its table. The landing page copies Natt and Ljus into blocks marked `/*tokens:natt*/` and `/*tokens:ljus*/`. Change a token in Swift, then change both pages in the same commit. A page-only colour (a hairline mixed from `--line`) is fine as long as it is derived from a token, never a new hex.
+"""
+pass = "met: scripts/test_design_tokens.py passes (every copied value matches, the motion rows match, no token is a red, the self-tests catch a planted drift)."
+remediation = "Read the printed diff. Copy the Swift value into the page block it names; never change Swift to match a page unless the owners asked for a new look."
+written_against = { model = "claude-opus-5-5", date = "2026-11-08" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && python3 scripts/test_design_tokens.py"
+
+[origin]
+date = "2026-11-08"
+incident = "Retiring the Flutter app removed the Dart test that held the design page to tokens.dart. Gabriel asked for the landing reskin to match the native app's design system, with the iOS theme as the source of truth."

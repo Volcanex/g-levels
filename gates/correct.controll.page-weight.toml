@@ -1,0 +1,21 @@
+id = "correct.controll.page-weight"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-product"
+principle = "The landing loads light on a phone: everything it fetches, screenshots and fonts included, stays under a budget."
+guidance = """
+The page is hand-written and inlines its CSS and JS. Screenshots ship as WebP at 600 px wide (twice their 288 px slot) and lazy-load except the first. Figures are SVG built from model.json. Budget: 900 KB transferred in total, 160 KB of our own HTML, JS, CSS and JSON.
+"""
+pass = "met: scripts/gates/page_weight.py exits 0 at both widths against the live page."
+remediation = "Read the sorted breakdown. Re-encode or lazy-load the biggest image, drop an unused font weight, trim model.json precision; never raise the budget to pass."
+written_against = { model = "claude-opus-5-5", date = "2026-11-08" }
+
+[sensor]
+type = "command"
+run = "cd {repo} && python3 scripts/gates/page_weight.py https://controllhealth.com/"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-11-08"
+incident = "The landing gained phone screenshots and animated figures in the reskin; Gabriel named page weight as a gate."
