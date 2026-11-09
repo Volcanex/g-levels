@@ -3,7 +3,7 @@ title = "Controll: the landing, surveys and design pages at controllhealth.com, 
 extends = ["g-system"]
 repos = ["state", "gsp-controll", "kontrol-src"]
 principles = [
-  "Black and white, and clean. Ochre marks the one thing worth doing, Nordic green marks the way in, twilight blue is data, no red. The native app's Tokens.swift is the source of the look.",
+  "Black and white, and clean. Ochre marks the one thing worth doing, Nordic green marks the way in, twilight blue is data, no red except the two national flags in the landing language switch, by Gabriel's choice (2026-11-09). The native app's Tokens.swift is the source of the look.",
   "Short. The landing says what Controll does, who made it, and how to get in, and shows how it thinks in three figures.",
   "Honest. Every figure is drawn from the real model, and what the model does not measure is shown as not measured.",
   "Both languages, English and Norwegian, in the same register.",
