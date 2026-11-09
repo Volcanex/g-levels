@@ -11,6 +11,11 @@ The backlog and the level summary live in var/ (gitignored, private) as dated fi
 The newest of each is read. Either can be missing, and the snapshot says so.
 """
 
+import datetime
+from copy import deepcopy
+from functools import lru_cache
+from threading import RLock
+
 import collections
 import json
 import sys
@@ -165,8 +170,33 @@ def project_view(names, gates=None, charters=None, log=None):
             "gates": out_gates, "counts": counts, "blocking": blocking}
 
 
+_PROJECTS_LOCK = RLock()
+
+
+def _projects_signature():
+    paths = [LOG, *(registry.ROOT / "gates").glob("*.toml"),
+             *(registry.ROOT / "charters").glob("*.toml")]
+    signature = []
+    for path in sorted(paths):
+        try:
+            stat = path.stat()
+            signature.append((str(path), stat.st_mtime_ns, stat.st_ctime_ns, stat.st_size))
+        except FileNotFoundError:
+            signature.append((str(path), None))
+    return datetime.date.today(), tuple(signature)
+
+
+@lru_cache(maxsize=1)
+def _cached_projects(projects, signature):
+    return projects_view(dict(projects), registry.load_gates(), registry.load_charters(), rows())
+
+
 def projects_view(projects, gates=None, charters=None, log=None):
-    """Compact project summaries from one registry and log read."""
+    """Reuse compact summaries until the registry, results, date or projects change."""
+    if gates is None and charters is None and log is None:
+        key = tuple((pid, tuple(names)) for pid, names in projects.items())
+        with _PROJECTS_LOCK:
+            return deepcopy(_cached_projects(key, _projects_signature()))
     gates = registry.load_gates() if gates is None else gates
     charters = registry.load_charters() if charters is None else charters
     log = rows() if log is None else log
