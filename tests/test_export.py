@@ -181,3 +181,33 @@ def test_project_cli(tmp_path, names):
                        capture_output=True, text=True)
     assert p.returncode == 0, p.stderr
     assert json.loads(p.stdout) == export.project_view(names, log=log)
+
+
+def test_project_summaries_refresh_on_log_registry_and_alias_changes(tmp_path, monkeypatch, project_registry):
+    gates, charters = project_registry
+    log_path = tmp_path / "results.jsonl"
+    gate_path = tmp_path / "gates" / "test.toml"
+    gate_path.parent.mkdir()
+    gate_path.write_text("fixture")
+    monkeypatch.setattr(registry, "ROOT", tmp_path)
+    monkeypatch.setattr(export, "LOG", log_path)
+    load_gates = Mock(return_value=gates)
+    monkeypatch.setattr(registry, "load_gates", load_gates)
+    monkeypatch.setattr(registry, "load_charters", Mock(return_value=charters))
+    log = []
+    monkeypatch.setattr(export, "rows", lambda: log)
+    projects = {"current": ["sample"]}
+    first = export.projects_view(projects)
+    first["current"]["counts"]["met"] = 900
+    assert export.projects_view(projects)["current"]["counts"]["met"] == 0
+    assert load_gates.call_count == 1
+    log.append({"gate": "correct.test.daily", "repo": "sample", "result": "met", "ts": "2026-11-09"})
+    log_path.write_text("updated log")
+    assert export.projects_view(projects)["current"]["counts"]["met"] == 1
+    gate_path.write_text("registry changed")
+    export.projects_view(projects)
+    assert load_gates.call_count == 3
+    assert export.projects_view({"current": ["peer"]})["current"]["counts"]["met"] == 0
+    log_path.unlink()
+    log.clear()
+    assert export.projects_view(projects)["current"]["counts"]["met"] == 0
