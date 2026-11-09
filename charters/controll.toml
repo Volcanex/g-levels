@@ -79,3 +79,12 @@ paths = ["web/landing/index.html"]
 [[gates]]
 id = "correct.delivery.runtime-clean"
 version = 1
+
+[[proposed_exceptions]]
+gate = "correct.assets.real-sourced"
+paths = ["web/landing/survey/img/**"]
+condition = "Survey section art only: bold white figures on Controll green, flat, legible at 44 px, made with Codex image generation and listed in assets.toml with method = generated."
+reason = "The owners chose generated survey art and fixed its style (repo CLAUDE.md, Survey illustrations, commit 9e45c93). The gate forbids generated illustrations, so the manifest entry blocks every assets run on this repo."
+review = "2026-12-09"
+status = "awaiting Gabriel's approval"
+proposed_by = "claude-opus-5-5 (Controll landing reskin, 2026-11-09)"
