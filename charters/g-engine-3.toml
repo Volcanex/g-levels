@@ -1,0 +1,29 @@
+id = "g-engine-3"
+title = "g-engine pass 3: a lean world substrate in Rust and WebGPU"
+extends = ["delivery"]
+repos = ["g-engine"]
+# Agreed with Gabriel on 2026-11-10 after the pass 2 post-mortem
+# (g-engine-data/research/2026-11-10-postmortem-*.md). Pass 3 lives in v3/ of g-engine.
+# Pass 2 (v2/) keeps the g-engine charter until v3 replaces it. Hard-won pass 2 work
+# (pre-cut pieces, brick support, the blast record, the dig heightfield, the spatial tree,
+# sleeping fields, causality regions) carries over as concepts, each asked first whether
+# Rust, flat memory and an owned renderer allow something better. No gate is pinned yet:
+# a gate joins this charter in the same commit as its sensor, so none is ever silent.
+principles = [
+  "A translation, not a simulation. What the player cannot notice is spent on speed, and each system states what can be noticed.",
+  "Precompute. Offline hours are free and runtime milliseconds are not. How a thing breaks, bends, burns and sounds is worked out before play and stored as a seed and a few coefficients.",
+  "One flat memory owned by the Rust core. No garbage collector, no allocation in play.",
+  "One spatial tree. Every system names a level, never a size.",
+  "Superobjects: an object is shape plus materials, and every property (mass, buoyancy, conduction, burning, sound, infrared, ultraviolet) is derived.",
+  "One closed material table, shared by simulation and renderer, and drawn in one pass.",
+  "Systems meet only through shared data and behaviour emerges from them. No scenario code, no asset-specific branch.",
+  "One event, one record, read by every system.",
+  "Multiplayer is the simulation, from day one. Regions own causality, effects travel at a stated speed, and single player is a region nobody else can reach. Slow motion is the last resort.",
+  "Breaking and bending are one model: a joint yields before it breaks, and support loss travels through the structure at the speed of sound in the same causality the network uses.",
+  "Quiet costs nothing, cost is local, and every process ends. Nothing sleeps unsupported.",
+  "Short plumbing: a fixed, small number of steps from event to pixel, counted by a gate.",
+  "One way to do each thing. A replacement deletes what it replaces in the same change, and finished work is merged the day it passes.",
+  "Every borrowed idea is cited, and the citation is verified before the idea is relied on.",
+  "It runs on an iPhone, and that budget is the real one. The picture is low resolution, upscaled, and finished by one final stage (accumulate, upscale, sensor camera) where a learned pass can later sit.",
+  "Judged on the range, by the owner's own path: blast the ground twice, shoot a wall, watch a fire out.",
+]
