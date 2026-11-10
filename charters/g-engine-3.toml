@@ -11,6 +11,7 @@ repos = ["g-engine"]
 # a gate joins this charter in the same commit as its sensor, so none is ever silent.
 principles = [
   "A translation, not a simulation. What the player cannot notice is spent on speed, and each system states what can be noticed.",
+  "Engaging beats realistic. A system is judged by whether it is fun to push on and reads clearly, never by how true to life it is. Exaggerate where that plays better.",
   "Precompute. Offline hours are free and runtime milliseconds are not. How a thing breaks, bends, burns and sounds is worked out before play and stored as a seed and a few coefficients.",
   "One flat memory owned by the Rust core. No garbage collector, no allocation in play.",
   "One spatial tree. Every system names a level, never a size.",
