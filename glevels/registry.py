@@ -107,17 +107,24 @@ def chain(charter_id, charters):
     return out
 
 
-def charter_for(repo_name, charters, repo=None):
-    """The narrowest charter naming this repo, else one whose dirs name this directory, else one that
-    covers every repo."""
+def charters_for(repo_name, charters, repo=None):
+    """Every narrowest charter naming this repo, else those whose dirs name this directory, else the one
+    that covers every repo. Two charters can tie (g-engine for v2/, g-engine-3 for v3/): both hold, and
+    each gate's paths say where it fires. Picking one would silence the other's gates."""
     named = [c for c in charters.values() if repo_name in c.get("repos", [])]
     if repo is not None:
-        named += [c for c in charters.values() if any(len(g.parts) == len(Path(repo).parts)
+        named += [c for c in charters.values() if c not in named and any(len(g.parts) == len(Path(repo).parts)
                   and fnmatch.fnmatch(str(repo), str(g)) for g in _dir_globs(c))]
     if named:
-        return max(named, key=lambda c: len(chain(c["id"], charters)))["id"]
+        depth = max(len(chain(c["id"], charters)) for c in named)
+        return [c["id"] for c in named if len(chain(c["id"], charters)) == depth]
     wild = [c for c in charters.values() if "*" in c.get("repos", [])]
-    return wild[0]["id"] if wild else None
+    return [wild[0]["id"]] if wild else []
+
+
+def charter_for(repo_name, charters, repo=None):
+    """The first of charters_for, or None."""
+    return next(iter(charters_for(repo_name, charters, repo)), None)
 
 
 def covers(rel, globs):
@@ -129,8 +136,14 @@ def covers(rel, globs):
         if fnmatch.fnmatch(rel, g):
             return True
         gp = g.split("/")
-        if "**" in gp[:len(parts)] or (len(gp) > len(parts) and all(fnmatch.fnmatch(a, b) for a, b in zip(parts, gp))):
-            return True
+        for a, b in zip(parts, gp):
+            if b == "**":
+                return True
+            if not fnmatch.fnmatch(a, b):
+                break
+        else:
+            if len(gp) > len(parts):
+                return True
     return False
 
 
@@ -140,15 +153,22 @@ def in_scope(repo, rel, charters):
     if not any(name in c.get("repos", []) for c in charters.values()):
         # A clone in a directory no charter names keeps the charter of the repo it came from.
         name = origin_name(repo) or name
-    cid = charter_for(name, charters, repo)
-    if cid is None:
+    tied = charters_for(name, charters, repo)
+    if not tied:
         return None, []
+    # Shared ancestors first, the tied charters last, so an ancestor never undoes a narrower entry.
+    order = []
+    for cid in tied:
+        order += [c for c in chain(cid, charters)[:-1] if c not in order]
+    order += [charters[cid] for cid in tied]
     entries = {}
     exceptions = []
-    for c in chain(cid, charters):
+    for c in order:
         for e in c.get("gates", []):
             entries[e["id"]] = dict(e, charter=c["id"])
         exceptions += [dict(x, charter=c["id"]) for x in c.get("exceptions", [])]
+    # Named for the tied charter with the most gates of its own at this path, so v2/ reads g-engine.
+    cid = max(tied, key=lambda t: sum(covers(rel, e.get("paths", ["**"])) for e in charters[t].get("gates", [])))
     scoped = []
     for e in entries.values():
         if not covers(rel, e.get("paths", ["**"])):
@@ -190,6 +210,13 @@ def lint(gates, charters, today=None):
     for gid in gates:
         if gid not in pinned and gates[gid].get("kind") != "design":
             warnings.append(f"gate {gid}: no charter pins it, so it never fires")
+    for name in sorted({n for c in charters.values() for n in c.get("repos", []) if n != "*"}):
+        tied = charters_for(name, charters)
+        for a, b in ((a, b) for i, a in enumerate(tied) for b in tied[i + 1:]):
+            both = sorted({e["id"] for e in charters[a].get("gates", [])} & {e["id"] for e in charters[b].get("gates", [])})
+            if both:
+                problems.append(f"charters {a} and {b} both name {name} at the same depth and both pin "
+                                f"{', '.join(both)}: one entry would silently replace the other")
     for cid, c in charters.items():
         for d in c.get("dirs", []):
             if not isinstance(d, str) or not d.startswith(("/", "~/")):

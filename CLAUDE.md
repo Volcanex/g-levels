@@ -13,6 +13,9 @@ produce. The theory is in Volcanex/g-research
 - `charters/<id>.toml`: scope (`repos`, per-gate `paths`), principles, the gates it
   pins by version, which block, and exceptions. `g-system` covers every repo.
   A narrower charter `extends` it and wins per gate.
+  Charters that name the same repo at the same depth all hold there (g-engine for `v2/`,
+  g-engine-3 for `v3/`), each gate firing on its own `paths`. Lint refuses two such charters
+  pinning one gate.
 - `glevels/`: registry loading and scope resolution (`registry.py`), the CLI (`cli.py`).
 - `glevels/export.py`: a read-only JSON snapshot of the registry, results, backlog and level
   summary, for gcommand's /levels page; `project_view` exposes project charter and gate states.

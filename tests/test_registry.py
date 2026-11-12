@@ -19,6 +19,8 @@ def test_covers_files_and_parent_dirs():
     assert registry.covers("pages", globs)
     assert not registry.covers("pages/charter/config.json", globs)
     assert not registry.covers("static", globs)
+    assert registry.covers("v2/sim", ["v2/**/*.mjs"]) and registry.covers("docs", ["**/*.md"])
+    assert not registry.covers("v3/core", ["v2/**"])
 
 
 def test_narrow_charter_extends_and_waives():
@@ -118,3 +120,27 @@ def test_a_plain_clone_keeps_its_origins_charter(tmp_path):
     assert registry.in_scope(clone, "", charters)[0] == "studio"
     git("-C", str(clone), "remote", "remove", "origin")
     assert registry.in_scope(clone, "", charters)[0] == "g-system"
+
+
+def test_tied_charters_both_hold_and_each_gate_keeps_its_paths():
+    cid, scoped = registry.in_scope(Path("/x/g-engine"), "v2/sim", CHARTERS)
+    assert cid == "g-engine"
+    assert {e["id"]: e for e in scoped}["correct.engine.range-default"]["blocking"]
+    assert "correct.engine.range-default" not in {e["id"] for e in registry.in_scope(Path("/x/g-engine"), "v3/core", CHARTERS)[1]}
+
+
+def test_a_shared_parent_never_undoes_a_tied_charters_entry():
+    charters = {"base": {"id": "base", "repos": ["*"], "gates": [{"id": "g", "version": 1}]},
+                "a": {"id": "a", "repos": ["r"], "extends": ["base"], "gates": [{"id": "g", "version": 1, "blocking": True}]},
+                "b": {"id": "b", "repos": ["r"], "extends": ["base"], "gates": [{"id": "h", "version": 1, "paths": ["new/**"]}]}}
+    cid, scoped = registry.in_scope(Path("/x/r"), "old", charters)
+    assert cid == "a" and [(e["id"], e["charter"], e.get("blocking")) for e in scoped] == [("g", "a", True)]
+    assert {e["id"] for e in registry.in_scope(Path("/x/r"), "new/x", charters)[1]} == {"g", "h"}
+
+
+def test_lint_refuses_tied_charters_that_pin_the_same_gate():
+    gid = "correct.secrets.git-history"
+    pin = {"id": gid, "version": GATES[gid]["version"]}
+    charters = {"a": {"id": "a", "repos": ["r"], "gates": [pin]}, "b": {"id": "b", "repos": ["r"], "gates": [pin]}}
+    problems, _ = registry.lint(GATES, charters)
+    assert any("a and b both name r" in p and gid in p for p in problems)
