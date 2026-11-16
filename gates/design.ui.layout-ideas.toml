@@ -1,0 +1,44 @@
+id = "design.ui.layout-ideas"
+version = 1
+kind = "design"
+trigger = "on-demand"
+skill = "g-spacing"
+principle = "Before a page's layout is called settled, the space of arrangements for its parts and their motion has been explored until new ideas dry up."
+guidance = """
+Read the brief and look at every screenshot it names. Propose arrangements of the page's parts
+(where each sits, how much room it gets, what moves when the user acts, what happens on a phone),
+not copy or colour changes. Each idea names the state it improves (idle, mid-action, done, a
+click during the action, scrolled, phone), what the user sees, and why it reads calmer or clearer.
+Less is more: an idea that removes a part or a motion counts. Stay inside the design system the
+brief names. Different runs take different framings (listed in framings below).
+"""
+framings = [
+  "a first-time visitor on a laptop who has five seconds to understand what the product does",
+  "a visitor who types their own company in and watches the result build",
+  "a phone visitor holding the page in one hand",
+  "Gabriel's own taste: calm, generous space, every part tasteful, less is more, nothing generated-looking",
+  "an editorial designer who lays out magazine spreads and hates clutter",
+  "a motion designer who choreographs what moves, when and why",
+]
+pass = "met: saturation reached within budget and the probe from another model family added at most one idea. The ranked shortlist goes to Gabriel, or to the agent he asked to choose. attempted: the budget ran out first, or the probe found more."
+remediation = "If the budget ran out before saturation, or the probe added ideas, say so and give the counts. Run again with more rounds or new framings drawn from what the probe found."
+generators = "Strong, taste-capable models only: Claude Opus through g-agent-run, pinned by the runner. Generators are blind to each other's ideas."
+judge = "One Claude Opus call per round merges each raw idea into the canonical list or adds it, citing the raw idea. A last call ranks the list."
+saturation = "Stop when a round of three generators adds fewer than one new idea after merging."
+probe = "After apparent saturation, one round from a different strong model family (Codex Astra, else Sol at high effort)."
+budget = "At most four rounds, plus the probe."
+written_against = { model = "claude-opus-5-5", date = "2026-11-16" }
+
+[sensor]
+type = "review"
+rubric = """
+1. Write a brief: what the page is for, its parts, the design system, the owner's stated directions, and full paths to screenshots of every state (idle, mid-action, done, phone).
+2. Run `python3 -m glevels.ideas design.ui.layout-ideas --brief <file> --workdir <repo> --out <dir>`.
+3. Read shortlist.md. Drop ideas that change copy or colour only. Check each surviving idea against the owner's stated directions.
+4. Send the shortlist with the counts per round, and say which idea was built if the owner asked the agent to choose.
+5. Record met at saturation with a quiet probe, attempted otherwise.
+"""
+
+[origin]
+date = "2026-11-16"
+incident = "A homepage hero went through several layout rounds picked by eye, and the owner asked for the arrangement itself to be explored by stronger generators before the next pass."
