@@ -105,7 +105,7 @@ blocking = true
 
 [[gates]]
 id = "correct.cowork.alone-still-works"
-version = 2
+version = 3
 paths = ["web/src/**", "tests/**"]
 blocking = true
 

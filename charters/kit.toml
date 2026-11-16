@@ -63,7 +63,7 @@ blocking = false
 
 [[gates]]
 id = "correct.cowork.alone-still-works"
-version = 2
+version = 3
 blocking = false
 
 # Inherited as blocking from g-system; non-blocking here.
