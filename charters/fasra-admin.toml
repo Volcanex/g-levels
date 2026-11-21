@@ -15,13 +15,13 @@ principles = [
 [[gates]]
 id = "correct.admin.replacement-parity"
 version = 1
-paths = ["web/src/screens/site/bridge-*.js", "web/src/screens/site/screens.js", "gstudio/bridge.py", "agents/fasra-parity.json", "scripts/fasra_parity.py"]
+paths = ["web/src/screens/site/bridge-*.js", "web/src/screens/site/screens.js", "gstudio/bridge.py", "agents/fasra-parity/**", "scripts/fasra_parity.py"]
 blocking = true
 
 [[gates]]
 id = "correct.admin.declared-rail"
 version = 1
-paths = ["web/src/screens/site/screens.js", "web/src/screens/site/workspace.js", "agents/fasra-parity.json", "scripts/fasra_parity.py"]
+paths = ["web/src/screens/site/screens.js", "web/src/screens/site/workspace.js", "agents/fasra-parity/**", "scripts/fasra_parity.py"]
 blocking = true
 
 [[gates]]

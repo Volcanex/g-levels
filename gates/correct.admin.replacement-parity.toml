@@ -6,7 +6,7 @@ skill = "g-product"
 principle = "A screen that replaces an older admin page can do everything the old page could: every view, chart, filter, drill-down and action, checked against the old page side by side. Nobody loses a tool by moving."
 guidance = """
 Load g-product. Before building or changing a replacement screen, open its rows in the repo's
-parity file (g-studio: agents/fasra-parity.json). Each row is one old admin page with its
+parity files (g-studio: agents/fasra-parity/pages/, one file per old admin page). Each file is one old admin page with its
 capabilities listed one by one: every table and figure (view), every chart, every filter and
 search, every click that opens a detail (drill), every button that changes something (action)
 and every export. The old page's source and its live URL are named on the row: read the source
