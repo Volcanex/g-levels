@@ -1,0 +1,23 @@
+id = "fasra-site"
+title = "The Fasra site: what Fasra is, shown with its own renderer"
+extends = ["look", "delivery"]
+repos = ["gsp-fasra"]
+principles = [
+  "A visitor understands what Fasra is and how its parts fit in five seconds.",
+  "Every picture on the site is drawn by the site's own UI library, never a stock diagram.",
+  "The copy sounds like Gabriel, with no em dashes, middle dots or semicolons.",
+]
+
+[[gates]]
+id = "design.ui.layout-ideas"
+version = 1
+
+[[gates]]
+id = "correct.copy.voice"
+version = 2
+paths = ["site/**/*.html", "site/**/*.js"]
+
+[[gates]]
+id = "correct.copy.house-glyphs"
+version = 1
+paths = ["site/**/*.html", "site/**/*.js"]

@@ -1,0 +1,41 @@
+id = "correct.admin.replacement-parity"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-product"
+principle = "A screen that replaces an older admin page can do everything the old page could: every view, chart, filter, drill-down and action, checked against the old page side by side. Nobody loses a tool by moving."
+guidance = """
+Load g-product. Before building or changing a replacement screen, open its rows in the repo's
+parity file (g-studio: agents/fasra-parity.json). Each row is one old admin page with its
+capabilities listed one by one: every table and figure (view), every chart, every filter and
+search, every click that opens a detail (drill), every button that changes something (action)
+and every export. The old page's source and its live URL are named on the row: read the source
+and open the live page before you build, and add any capability the inventory missed.
+Build every capability, on the same real data, at least as well as the old page shows it. Copy
+what is good: a chart or workbench the old page does well is lifted as it is, not redrawn as a
+list. A list where the old page had a chart, or a row that opens nothing where the old page
+opened a detail, is a catch. Then set each capability's status: `met` with evidence (the
+component and what you saw on real data), or `missing`. Only the owner can waive one, so never
+write `waived` yourself: leave it `missing` and say why in the report.
+Run `python3 scripts/fasra_parity.py --screen <group>/<id>` and paste its output in the report.
+"""
+pass = "met: the parity script exits 0 for the screens in the change, and the reviewer, with the old page and the new screen open side by side on real data, finds nothing the old page does that the new one does not. attempted: the script still lists missing capabilities, each named in the note. A capability marked met that the reviewer cannot find is a catch."
+remediation = "For each capability the script or the reviewer names, open the old page, see what it does, and build it on the new screen through the shared bridge parts. If the bridge refuses the endpoint, add one ALLOW rule naming the screen. If a write is needed, switch that rule's write on and cover it with a test. Do not mark a capability met to make the script pass."
+written_against = { model = "claude-fable-5-2", date = "2026-11-21" }
+
+[sensor]
+type = "review"
+run = "python3 {repo}/scripts/fasra_parity.py"
+cannot_run_exit = 2
+rubric = """
+You did not build this.
+1. Run the parity script for the screens in the change. Exit 2: record impossible with the reason.
+2. For each screen, open the old admin page (the row's live URL) and the new Studio screen side by side, signed in, on real data. Do not read the builder's notes first.
+3. From the old page alone, list what it shows and what every click does. Compare with the row's capabilities: anything you found that the row lacks is a catch against the inventory.
+4. For each capability marked met, find it on the new screen and use it. A chart must be a chart, a drill-down must open the same detail, an action must have the same effect (check the result in the old page). Counts on both sides must agree.
+5. Record met only if nothing is missing. Otherwise attempted, naming screen and capability.
+"""
+
+[origin]
+date = "2026-11-21"
+incident = "Studio shipped 17 read-only list screens presented as the admin for Fasra. The owner found Decks listing decks with no way to open one, the rolling schema overview as bare figures where the old admin had charts, and no workbench drill-downs: 'This needs to be a full replacement otherwise he's never gonna use it.' The build had been one list per page, with no check against the old page."

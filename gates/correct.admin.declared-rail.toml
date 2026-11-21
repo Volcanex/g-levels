@@ -1,0 +1,37 @@
+id = "correct.admin.declared-rail"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-navigation"
+principle = "A project's rail shows what that project declared and nothing else: no stock module arrives uninvited, and every item under a project's own heading opens that project's data."
+guidance = """
+Load g-navigation. A project that declares its rail (g-studio: the `rail` block of
+agents/fasra-parity.json, applied as the project's site screens and view states) shows exactly
+those items, in that order. A stock Studio view the project did not declare is switched off for
+the site. An item in a project's group never links to another place in Studio or to another
+product's records: a `to` link in the screen registry is a catch here. The first thing an admin
+lands on is the project's own overview, not a stock Home.
+When you add a stock view or a module to Studio, check each project with a declared rail still
+shows only its own list.
+Run `python3 scripts/fasra_parity.py --rail` and paste its output in the report.
+"""
+pass = "met: the rail script exits 0, and the reviewer, signed in as an admin on the live project, sees the declared items and no others, each opening that project's data. attempted is not available: an undeclared item or a link out is a catch."
+remediation = "Switch the stray view off for the site (view state), or remove the screen from the group's declared list. Replace a link out with a screen that reads the project's own data through the bridge, or drop the item until that screen exists."
+written_against = { model = "claude-fable-5-2", date = "2026-11-21" }
+
+[sensor]
+type = "review"
+run = "python3 {repo}/scripts/fasra_parity.py --rail"
+cannot_run_exit = 2
+rubric = """
+You did not build this.
+1. Run the rail script. Exit 2: record impossible with the reason.
+2. Sign in to the live project as an admin. Write down every rail item in order, by group.
+3. Compare with the declared rail. Any item not declared, missing, or out of order is a catch.
+4. Click every item. Each must open this project's own data. One that leaves the project, or shows another product's or the operator's own records, is a catch.
+5. Reload at the project's root address: the landing must be the declared one.
+"""
+
+[origin]
+date = "2026-11-21"
+incident = "In the Fasra project the System group's CRM opened the operator's own Studio CRM, Pages opened a file explorer, and stock Home and Presentables sat beside the Fasra screens. 'I guess these are just glitches but I'm amazed these few passed.' Nothing checked the rail against what the project meant to show."

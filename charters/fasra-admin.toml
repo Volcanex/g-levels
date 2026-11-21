@@ -1,0 +1,30 @@
+id = "fasra-admin"
+title = "Fasra admin in Studio: the one place the Fasra family (Baseline, MarkupSchema, Fasra) is run from"
+extends = ["g-studio"]
+repos = ["g-studio"]
+principles = [
+  "Studio replaces the old Baseline admin whole: anything the old admin could do, Studio can do.",
+  "What the old admin did well is copied over as it is, charts and workbenches included.",
+  "The rail shows the Fasra family and nothing else.",
+  "Every screen reads and writes the product's own data through the bridge. Nothing is copied into Studio.",
+]
+
+# Scope: the bridge, the screens on it and the parity file. The g-studio gates (security,
+# look, motion, data truth, option tree, runtime clean) still apply through extends.
+
+[[gates]]
+id = "correct.admin.replacement-parity"
+version = 1
+paths = ["web/src/screens/site/bridge-*.js", "web/src/screens/site/screens.js", "gstudio/bridge.py", "agents/fasra-parity.json", "scripts/fasra_parity.py"]
+blocking = true
+
+[[gates]]
+id = "correct.admin.declared-rail"
+version = 1
+paths = ["web/src/screens/site/screens.js", "web/src/screens/site/workspace.js", "agents/fasra-parity.json", "scripts/fasra_parity.py"]
+blocking = true
+
+[[gates]]
+id = "correct.product.click-through"
+version = 2
+paths = ["web/src/screens/site/bridge-*.js"]
