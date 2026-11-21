@@ -369,12 +369,14 @@ try {
   for (const url of config.urls) for (const vp of viewports) {
     const entry = { url, viewport: `${vp.name} ${vp.width}x${vp.height}`, vp: vp.name, findings: [], counts: {}, notes: [], screenshots: [] };
     const context = await browser.newContext({ viewport: { width: vp.width, height: vp.height }, deviceScaleFactor: 1,
-      reducedMotion: "reduce", isMobile: false, hasTouch: vp.width < 720, serviceWorkers: "block" });
+      reducedMotion: "reduce", isMobile: false, hasTouch: vp.width < 720, serviceWorkers: "block",
+      storageState: config.storageState });
     const page = await context.newPage();
     try {
       const response = await page.goto(url, { waitUntil: "load", timeout: 30000 });
       entry.status = response?.status();
       await page.waitForLoadState("networkidle", { timeout: 6000 }).catch(() => {});
+      if (config.waitFor) await page.waitForSelector(config.waitFor, { state: "visible", timeout: 10000 });
       await page.evaluate(() => document.fonts.ready);
       const height = await page.evaluate(() => document.documentElement.scrollHeight);
       for (let y = vp.height; y < Math.min(height, 10 * vp.height); y += vp.height) {

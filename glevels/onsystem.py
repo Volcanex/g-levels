@@ -147,7 +147,16 @@ def main():
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--refs", action="store_true")
     ap.add_argument("--viewports", default=os.environ.get("GLEVELS_VIEWPORTS", DEFAULT_VIEWPORTS))
+    ap.add_argument("--storage-state", help="Playwright storage state JSON, for a screen behind a sign-in")
+    ap.add_argument("--wait-for", help="wait for a visible selector before measuring")
     a = ap.parse_args()
+    storage = None
+    if a.storage_state:
+        try:
+            storage = json.loads(Path(a.storage_state).read_text())
+            storage["cookies"], storage["origins"]
+        except (OSError, ValueError, TypeError, KeyError):
+            spacing.impossible("could not read --storage-state as Playwright JSON")
     try:
         for viewport in a.viewports.split(","):
             name, size = viewport.split("=")
@@ -182,6 +191,10 @@ def main():
                 plugin, lint_why = None, str(e)
             config = {"profiles": profiles, "system": a.system, "out": str(out_dir), "urls": urls,
                       "viewports": a.viewports, "plugin": str(plugin) if plugin else None, "lintWhy": lint_why}
+            if storage:
+                config["storageState"] = storage
+            if a.wait_for:
+                config["waitFor"] = a.wait_for
             if a.refs:
                 srv, base = spacing.serve({}, Path(profiles["gdesign"]["referenceRoot"]))
                 servers.append(srv)
