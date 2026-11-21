@@ -39,3 +39,13 @@ You did not build this.
 [origin]
 date = "2026-11-21"
 incident = "Studio shipped 17 read-only list screens presented as the admin for Fasra. The owner found Decks listing decks with no way to open one, the rolling schema overview as bare figures where the old admin had charts, and no workbench drill-downs: 'This needs to be a full replacement otherwise he's never gonna use it.' The build had been one list per page, with no check against the old page."
+
+[validation]
+date = "2026-11-21"
+sensor = "g-studio scripts/fasra_parity.py (the mechanical half; the side-by-side review is judged by a separate agent)"
+cases = [
+  "original: the first-pass Decks screen (a list with no way to open a deck) against the old decks and deck editor pages, --screen baseline/decks -> 51 of 55 capabilities missing, exit 1",
+  "related: a builder flips a row to met with no evidence (llm-usage.06) -> 'met with no evidence', exit 2, so a count cannot move without a named component and screenshot",
+  "related: a builder writes waived on a row with no waived_by, reason or review date -> refused, exit 2 (only the owner waives)",
+  "clean: system/usage with all six rows met and evidence on each -> 6 of 6 met, exit 0",
+]
