@@ -1,0 +1,23 @@
+id = "correct.style.calm-by-default"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "Depth is opt-in. With the CSS level switched off (the default for everyone), the editor and the Style panel look and act exactly as before, so no client meets CSS by accident."
+guidance = """
+The CSS level is a per-viewer pref, off by default. Off: no depth switch, no CSS words, no extra
+requests (no css/trace calls), the same panel layout as before; only one quiet row at the panel
+foot offers to show CSS. On: the Fields | CSS switch, remembered. Test both states in a real
+browser at 390 and 1440, light and dark, and assert no /css/ request is made while off.
+"""
+pass = "met: the calm tests pass (off: no switch, no CSS text, no /css/ requests; on: switch present and remembered) and the off-state shots match the pre-change Style shots apart from the foot row. attempted: a width or theme uncovered, named."
+remediation = "Find what renders or fetches while the pref is off and gate it on the pref. Never make the pref default on."
+written_against = { model = "claude-opus-5-5", date = "2026-11-23" }
+
+[sensor]
+type = "command"
+run = '''cd {repo} && out=$(PYTHONDONTWRITEBYTECODE=1 timeout 900 flock /tmp/g-studio-browser.lock python3 -m pytest -q -rs -p no:cacheprovider -k "calm" tests/e2e/ui/test_css_level.py 2>&1); rc=$?; printf '%s\n' "$out" | tail -n 20; if [ $rc -eq 5 ] || [ $rc -eq 4 ]; then echo 'calm-by-default: no calm tests'; exit 75; fi; [ $rc -eq 0 ] || exit $rc; if printf '%s\n' "$out" | grep -Eq '[0-9]+ (skipped|xfailed)'; then echo 'calm-by-default: skipped'; exit 75; fi'''
+cannot_run_exit = 75
+
+[origin]
+date = "2026-11-23"
+incident = "Owner chose 'anyone, switched on per person' for the CSS level; the Studio charter's principle that the studio stays obvious to a non-technical artist arriving alone."

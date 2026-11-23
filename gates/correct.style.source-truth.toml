@@ -1,0 +1,32 @@
+id = "correct.style.source-truth"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "The CSS level shows the rules the browser applied, each traced by the server to the source file and line it came from, or plainly marked as untraced with the reason. It never shows a guess as a source."
+guidance = """
+The frame reports what matched (CSSOM, cascade order); the server maps each claim to source with
+tinycss2 and answers traced (file, line, ref, reach) or untraced (generated, not_found,
+ambiguous, inline, managed, external). Ambiguity is untraced, never a best guess. Generated and
+minified CSS is never editable. Test the trace on real site shapes (Adze content.html with its
+<style> block and default-styles.css, a static site with linked sheets and media queries, a seed
+page) in a real browser, and check each shown file:line opens the same rule in Code.
+"""
+pass = "met: the trace tests pass on all three fixture shapes in a real browser, every untraced reason has a case, and the reviewer opens three shown file:line captions in Code and finds the rule there. attempted: a site shape or reason is uncovered, named."
+remediation = "Name the rule shown with the wrong or guessed source and the fixture that shows it. Tighten the matcher to untrace rather than guess."
+written_against = { model = "claude-opus-5-5", date = "2026-11-23" }
+
+[sensor]
+type = "review"
+run = '''cd {repo} && out=$(PYTHONDONTWRITEBYTECODE=1 timeout 900 .venv/bin/python -m pytest -q -rs -p no:cacheprovider tests/unit/test_css_trace.py 2>&1); rc=$?; printf '%s\n' "$out" | tail -n 20; if [ $rc -eq 5 ] || [ $rc -eq 4 ]; then echo 'source-truth: trace tests missing'; exit 75; fi; exit $rc'''
+cannot_run_exit = 75
+rubric = """
+You did not build this.
+1. Read the mechanical half; a failure or missing file is a catch.
+2. In the e2e shots or a live run, pick three traced rules and open their Code links: the rule must be on that line.
+3. Find a test for each untraced reason in the contract.
+4. Confirm the server never trusts the frame's text for anything it writes.
+"""
+
+[origin]
+date = "2026-11-23"
+incident = "Design gate for the CSS level (2026-11-23) ranked 'matching rules with their sources, worked out on the server' first; the old Style tool shows computed values with no source, and g-admin's selectors 'may be ugly; the baking agent resolves them'."

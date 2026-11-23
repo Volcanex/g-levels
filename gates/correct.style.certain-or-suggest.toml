@@ -1,0 +1,37 @@
+id = "correct.style.certain-or-suggest"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+principle = "A style or CSS change reaches the draft only when every certainty check passes. Any doubt makes it a suggestion carrying the exact proposed change and the plain reason. Less function beats a wrong write."
+guidance = """
+Read agents/contracts.md "CSS level". One service (gstudio/css_level.py) decides apply or
+suggest for every surface (web, MCP, Lite AI); no surface writes CSS any other way. Each
+certainty check is a named function with a plain reason sentence. A check that cannot be
+evaluated (missing data, parse error, timeout, unknown file kind) fails closed: suggest, never
+apply. The web panel shows the outcome before the press (check), and change re-runs the same
+checks under the project lock. The frame is untrusted: its rules and its moved claim are
+claims, never written. Write tests for each failing check (it must suggest and write nothing)
+and for the clean case (it must apply exactly the shown diff and nothing else).
+"""
+pass = "met: the certainty matrix tests pass with nothing skipped, every check in the contract has a failing case that suggests and writes nothing, the clean case writes exactly the diff check showed, and the reviewer finds no write path around the service. attempted: a check lacks its failing case, named in the note."
+remediation = "Name the check without a failing case, or the write path that skips the service. Add the case to tests/unit/test_css_level.py or route the write through css_level.change. Never relax a check to make a case apply; a case that should apply but cannot be proven safe is a suggestion."
+written_against = { model = "claude-opus-5-5", date = "2026-11-23" }
+
+[sensor]
+type = "review"
+run = '''cd {repo} && out=$(PYTHONDONTWRITEBYTECODE=1 timeout 900 .venv/bin/python -m pytest -q -rs -p no:cacheprovider tests/unit/test_css_level.py tests/api/test_css_level_api.py tests/security/test_confine_css.py 2>&1); rc=$?; printf '%s\n' "$out" | tail -n 30; if [ $rc -eq 5 ] || [ $rc -eq 4 ]; then echo 'certain-or-suggest: tests missing'; exit 75; fi; [ $rc -eq 0 ] || exit $rc; if printf '%s\n' "$out" | grep -Eq '[0-9]+ (skipped|xfailed)'; then echo 'certain-or-suggest: skipped or known-failing cases'; exit 75; fi'''
+cannot_run_exit = 75
+rubric = """
+You did not build this.
+1. Read the mechanical half. A failure, skip or missing file is a catch.
+2. List the contract's certainty checks. For each, find its failing test: it must assert the
+   outcome is a suggestion (or 409 changed for a stale ref) and that the file bytes are unchanged.
+3. Search gstudio for writes of .css files or <style> text outside css_level.py, styles.py's
+   managed block and the generic file/Code paths. A new one is a catch.
+4. Check MCP and the Lite AI call css_level, not their own logic.
+5. Check every check fails closed on an exception (try/except that applies is a catch).
+"""
+
+[origin]
+date = "2026-11-23"
+incident = "Gabriel, designing the CSS level: 'a change if it'd work, but a ticket if it wouldn't. If uncertain you lean ticket. It should be foolproof' and 'I'd rather less functionality than it doesn't work properly.'"

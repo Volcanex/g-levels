@@ -109,6 +109,25 @@ version = 3
 paths = ["web/src/**", "tests/**"]
 blocking = true
 
+# Style and the CSS level: the editor's depth (2026-11-23).
+
+[[gates]]
+id = "correct.style.certain-or-suggest"
+version = 1
+paths = ["gstudio/**", "web/src/**", "web/inject/**", "tests/**"]
+blocking = true
+
+[[gates]]
+id = "correct.style.source-truth"
+version = 1
+paths = ["gstudio/**", "web/inject/**", "tests/**"]
+
+[[gates]]
+id = "correct.style.calm-by-default"
+version = 1
+paths = ["web/src/**", "web/inject/**"]
+blocking = true
+
 # Look: the studio app and the editor injected into previews.
 
 [[gates]]
