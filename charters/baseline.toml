@@ -36,19 +36,19 @@ version = 2
 [[gates]]
 id = "correct.product.scope-provenance"
 version = 1
-paths = ["geo/pages/workbench/**", "static/js/wb-svea/**", "geo/api/wb_*.py"]
+paths = ["geo/pages/workbench/**", "static/js/wb-*/**", "geo/api/wb_*.py"]
 
 [[gates]]
 id = "correct.product.view-parity"
 version = 1
-paths = ["geo/pages/workbench/**", "static/js/wb-svea/**"]
+paths = ["geo/pages/workbench/**", "static/js/wb-*/**"]
 
 [[gates]]
 id = "correct.product.click-through"
 version = 2
-paths = ["geo/pages/workbench/**", "static/js/wb-svea/**"]
+paths = ["geo/pages/workbench/**", "static/js/wb-*/**"]
 
 [[gates]]
 id = "correct.research.client-data-boundary"
 version = 3
-paths = ["geo/pages/workbench/**", "static/js/wb-svea/**", "geo/api/wb_*.py"]
+paths = ["geo/pages/workbench/**", "static/js/wb-*/**", "geo/api/wb_*.py"]
