@@ -20,4 +20,4 @@ input = "files"
 
 [origin]
 date = "2026-09-08"
-incident = "Middle dots kept appearing as separators in reskins after em dashes were banned. Semicolons followed on 2026-10-15. ganti cannot hold these bans because they are house rules, not his idiolect."
+incident = "Middle dots kept appearing as separators in reskins after em dashes were banned. Semicolons followed on 2026-10-15. ganti cannot hold these bans because they are house rules, not his idiolect. On 2026-11-24 fasra-site put its scripts in scope and the sensor read them whole: 8,200 hits in 101 files, every statement semicolon and comment, which buried the five real ones. It now reads only a script's string and template text."

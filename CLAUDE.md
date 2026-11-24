@@ -41,6 +41,14 @@ produce. The theory is in Volcanex/g-research
   repo's own g-design package whose language extends a house system, and counts the fonts and
   colours it lists as that system's own. That is how Fasra's Young Serif passes while any face
   the package does not declare still blocks. A package extending an unknown system is impossible.
+- `glevels/glyphs.py`: the sensor for `correct.copy.house-glyphs`, and with `--text` the reader text
+  `correct.copy.voice` hands to ganti. HTML and SVG lose style, script and tags. A script keeps only the
+  text of its strings and template literals, at their own line numbers: comments, statements and `${}`
+  code are blanked, a template's tags are markup, and a literal that is itself code is skipped whole
+  (shader source, an assignment statement, or one whose every semicolon ends a declaration, as in CSS
+  or a cookie's attributes). Before 2026-11-24 it read a script whole and gave Fasra 8,200 hits in 101
+  files, all code. What is left there is real copy: quoted engine answers and a fact line on /bf, and
+  one description in the chat card kit.
 - `glevels/engines.py`: the sensor for `correct.ui.every-engine`. Python Playwright opens each
   page (GLEVELS_URL from pages.json) in Chromium and WebKit, at 320, 390 and 1440 wide, light
   and dark, and blocks on uncaught exceptions, console errors, failed same-origin requests,
