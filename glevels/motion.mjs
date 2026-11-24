@@ -133,7 +133,10 @@ function instrument({ selectors, seed }) {
     }
     roots.clear();
     const grouped = new Map();
-    const animations = document.getAnimations({ subtree: true });
+    // Only animations longer than a frame hold content as pending. Filtered once: a theme switch under the
+    // blanket 1 ms reduced-motion rule starts one per element, and checking each against each element stalled.
+    const moving = document.getAnimations({ subtree: true }).filter(a => a.playState === 'running' &&
+      Number(a.effect?.getTiming().duration) > 1000 / 60);
     if (initialized) document.documentElement.append(forceHits);
     try {
     for (const el of candidates) {
@@ -151,8 +154,7 @@ function instrument({ selectors, seed }) {
         visible = cs.display !== 'none' && cs.visibility !== 'hidden' && Number(cs.opacity) > .01;
       }
       const content = visible ? text || (media ? el.currentSrc || el.getAttribute('src') || el.tagName : region ? '(region)' : '') : '';
-      const animated = animations.some(a => a.playState === 'running' && a.effect?.target?.contains(el) &&
-        Number(a.effect.getTiming().duration) > 1000 / 60);
+      const animated = moving.some(a => a.effect?.target?.contains(el));
       if ((text || media || region) && animated) pending.add(el);
       else pending.delete(el);
       const old = snapshots.get(el);
@@ -281,6 +283,12 @@ async function sample(page) {
       return state.animations.map(entry => {
         const { animation, target, ...result } = entry;
         if (state.measured.has(entry.id)) return { ...result, ...state.measured.get(entry.id) };
+        // A run shorter than one display frame has no curve a viewer can see, so it is not sought: each seek
+        // forces a layout, and /design's theme switch under reduced motion started 9,694 of them (2026-11-24).
+        if (entry.duration < frame) {
+          state.measured.set(entry.id, { subframe: true });
+          return { ...result, subframe: true };
+        }
         const original = saved.find(s => s.a === animation);
         const timing = original.timing;
         const keyframes = animation.effect.getKeyframes();

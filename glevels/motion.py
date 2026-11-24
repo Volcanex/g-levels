@@ -225,6 +225,11 @@ def animation_findings(a, tokens, reduced=False, entrance=False):
     def add(check, detail, severity='review'):
         out.append(finding(check, detail, severity=severity, **common))
 
+    if a['iterations'] == 'infinite' and 0 < duration < FRAME_MS and props:
+        # The blanket reduced-motion rule (1 ms, iterations untouched) did this to every g spinner: a loop
+        # shorter than a frame lands on a random phase each frame, so it strobes instead of keeping still.
+        add('subframe-loop', f'repeats every {duration:g}ms, under one {FRAME_MS:.1f}ms frame, so each frame '
+            'lands on a random phase and it strobes', 'block')
     if reduced:
         if movement and (duration > 50 or metrics.get('movement_frames', 0) > 1):
             add('reduced-motion', 'movement still runs with prefers-reduced-motion: reduce')
@@ -504,6 +509,9 @@ def frame_strips(f, step, out_dir, number):
 def analyse_run(run, tokens, out_dir):
     np, Image = dependencies()
     findings = []
+    # An entrance is judged by when it started. Held by its fill, it is still listed in the steps after load,
+    # and judged there it was blocked as feedback to a hover it began before (Fasra /design rings, 2026-11-24).
+    load_end = next((s['end'] for s in run['steps'] if s['name'] == 'load'), 0)
     for step in run['steps']:
         if step['name'] == 'load':
             while len(step['frames']) > 1:
@@ -527,7 +535,7 @@ def analyse_run(run, tokens, out_dir):
                     a['metrics'] = {**(a.get('metrics') or {}), **measured, 'movement_frames': movement_frames}
             a['easing_visual_ms'] = round(visual_duration(a['duration'], a['easing']), 2)
             a['visual_ms'] = (a.get('metrics') or {}).get('visual_ms', a['easing_visual_ms'])
-            leads.extend(animation_findings(a, tokens, run['reduced'], entrance=step['name'] == 'load'))
+            leads.extend(animation_findings(a, tokens, run['reduced'], entrance=a.get('firstSeen', load_end + 1) <= load_end))
         files = [f['file'] for f in step['frames']]
         times = [f['time'] for f in step['frames']]
         exclusions = [[a['rect'] for a in animations if a.get('rect') and

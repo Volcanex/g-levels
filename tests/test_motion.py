@@ -268,6 +268,15 @@ def test_reduced_motion_instant_fallback(duration, frames, expected):
     assert ('reduced-motion' in checks(found)) == expected
 
 
+def test_a_loop_shorter_than_a_frame_strobes_in_either_preference():
+    for reduced in (False, True):
+        found = motion.animation_findings(animation(duration=1, iterations='infinite', indicator=True), token_set(), reduced)
+        assert [f['severity'] for f in found if f['check'] == 'subframe-loop'] == ['block']
+    assert 'subframe-loop' not in checks(motion.animation_findings(animation(duration=1), token_set(), True))
+    assert 'subframe-loop' not in checks(motion.animation_findings(animation(duration=0, iterations='infinite'), token_set(), True))
+    assert 'subframe-loop' not in checks(motion.animation_findings(animation(duration=600, iterations='infinite', indicator=True), token_set()))
+
+
 def test_reduced_motion_unmeasured_long_movement():
     assert 'reduced-motion' in checks(motion.animation_findings(animation(duration=200), token_set(), True))
     assert not motion.animation_findings(animation(duration=1), token_set(), True)
@@ -481,3 +490,46 @@ setTimeout(() => toast.remove(), 900);
     assert proc.returncode == 0, proc.stdout + proc.stderr
     data = json.loads((out / 'findings.json').read_text())
     assert 'instant' not in checks(data['findings']), proc.stdout
+
+
+@pytest.mark.parametrize('iterations, strobes', [('', True), ('animation-iteration-count:1 !important;', False)])
+def test_browser_blanket_reduced_rule_on_a_large_page(browser_available, tmp_path, iterations, strobes):
+    # Fasra /design, 2026-11-24: g.css's reduced rule cut every move to 1 ms. A theme switch then started a
+    # transition on every element, the sensor sought each one and ran past its ten minutes, and the spinner,
+    # still infinite at 1 ms, landed on a random angle every frame.
+    page = tmp_path / 'page.html'
+    page.write_text('''<!doctype html><style>
+body{color:#111;background:#fff}body.dark{color:#eee;background:#111}
+.spin{display:inline-block;width:20px;height:20px;border-top:3px solid currentColor;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:1ms !important;transition-duration:1ms !important;%s}}
+</style><button id="flip" onclick="document.body.classList.toggle('dark')">Theme</button><span class="spin" role="status"></span>
+<div id="many"></div><script>many.innerHTML = '<p>Row</p>'.repeat(3000)</script>''' % iterations)
+    script = tmp_path / 'flip.mjs'
+    script.write_text("export default async (page, mark) => { await mark('flip'); await page.locator('#flip').click(); await page.waitForTimeout(300); };")
+    proc = subprocess.run([sys.executable, str(motion.HERE / 'motion.py'), '--duration', '300', '--viewport', '640x480',
+                           '--script', str(script), '--out', str(tmp_path / 'out'), str(page)],
+                          capture_output=True, text=True, timeout=240)
+    assert proc.returncode in (0, 1), proc.stdout + proc.stderr
+    findings = json.loads((tmp_path / 'out/findings.json').read_text())['findings']
+    strobe = [f for f in findings if f['check'] == 'subframe-loop']
+    assert bool(strobe) == strobes, proc.stdout
+    assert [(f['selector'], f['severity']) for f in strobe] == ([('html > body:nth-of-type(1) > span:nth-of-type(1)', 'block')] if strobes else [])
+    assert not [f for f in findings if f['check'] == 'unmeasured-animation'], proc.stdout
+
+
+def test_browser_an_entrance_still_running_in_a_later_step_stays_an_entrance(browser_available, tmp_path):
+    page = tmp_path / 'page.html'
+    page.write_text('''<!doctype html><style>
+#ring{width:80px;height:80px;background:#333;animation:draw 1100ms cubic-bezier(.2,0,0,1) both}
+@keyframes draw{from{transform:scale(.2)}}
+</style><button id="b">Button</button><div id="ring"></div>''')
+    script = tmp_path / 'hover.mjs'
+    script.write_text("export default async (page, mark) => { await mark('hover'); await page.locator('#b').hover(); await page.waitForTimeout(900); };")
+    proc = subprocess.run([sys.executable, str(motion.HERE / 'motion.py'), '--duration', '200', '--viewport', '640x480',
+                           '--script', str(script), '--out', str(tmp_path / 'out'), str(page)],
+                          capture_output=True, text=True, timeout=120)
+    assert proc.returncode in (0, 1), proc.stdout + proc.stderr
+    findings = json.loads((tmp_path / 'out/findings.json').read_text())['findings']
+    ring = [f for f in findings if f['check'] == 'ui-duration' and f['selector'] == '#ring']
+    assert ring and all(f['severity'] == 'review' for f in ring), proc.stdout

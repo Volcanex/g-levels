@@ -57,6 +57,12 @@ produce. The theory is in Volcanex/g-research
   (with `motion.mjs`) records a page's animations and reveals; `frames.py` (with `frames.mjs`)
   reads or captures consecutive frames, or runs a repo's `.glevels/frames.json` recipe;
   `meshcheck.py` checks exported geometry. `adapters/` holds per-project mesh exporters.
+  `motion.mjs` does not seek a run shorter than one display frame (it records it as `subframe`):
+  a theme switch under the blanket 1 ms reduced-motion rule starts one per element, 9,694 on Fasra
+  /design, and seeking each forced a layout until the run timed out. `motion.py` judges an
+  animation as an entrance by when it started, not by the step that lists it, and blocks an
+  infinite loop shorter than a frame (`subframe-loop`) in either preference, because each frame
+  lands on a random phase and it strobes.
 - `glevels/videocheck.py`: the shipped-video sensor for `correct.video.smoothness`;
   checks MP4 encoding, real constant frame timing, repeats, holds, eased motion,
   bitrate and loop seams with ffprobe, ffmpeg and numpy (exit 0 clean, 1 faults, 2 impossible).
