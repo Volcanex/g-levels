@@ -59,6 +59,8 @@ const maxTiles = Number(flag("tiles", 10));
 if (args.includes("--landscape") && !viewports.some((v) => v.name === "phone-land")) viewports.push({ name: "phone-land", width: 844, height: 390 });
 const states = [...new Set(flag("states", "loaded,loading,error,long-text").split(","))];
 const steps = Number(flag("steps", 0));
+// --flow-only reads only each class's flow, for pages the target is compared with: no findings, no screenshots.
+const flowOnly = args.includes("--flow-only");
 const options = args.includes("--options-stdin") ? JSON.parse(fs.readFileSync(0, "utf8")) : {
   storageState: flag("storage-state", undefined) ? JSON.parse(fs.readFileSync(flag("storage-state"), "utf8")) : undefined,
   waitFor: flag("wait-for", undefined), headers: {},
@@ -119,6 +121,27 @@ function analyse(o) {
     const r = rectOf(el);
     return r.width >= 2 && r.height >= 2;
   };
+  /* ---------- flow, for comparing sibling screens ----------
+     Per parent class and class (".graph > .gl-label"): how many of those elements are out of flow (absolute, fixed)
+     and how many in it, with a sample of each. A part that places its own pieces keeps them out of flow on every
+     page; a page whose stylesheet sets their position drops them into the layout there, and the part breaks on that
+     page only. The parent keeps two parts that happen to share a class name apart, and leaves the part's own root,
+     which the host places, out of it. Other pages are read with flowOnly, which skips everything else. */
+  const flowMap = () => {
+    const flow = {};
+    const named = (el) => [...el.classList].filter((c) => !c.startsWith("impeccable-"));
+    for (const el of document.querySelectorAll("body [class]")) {
+      if (skipped(el) || !el.parentElement) continue;
+      const away = /^(absolute|fixed)$/.test(cs(el).position);
+      const up = named(el.parentElement);
+      for (const k of (up.length ? up.map((p) => "." + p) : [el.parentElement.tagName.toLowerCase()]).flatMap((p) => named(el).map((c) => `${p} > .${c}`))) {
+        const f = flow[k] || (flow[k] = [0, 0, "", "", null]);
+        if (away) { f[0]++; f[2] ||= describe(el); } else { f[1]++; if (!f[3]) { f[3] = describe(el); f[4] = doc(rectOf(el)); } }
+      }
+    }
+    return flow;
+  };
+  if (o.flowOnly) return { flow: flowMap() };
   /* A fixed box that fills the screen is the page (a deck, a full-screen app), not a bar over it. */
   const screenLike = (el) => {
     const r = rectOf(el);
@@ -212,7 +235,11 @@ function analyse(o) {
     const s = cs(el);
     let v = up;
     if (el !== document.body && (s.overflowX !== "visible" || s.overflowY !== "visible")) {
-      const r = rectOf(el);
+      let r = rectOf(el);
+      /* Text cut short with an ellipsis is painted only to the content edge, where the ellipsis ends it. */
+      if (s.textOverflow === "ellipsis" && s.overflowX !== "visible") {
+        r = { left: r.left + px(s.borderLeftWidth) + px(s.paddingLeft), right: r.right - px(s.borderRightWidth) - px(s.paddingRight), top: r.top, bottom: r.bottom };
+      }
       v = {
         left: s.overflowX !== "visible" ? Math.max(up.left, r.left) : up.left,
         right: s.overflowX !== "visible" ? Math.min(up.right, r.right) : up.right,
@@ -743,7 +770,7 @@ function analyse(o) {
     return { selector: parts.join(" > "), sample: describe(el), rect: doc(rectOf(el)) };
   }) : undefined;
   return {
-    findings: out, counts, landmarks, landmarkSamples, anchors, layout,
+    findings: out, counts, landmarks, landmarkSamples, flow: flowMap(), anchors, layout,
     measured: { elements: elements.length, boxes: boxes.length, textRects: texts.length },
     cls: Math.round((window.__glevelsCls || 0) * 1000) / 1000,
     pageHeight: document.documentElement.scrollHeight,
@@ -784,8 +811,8 @@ async function settle(page, limit = 3000) {
   }), null, { timeout: limit, polling: 100 }).catch(() => {});
 }
 
-async function measure(page, entry, vp) {
-  const touch = vp.width < 720;
+/* Scroll down the page a screen at a time, so parts that mount on sight are there, then back to the top. */
+async function scrollThrough(page, vp) {
   const reach = await page.evaluate(() => document.documentElement.scrollHeight);
   for (let y = vp.height; y < Math.min(reach, maxTiles * vp.height); y += vp.height) {
     await page.evaluate((top) => window.scrollTo(0, top), y);
@@ -794,6 +821,11 @@ async function measure(page, entry, vp) {
   await page.waitForFunction(() => [...document.images].every((i) => i.complete), null, { timeout: 4000 }).catch(() => {});
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.waitForTimeout(300);
+}
+
+async function measure(page, entry, vp) {
+  const touch = vp.width < 720;
+  await scrollThrough(page, vp);
   await settle(page);
   entry.rhythm = await measureRhythm(page);
   entry.rhythm.rows = entry.rhythm.rows.slice(0, 8);
@@ -904,6 +936,12 @@ try {
             }
             noRequestsNoted = true;
           }
+          continue;
+        }
+        if (flowOnly) {
+          await scrollThrough(page, vp);
+          Object.assign(entry, await page.evaluate(analyse, { flowOnly: true }), { reference: true });
+          results.push(entry);
           continue;
         }
         const loadCls = await page.evaluate(() => window.__glevelsCls || 0);

@@ -1,0 +1,12 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="base.css"><link rel="stylesheet" href="flow-part.css"><title>Parts with a page rule</title>
+<style>
+.frame { display: grid; gap: 16px; }
+.row > .end { color: #aaa; }
+.frame :is(button, a):not(.btn) { position: relative; }     /* a tap rule that reaches into the part */
+.frame .toast { position: static; }                         /* a page rule that pins the part's toast in place */
+</style></head><body><main class="frame"><h1>Parts</h1>
+<div class="chart"><button class="tag" style="left:24px;top:24px">North</button><button class="tag" style="left:160px;top:96px">South</button></div>
+<div class="row"><div class="end">Last row</div></div>
+<div class="dock"><div class="toast">Saved</div></div>
+</main></body></html>

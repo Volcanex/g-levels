@@ -270,6 +270,54 @@ def compare_landmarks(results):
     return out
 
 
+def reference_pages(targets):
+    """In a repo with .glevels/pages.json, glevels check runs this sensor once per page, so the page's flow is
+    compared with the repo's other pages, read with --flow-only. They are references: their own runs report them."""
+    if os.environ.get("GLEVELS_RENDERED") != "1":
+        return []
+    try:
+        pages = json.loads(os.environ.get("GLEVELS_PAGES") or "[]")
+    except ValueError:
+        return []
+    return [p["url"] for p in pages if isinstance(p, dict) and isinstance(p.get("url"), str) and p["url"] not in targets]
+
+
+def compare_flow(results):
+    """A class, under a parent of a given class, out of flow on every one of its elements on one sibling page and in
+    flow on every one on another.
+    A part that places its own pieces (map labels, a tooltip, a tap layer) keeps them out of flow wherever it is
+    mounted, so the page where they fall back into the layout has a stylesheet setting their position, and the part
+    breaks there and only there. Origin: Fasra /design 2026-11-24, a touch rule on every button inside the page frame
+    made the map's labels position: relative on phones, and they piled up under the canvas."""
+    out, by_vp, seen = [], {}, set()
+    for r in results:
+        if r.get("flow") and r.get("state", "loaded") == "loaded" and not r.get("step"):
+            by_vp.setdefault(r["vp"], []).append(r)
+    for vp, rs in by_vp.items():
+        if len({r["url"] for r in rs}) < 2:
+            continue
+        for c in sorted(set().union(*(r["flow"] for r in rs))):
+            placed = next((r for r in rs if c in r["flow"] and not r["flow"][c][1]), None)
+            if not placed:
+                continue
+            for r in rs:
+                f = r["flow"].get(c)
+                if not f or f[0] or r["url"] == placed["url"] or r.get("reference"):
+                    continue
+                # One element shows up under each of its parent's classes and each of its own: report it once.
+                if (vp, r["url"], f[3]) in seen:
+                    continue
+                seen.add((vp, r["url"], f[3]))
+                p = placed["flow"][c]
+                out.append({"check": "part-flow-differs-between-screens", "severity": "block", "viewport": vp,
+                            "url": r["url"], "render": r.get("render", "loaded"), "selector": f[3], "rect": f[4],
+                            "detail": f"{c} is out of flow on all {p[0]} of its elements on {placed['url']} "
+                                      f"({p[2]}) and in flow on all {f[1]} here: a stylesheet on this page sets their "
+                                      "position, so the part lays out differently here. Scope the page's rule away "
+                                      "from the part."})
+    return out
+
+
 def compare_states(results):
     for r in results:
         if r.get("state") not in ("loading", "error"):
@@ -462,6 +510,19 @@ def main():
             if p.returncode:
                 impossible(redact(f"the browser run failed: {(p.stderr or p.stdout).strip()[-600:]}"))
             results = json.loads((out_dir / "findings.json").read_text())
+            references = []
+            refs = reference_pages(a.targets)
+            if refs:
+                ref_dir = Path(tmp) / "references"
+                cmd = ["node", str(HERE / "spacing.mjs"), "--out", str(ref_dir), "--viewports", a.viewports,
+                       "--states", "loaded", "--flow-only", "--options-stdin", *refs]
+                try:
+                    p = subprocess.run(cmd, input=json.dumps(options), capture_output=True, text=True, timeout=300)
+                except subprocess.TimeoutExpired:
+                    impossible("reading the other pages for comparison timed out after 300s")
+                if p.returncode:
+                    impossible(redact(f"reading the other pages failed: {(p.stderr or p.stdout).strip()[-600:]}"))
+                references = [r for r in json.loads((ref_dir / "findings.json").read_text()) if not r.get("error")]
             impeccable(results, authenticated=bool(headers or a.storage_state))
         finally:
             for s in servers:
@@ -471,7 +532,9 @@ def main():
         r.pop("layout", None)
         r["url"] = a.targets[urls.index(r["url"])]
     results = redact(results)
-    extra = compare_landmarks(results)
+    extra = compare_landmarks(results) + compare_flow(results + redact(references))
+    for r in results:
+        r.pop("flow", None)
     for r in results:
         r.setdefault("findings", []).extend(f for f in extra if f.get("url") == r["url"]
             and f["viewport"] == r["vp"] and f.get("render") == r.get("render", "loaded"))

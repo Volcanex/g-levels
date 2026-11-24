@@ -1,0 +1,16 @@
+<!doctype html>
+<meta name="viewport" content="width=device-width">
+<style>
+  body { margin: 0; font: 15px/1.5 sans-serif; padding: 24px; }
+  table { border-collapse: collapse; width: 420px; margin-bottom: 32px; }
+  td { padding: 6px 16px; white-space: nowrap; }
+  td:first-child { width: 100%; max-width: 0; overflow: hidden; }
+  td { background: #f4f4f6; }
+  td.r { text-align: right; }
+  .cut td:first-child { text-overflow: ellipsis; }
+  .flush td:first-child { padding-right: 0; }
+  .spill td:first-child { overflow: visible; }
+</style>
+<table class="cut"><tr><td id="cut" title="A long name that the cell cuts short on purpose with an ellipsis">A long name that the cell cuts short on purpose with an ellipsis</td><td class="r">412</td></tr></table>
+<table class="flush"><tr><td id="flush">A long name clipped hard against the next cell with no ellipsis</td><td class="r">860</td></tr></table>
+<table class="spill"><tr><td id="spill">A long name that runs on and on and on over the number beside it</td><td class="r">96</td></tr></table>

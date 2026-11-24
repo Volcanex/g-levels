@@ -26,7 +26,17 @@ produce. The theory is in Volcanex/g-research
   tools they marry (Impeccable, stylelint-declaration-strict-value) under `~/.cache/glevels/node`.
   Spacing waits up to 3s for finite animations to finish before it measures, and a fault on a box
   that is still being moved (it or an ancestor under a running transform or size animation) is a
-  lead, never a block: a card flying between slots is judged where it rests. `onsystem.py
+  lead, never a block: a card flying between slots is judged where it rests. Text cut short with
+  `text-overflow: ellipsis` is judged at its box's content edge, where the ellipsis ends it, so a
+  padded cell that truncates on purpose passes and one that spills or has no padding still blocks.
+  Sibling targets also compare flow: each `.parent > .class` pair that is out of flow (absolute,
+  fixed) on every element on one page and in flow on another blocks as
+  `part-flow-differs-between-screens`, the mark of a page rule reaching into a part (Fasra
+  /design's tap rule made the map's labels relative on phones). Keying on the parent keeps two
+  parts that share a class name apart and leaves a part's root, which hosts place, out of it.
+  Under `glevels check` (GLEVELS_RENDERED with GLEVELS_PAGES) each page is compared with the
+  repo's other pages, read with `spacing.mjs --flow-only`, and only the page under test is
+  reported. `onsystem.py
   --package DESIGN_JSON` (or `GLEVELS_DESIGN_PACKAGE`, set through pages.json `env`) reads a
   repo's own g-design package whose language extends a house system, and counts the fonts and
   colours it lists as that system's own. That is how Fasra's Young Serif passes while any face

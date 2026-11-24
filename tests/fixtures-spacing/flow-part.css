@@ -1,0 +1,6 @@
+/* A part that places its own pieces: tags at script-set positions on a chart, and a toast fixed to the corner. */
+.chart { position: relative; height: 200px; background: #1d1d1f; border-radius: 8px; overflow: hidden; }
+.chart > .tag { position: absolute; padding: 4px 8px; border: 0; border-radius: 4px; background: #2a2a2e; color: #eee; font: inherit; }
+.dock { height: 48px; }
+.dock > .toast { position: fixed; right: 16px; bottom: 16px; padding: 8px 16px; border-radius: 8px; background: #2a2a2e; }
+body { padding-bottom: 96px; }

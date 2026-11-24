@@ -1,5 +1,8 @@
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
+import threading
 from pathlib import Path
 import shutil
 import subprocess
@@ -229,3 +232,60 @@ def test_a_moving_box_is_judged_where_it_rests(render):
     assert any(s.startswith("review") and "#flying" in s and "animating" in s for s in said), said
     assert any(s.startswith("block") and "#out" in s for s in said), said
     assert p.returncode == 1, p.stdout + p.stderr
+
+
+def test_text_cut_short_with_an_ellipsis_is_judged_where_it_ends(render):
+    p, results = render("ellipsis.html", "--viewports", "desktop=1440x900", "--states", "loaded")
+    found = [f for r in results for f in r["findings"] if f["check"].startswith("text-")]
+    said = [f["severity"] + " " + f["selector"] + " " + f["detail"] for f in found]
+    assert not any("#cut" in s for s in said), said
+    assert any(s.startswith("block") and "#flush" in s for s in said), said
+    assert any(s.startswith("block") and "#spill" in s for s in said), said
+    assert p.returncode == 1, p.stdout + p.stderr
+
+
+def test_a_part_whose_placed_pieces_fall_into_flow_on_one_page_blocks(render):
+    home = str(FIXTURES / "flow-home.html")
+    p, results = render("flow-host.html", "--viewports", "phone=390x844", "--states", "loaded", home)
+    found = [f for r in results for f in r["findings"] if f["check"] == "part-flow-differs-between-screens"]
+    said = [f["severity"] + " " + f["detail"] for f in found]
+    assert any(s.startswith("block .chart > .tag ") for s in said), said
+    assert any(s.startswith("block .dock > .toast ") for s in said), said
+    assert all("flow-host.html" in f["url"] for f in found), said
+    assert not any(".end" in s or "> .chart" in s for s in said), said
+    assert len(found) == 2, said
+    assert p.returncode == 1, p.stdout + p.stderr
+    assert not any("flow" in r for r in results)
+
+
+def test_parts_laid_out_alike_on_sibling_pages_pass(render):
+    home = str(FIXTURES / "flow-home.html")
+    p, results = render("flow-clean.html", "--viewports", "phone=390x844", "--states", "loaded", home)
+    found = [f for r in results for f in r["findings"] if f["check"] == "part-flow-differs-between-screens"]
+    assert not found, found
+    assert p.returncode == 0, p.stdout + p.stderr
+
+
+def test_a_gate_run_compares_the_page_with_the_repos_other_pages(render, tmp_path):
+    srv = ThreadingHTTPServer(("127.0.0.1", 0), partial(SimpleHTTPRequestHandler, directory=str(FIXTURES)))
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    try:
+        base = f"http://127.0.0.1:{srv.server_port}/"
+        pages = [{"name": "Home", "url": base + "flow-home.html"}, {"name": "Parts", "url": base + "flow-host.html"}]
+        env = dict(os.environ, GLEVELS_RENDERED="1", GLEVELS_PAGES=json.dumps(pages))
+
+        def run(url, name):
+            p = subprocess.run([sys.executable, str(spacing.HERE / "spacing.py"), "--out", str(tmp_path / name),
+                                "--viewports", "phone=390x844", "--states", "loaded", url],
+                               env=env, capture_output=True, text=True, timeout=240)
+            results = json.loads((tmp_path / name / "findings.json").read_text())
+            return p, [f for r in results for f in r["findings"] if f["check"] == "part-flow-differs-between-screens"]
+
+        p, found = run(pages[1]["url"], "parts")
+        assert sorted(f["detail"].split(" is ")[0] for f in found) == [".chart > .tag", ".dock > .toast"], found
+        assert p.returncode == 1, p.stdout + p.stderr
+        p, found = run(pages[0]["url"], "home")
+        assert not found, found
+        assert p.returncode == 0, p.stdout + p.stderr
+    finally:
+        srv.shutdown()
