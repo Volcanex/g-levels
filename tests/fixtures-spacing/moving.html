@@ -1,0 +1,14 @@
+<!doctype html>
+<meta name="viewport" content="width=device-width">
+<style>
+  body { margin: 0; font: 15px/1.5 sans-serif; padding: 24px; }
+  .box { border: 1px solid #ccc; border-radius: 12px; padding: 16px; margin-bottom: 48px; }
+  .card { border: 1px solid #999; border-radius: 8px; padding: 16px; background: #fff; }
+  @keyframes fly { from { transform: translateY(-120px); } to { transform: none; } }
+  .landed { animation: fly 1200ms ease-out; }
+  .flying { animation: fly 30s linear; }
+  #out { margin-top: -140px; }
+</style>
+<div class="box"><p>Landed slot</p><div class="landed"><div class="card" id="landed">A card that flies in and comes to rest</div></div></div>
+<div class="box"><p>Flying slot</p><div class="flying"><div class="card" id="flying">A card still on its way in</div></div></div>
+<div class="box"><p>Broken slot</p><div class="card" id="out">A card that rests outside its box</div></div>

@@ -1,0 +1,4 @@
+{"format": "g-design", "version": 1, "id": "brand-fixture", "name": "Brand fixture",
+ "language": {"extends": {"id": "g-design"}, "themes": ["dark", "light"], "tokens": [
+   {"name": "font-brand", "kind": "font", "default": "Brandface", "stack": "\"Brandface Fallback\", Georgia, serif"},
+   {"name": "accent-fill", "kind": "colour", "default": {"dark": "#5BD29A", "light": "#1E7F53"}}]}}

@@ -219,3 +219,13 @@ def test_a_sandboxed_preview_adds_no_console_error_of_playwrights(render):
     p, results = render("sandboxed.html", "--viewports", "desktop=1440x900", "--states", "loaded")
     errors = [e for r in results for e in r.get("consoleErrors", [])]
     assert not errors, errors
+
+
+def test_a_moving_box_is_judged_where_it_rests(render):
+    p, results = render("moving.html", "--viewports", "desktop=1440x900", "--states", "loaded")
+    escapes = [f for r in results for f in r["findings"] if f["check"] == "box-escapes-box"]
+    said = [f["severity"] + " " + f["selector"] + " " + f["detail"] for f in escapes]
+    assert not any("#landed" in s for s in said), said
+    assert any(s.startswith("review") and "#flying" in s and "animating" in s for s in said), said
+    assert any(s.startswith("block") and "#out" in s for s in said), said
+    assert p.returncode == 1, p.stdout + p.stderr

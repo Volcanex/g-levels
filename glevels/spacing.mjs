@@ -79,9 +79,17 @@ function analyse(o) {
   const vh = innerHeight;
   const counts = {};
   const doc = (r) => r && [Math.round(r.left + scrollX), Math.round(r.top + scrollY), Math.round(r.width), Math.round(r.height)];
+  // Elements a running animation is moving. A box measured mid-flight is not where it rests, so a fault found
+  // on one is a lead for the reviewer, never a block. measure() waits for animations to finish first.
+  const GEOMETRY = /^(transform|translate|scale|rotate|top|left|right|bottom|inset|width|height|margin)/;
+  const moving = new Set(document.getAnimations().filter((a) => a.playState === "running" && a.effect?.target &&
+    (a.effect.getKeyframes?.() || []).some((k) => Object.keys(k).some((p) => GEOMETRY.test(p)))).map((a) => a.effect.target));
+  const inFlight = (el) => { for (let e = el; e && e.nodeType === 1; e = e.parentElement) if (moving.has(e)) return e; return null; };
   const add = (check, severity, el, detail, r) => {
     counts[check] = (counts[check] || 0) + 1;
     if (counts[check] > CAP) return;
+    const mover = severity === "block" && el && el.nodeType === 1 ? inFlight(el) : null;
+    if (mover) { severity = "review"; detail += `; measured while ${describe(mover)} was animating, judge where it comes to rest`; }
     out.push({ check, severity, selector: el ? describe(el) : "", detail, rect: doc(r) });
   };
   const describe = (el) => {
@@ -766,6 +774,16 @@ async function longText(page) {
   });
 }
 
+// Finite animations started by the scroll pass (entrances, a card moving between slots) finish before geometry is
+// read, so the sensor judges where things rest. Looping animations never finish and are not waited for.
+async function settle(page, limit = 3000) {
+  await page.waitForFunction(() => !document.getAnimations().some((a) => {
+    if (a.playState !== "running" || !a.effect) return false;
+    const end = a.effect.getComputedTiming().endTime;
+    return Number.isFinite(end) && end > 0;
+  }), null, { timeout: limit, polling: 100 }).catch(() => {});
+}
+
 async function measure(page, entry, vp) {
   const touch = vp.width < 720;
   const reach = await page.evaluate(() => document.documentElement.scrollHeight);
@@ -776,6 +794,7 @@ async function measure(page, entry, vp) {
   await page.waitForFunction(() => [...document.images].every((i) => i.complete), null, { timeout: 4000 }).catch(() => {});
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.waitForTimeout(300);
+  await settle(page);
   entry.rhythm = await measureRhythm(page);
   entry.rhythm.rows = entry.rhythm.rows.slice(0, 8);
   Object.assign(entry, await page.evaluate(analyse, { cap: 25, touch, vw: vp.width, state: entry.state,

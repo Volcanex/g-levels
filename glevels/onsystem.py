@@ -1,7 +1,7 @@
 """Sensor: house design system and information hierarchy. Gate correct.ui.on-system.
 
     python3 onsystem.py [--system auto|gdesign|baseline|TOKENS_CSS] [--out DIR]
-                       [--json] [--refs] TARGET [TARGET ...]
+                       [--package DESIGN_JSON] [--json] [--refs] TARGET [TARGET ...]
 
 Targets are URLs, HTML files or g-site pages, compiled fresh by spacing.py.
 Desktop 1440x900 and phone 390x844 screenshots are viewport tiles, never montages.
@@ -9,6 +9,10 @@ Exit 0: no clear faults. Exit 1: blocking missing system, foreign or failed font
 raw failure text or clear AI tells. Exit 2: impossible to run. Other findings are
 leads for the reviewer and never fail alone. Artefacts land in --out (a temp dir
 by default). --refs also renders the house reference screens for the judge.
+--package (or GLEVELS_DESIGN_PACKAGE, which .glevels/pages.json can set) names the
+repo's own design package, a g-design format design.json whose language extends a
+house system: the font and colour tokens it lists count as that system's own, so a
+brand face the package declares is not a foreign font. The report says so.
 """
 import argparse
 import fcntl
@@ -25,6 +29,40 @@ if __package__:
 else:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     from glevels import spacing, vendor
+
+BASES = {"g-design": "gdesign"}
+
+
+def extend_with_package(profiles, path):
+    """A design language that extends a house system owns the fonts and colours it lists. Add them to that profile."""
+    if not path:
+        return None
+    try:
+        doc = json.loads(Path(path).read_text())
+    except (OSError, ValueError) as e:
+        spacing.impossible(f"the design package {path} could not be read: {e}")
+    lang = doc.get("language") if isinstance(doc, dict) else None
+    if doc.get("format") != "g-design" or not isinstance(lang, dict) or not isinstance(lang.get("tokens"), list):
+        spacing.impossible(f"{path} is not a g-design package with a language")
+    base = BASES.get((lang.get("extends") or {}).get("id"))
+    if base not in profiles:
+        spacing.impossible(f"{path} extends {(lang.get('extends') or {}).get('id')}, which is not a house system this sensor knows")
+    families, fallbacks, colours = [], [], []
+    for t in lang["tokens"]:
+        d = t.get("default")
+        values = [v for v in (d.values() if isinstance(d, dict) else [d]) if isinstance(v, str)]
+        if t.get("kind") == "font":
+            families += values
+            fallbacks += [f.strip().strip("\"'") for f in str(t.get("stack", "")).split(",") if "fallback" in f.lower()]
+        elif t.get("kind") == "colour":
+            colours += values
+    p = profiles[base]
+    p["families"] = p["families"] + [f for f in families if f not in p["families"]]
+    p["fallbacks"] = p.get("fallbacks", []) + fallbacks
+    p["colours"] = p.get("colours", []) + colours
+    return (f"the design package {path} ({doc.get('name') or doc.get('id')}) extends {base}: its fonts "
+            f"({', '.join(families) or 'none'}) and {len(set(colours))} colours count as the system's own")
+
 
 IMPECCABLE_BLOCK = {
     "gradient-text", "ai-color-palette", "dark-glow", "side-tab",
@@ -143,6 +181,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("targets", nargs="+")
     ap.add_argument("--system", default="auto")
+    ap.add_argument("--package", default=os.environ.get("GLEVELS_DESIGN_PACKAGE", ""))
     ap.add_argument("--out")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--refs", action="store_true")
@@ -171,6 +210,7 @@ def main():
     out_dir = Path(a.out or tempfile.mkdtemp(prefix="glevels-onsystem-")).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     profiles = json.loads((HERE / "systems.json").read_text())
+    package_note = extend_with_package(profiles, a.package)
     css = a.system if a.system.startswith(("http://", "https://")) else str(Path(a.system).resolve())
     a.system = next((name for name, p in profiles.items() if css in p["stylesheets"]), a.system)
     if a.system not in ("auto", *profiles):
@@ -225,6 +265,8 @@ def main():
                     if r["counts"]["gradient-text"] <= 0:
                         del r["counts"]["gradient-text"]
                 r["url"] = a.targets[urls.index(r["url"])]
+                if package_note:
+                    r.setdefault("notes", []).append(package_note)
             (out_dir / "findings.json").write_text(json.dumps(results, indent=2) + "\n")
     except (OSError, subprocess.SubprocessError, ValueError) as e:
         spacing.impossible(str(e))

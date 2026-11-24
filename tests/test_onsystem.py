@@ -170,3 +170,29 @@ def test_invalid_viewport_is_impossible(monkeypatch, capsys):
         onsystem.main()
     assert exc.value.code == 2
     assert "impossible: invalid viewports" in capsys.readouterr().out
+
+
+def _brand(tmp_path, *flags):
+    out = tmp_path / ("package" if flags else "bare")
+    run = subprocess.run([sys.executable, str(ROOT / "glevels/onsystem.py"), "--out", str(out), "--viewports",
+                          "desktop=1440x900", *flags, str(FIXTURES / "brand.html")],
+                         cwd=ROOT, capture_output=True, text=True, timeout=600)
+    fonts = [f for r in json.loads((out / "findings.json").read_text()) for f in r["findings"] if f["check"] == "foreign-font"]
+    return run, fonts
+
+
+def test_a_package_that_extends_the_house_owns_its_brand_face(renders, tmp_path):
+    run, fonts = _brand(tmp_path)
+    assert any("text uses Brandface" in f["detail"] for f in fonts), fonts
+    run, fonts = _brand(tmp_path, "--package", str(FIXTURES / "brand-package.json"))
+    assert not any("text uses Brandface" in f["detail"] for f in fonts), fonts
+    assert any("text uses Otherface" in f["detail"] and f["severity"] == "block" for f in fonts), fonts
+    assert run.returncode == 1 and "design package" in run.stdout and "Brandface" in run.stdout, run.stdout
+
+
+def test_a_package_that_extends_no_known_system_is_impossible(tmp_path):
+    pkg = tmp_path / "design.json"
+    pkg.write_text(json.dumps({"format": "g-design", "language": {"extends": {"id": "elsewhere"}, "tokens": []}}))
+    run = subprocess.run([sys.executable, str(ROOT / "glevels/onsystem.py"), "--package", str(pkg), "--out",
+                          str(tmp_path / "o"), str(FIXTURES / "brand.html")], cwd=ROOT, capture_output=True, text=True, timeout=120)
+    assert run.returncode == 2 and "elsewhere" in run.stdout + run.stderr, run.stdout + run.stderr

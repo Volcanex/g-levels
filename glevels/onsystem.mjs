@@ -75,6 +75,8 @@ async function palette(page, css, profile) {
       pixel.fillRect(0, 0, 1, 1);
       return [...pixel.getImageData(0, 0, 1, 1).data].slice(0, 3).join(",");
     };
+    // Colours a design package that extends this system lists as its own (onsystem.py --package).
+    for (const c of profile.colours || []) { const v = rgb(c); if (v) sets.colours.add(v); }
     for (const theme of ["", "light", "dark"]) {
       doc.documentElement.setAttribute("data-theme", theme);
       for (const [prop, value] of declarations) {

@@ -24,6 +24,17 @@ produce. The theory is in Volcanex/g-research
   the look sensors, each a Python CLI driving a `.mjs` Playwright half. They share spacing's
   page resolution, browser lock and memory guard. `vendor.py` pins and installs the maintained
   tools they marry (Impeccable, stylelint-declaration-strict-value) under `~/.cache/glevels/node`.
+  Spacing waits up to 3s for finite animations to finish before it measures, and a fault on a box
+  that is still being moved (it or an ancestor under a running transform or size animation) is a
+  lead, never a block: a card flying between slots is judged where it rests. `onsystem.py
+  --package DESIGN_JSON` (or `GLEVELS_DESIGN_PACKAGE`, set through pages.json `env`) reads a
+  repo's own g-design package whose language extends a house system, and counts the fonts and
+  colours it lists as that system's own. That is how Fasra's Young Serif passes while any face
+  the package does not declare still blocks. A package extending an unknown system is impossible.
+- `glevels/engines.py`: the sensor for `correct.ui.every-engine`. Python Playwright opens each
+  page (GLEVELS_URL from pages.json) in Chromium and WebKit, at 320, 390 and 1440 wide, light
+  and dark, and blocks on uncaught exceptions, console errors, failed same-origin requests,
+  sideways scroll and blank pages. WebKit is Safari on every iPhone. Firefox is not installed.
 - `glevels/motion.py`, `frames.py` and `meshcheck.py`: the moving-picture sensors. `motion.py`
   (with `motion.mjs`) records a page's animations and reveals; `frames.py` (with `frames.mjs`)
   reads or captures consecutive frames, or runs a repo's `.glevels/frames.json` recipe;
@@ -122,7 +133,7 @@ A repo may name its running pages in `.glevels/pages.json`:
   "ready": "http://127.0.0.1:{port}/",
   "timeout": 20,
   "viewports": "phone=390x844,desktop=1440x900",
-  "env": {"GSPACING_LOCK": "/tmp/g-studio-browser.lock"},
+  "env": {"GSPACING_LOCK": "/tmp/g-studio-browser.lock", "GLEVELS_DESIGN_PACKAGE": "{repo}/design.json"},
   "pages": [
     {"name": "Home", "url": "http://127.0.0.1:{port}/index.html"},
     {"name": "Settings", "url": "http://127.0.0.1:{port}/settings.html"}
