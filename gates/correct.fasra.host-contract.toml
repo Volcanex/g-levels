@@ -1,0 +1,27 @@
+id = "correct.fasra.host-contract"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-design"
+principle = "The parts take their whole look from the page that loads them: no colour of their own, and every token they read either has a fallback or is on the short list every host defines."
+guidance = """
+site/os/ui/ui.css is copied into other sites (markupschema.com loads it beside its own fasra.css), and the parts
+are the seed of the product frontend. So a part reads tokens, never colours: no hex, rgb(), hsl(), oklch() or
+white/black values outside a var() fallback (masks and color-mix shading toward black or white are fine). A token
+that only fasra.css defines is read with a fallback, var(--glass-keep, 100%), unless it is on HOST in
+os/dev/check-host.mjs, and a token goes on HOST only in the same change that defines it in every host stylesheet.
+Run `node os/dev/check-host.mjs`, and with `--site <other site>/site` for a site that carries a copy.
+"""
+pass = "met: check-host exits 0. There is no attempted."
+remediation = "Each line names the file, the line and the colour or token. Swap the colour for the token it means, give the token a fallback, or define it in ui.css. Never move the colour into an inline style or a JS string to get past the scan."
+written_against = { model = "claude-opus-5-5", date = "2026-11-24" }
+
+[sensor]
+# os/dev/check-host.mjs: bare var() reads in ui.css against g.css, ui.css, the parts' inline tokens and HOST;
+# HOST against the host stylesheet; colour literals in ui.css and kit.css. Exit 1 on any problem.
+type = "command"
+run = "node {repo}/os/dev/check-host.mjs"
+
+[origin]
+date = "2026-11-24"
+incident = "The frost work had ui.css read --glass-keep and --glass-fx bare. markupschema.com copies ui.css and does not define them, so its surfaces would have lost their backgrounds; it was caught by hand and given fallbacks. The scan also found .ui-iso-r mixing toward black, which is shading and allowed."

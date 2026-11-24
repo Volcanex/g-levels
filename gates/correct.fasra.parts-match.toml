@@ -1,0 +1,25 @@
+id = "correct.fasra.parts-match"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-design"
+principle = "The parts list (site/os/ui/components.json) names every part the library exports with the settings its code takes, and every example in it draws."
+guidance = """
+Read site/os/ui/CLAUDE.md, "Manifest and views". A new part, a renamed export, a new or dropped setting and a
+changed example go into components.json in the same change as the code. The list is what Studio's Parts tab draws
+controls from and what the generated views ask Jev about, so a setting listed but ignored is a control that does
+nothing, and a setting taken but unlisted can never be chosen. Run `node os/dev/check-ui.mjs`.
+"""
+pass = "met: check-ui exits 0. There is no attempted."
+remediation = "Each line names the part and the setting or example. Add the missing entry, remove the stale one, or fix the example so checkTree accepts it and it draws without throwing. Never widen a part to ...rest to quiet the settings rule."
+written_against = { model = "claude-opus-5-5", date = "2026-11-24" }
+
+[sensor]
+# os/dev/check-ui.mjs: the list's format, exports against parts, settings against each part's code, every
+# example through checkTree and a real draw, text settings that reach an address. Exit 1 on any problem.
+type = "command"
+run = "node {repo}/os/dev/check-ui.mjs"
+
+[origin]
+date = "2026-11-24"
+incident = "Written ahead of a leak on 2026-11-24, when five chart parts were added at once for the generated views. The list feeds Studio's Parts tab and Jev's questions, so a drift there shows as a control that does nothing or a generated view that cannot be drawn, far from the change that caused it."

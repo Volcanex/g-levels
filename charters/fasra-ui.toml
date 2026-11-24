@@ -1,0 +1,45 @@
+id = "fasra-ui"
+title = "Fasra's frontend system: the parts library, its tokens and the design page"
+extends = ["fasra-site"]
+repos = ["gsp-fasra"]
+# Agreed with Gabriel on 2026-11-24: "g levels this stuff and get this frontend system bulletproof. It's separate
+# from g-design but it should be similarly thorough." site/os/ui is the seed of the product frontend and is already
+# copied into markupschema.com, so drift between its list, its tokens, its stylesheet and its design page is caught
+# here rather than on a live page. It extends fasra-site, so the copy and look gates still hold, and the look gates
+# render the pages in .glevels/pages.json (home and the design page).
+principles = [
+  "One source per fact: components.json lists what the code exports, design.json lists what fasra.css sets, and a check fails the moment they part.",
+  "The design page shows every part with its states. A part nobody can see is a part nobody checks.",
+  "The parts take their look from the host page: no colour of their own, and every token they read has a fallback or is on the short list every host defines.",
+  "A page is done when it runs clean in Chromium and WebKit, at a phone and a desktop width, in light and dark.",
+]
+
+[[gates]]
+id = "correct.fasra.tokens-match"
+version = 1
+paths = ["site/fasra.css", "site/os/ui/design.json", "site/os/ui/language.js", "os/dev/check-language.mjs"]
+blocking = true
+
+[[gates]]
+id = "correct.fasra.parts-match"
+version = 1
+paths = ["site/os/ui/**", "os/dev/check-ui.mjs"]
+blocking = true
+
+[[gates]]
+id = "correct.fasra.showcase"
+version = 1
+paths = ["site/design/**", "site/os/ui/components.json", "os/dev/check-design.mjs"]
+blocking = true
+
+[[gates]]
+id = "correct.fasra.host-contract"
+version = 1
+paths = ["site/os/ui/**", "site/os/kit/kit.css", "site/fasra.css", "site/static/g/g.css", "os/dev/check-host.mjs"]
+blocking = true
+
+[[gates]]
+id = "correct.ui.every-engine"
+version = 1
+paths = ["site/**"]
+blocking = true

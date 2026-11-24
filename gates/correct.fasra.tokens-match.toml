@@ -1,0 +1,26 @@
+id = "correct.fasra.tokens-match"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-design"
+principle = "The design package (site/os/ui/design.json) lists exactly the tokens site/fasra.css sets, with the same values in every theme, and the page that follows the system shows the light values the light theme was designed with."
+guidance = """
+Read site/os/ui/CLAUDE.md, "Design package", before touching a token. A token is added, renamed or retuned in
+fasra.css and design.json in the same change: Studio's Design screen, its tune controls and the generated views
+read the package, never the CSS, so a token only the CSS knows is invisible to all three. The light values live
+twice in fasra.css (the [data-theme="light"] block and the copy inside @media (prefers-color-scheme: light) for
+[data-theme="system"]): change both. Run `node os/dev/check-language.mjs` before you commit.
+"""
+pass = "met: check-language exits 0. There is no attempted: the package and the CSS either agree or they do not."
+remediation = "Each line names the token and both values. Make design.json and fasra.css say the same thing, in the theme the line names, and in the system block when it is a light value. Never drop a token from the package to quiet a line: list it, with its kind and default."
+written_against = { model = "claude-opus-5-5", date = "2026-11-24" }
+
+[sensor]
+# os/dev/check-language.mjs: the package's own format, the token list against fasra.css's :root and light
+# blocks, and the system block against the light block. Exit 1 on any problem.
+type = "command"
+run = "node {repo}/os/dev/check-language.mjs"
+
+[origin]
+date = "2026-11-24"
+incident = "Commit 214aa97 added the frost tokens (--glass-show, --glass-blur, --glass-sat, --glass-tint) to fasra.css and not to design.json, so Studio's Design screen could not tune the frost and nothing failed. check-language existed but only pytest ran it, and nobody ran pytest for a CSS change."

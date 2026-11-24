@@ -1,0 +1,36 @@
+id = "correct.ui.every-engine"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-product"
+principle = "A page runs clean in every browser engine its readers use: Chromium and WebKit (Safari on every iPhone), at a phone and a desktop width, in light and dark."
+guidance = """
+Load g-product and g-spacing. Headless Chromium is not the web: every browser on an iPhone is WebKit, and a page
+that was only ever opened in Chromium has not been tried on most phones. Before saying a page works, run
+`python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/engines.py <url>` (default engines chromium,webkit, widths
+320, 390 and 1440, light and dark). It needs Python Playwright with both browsers, which h has.
+- Fix every blocking line: an uncaught exception, a console error, a same-origin 4xx or 5xx, a page that scrolls
+  sideways (the line names the elements that stick out), a blank page.
+- A page that calls a service it cannot reach locally should have a documented switch for that (Fasra's home
+  takes ?runtime= for its prepared answers); point the page list at it rather than letting the request fail.
+- Open the screenshots for the engines side by side. A height that differs by a fifth is a lead: a font, a
+  flex or grid rule or a feature one engine lacks.
+- A feature WebKit lacks gets a fallback that still reads (the map's flat list, the orb's still form), never a
+  blank box.
+"""
+pass = "met: the sensor exits 0 for every page in the page list, and a look at the screenshots shows the same page in each engine. attempted: nothing blocking, but leads (same background in both schemes, height differences, cross-origin failures) were left unexplained."
+remediation = "Each blocking line names the page, engine, width and scheme. Reproduce it in that engine (Playwright's webkit, or Safari), fix the cause, and rerun. A sideways scroll is fixed in the element named, with min-width: 0, wrapping or a max-width, never with overflow-x: hidden on the body. Never drop an engine or a width from the run to pass."
+written_against = { model = "claude-opus-5-5", date = "2026-11-24" }
+
+[sensor]
+# glevels/engines.py: every page in every engine, width and scheme, settled after fonts and network. Blocks on
+# page errors, console errors, same-origin failures, sideways scroll and blank pages. Exit 2 when it cannot run
+# (no URL, no Python Playwright, an engine missing, too little memory). With .glevels/pages.json, {file} is each
+# page's URL.
+type = "command"
+run = "python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/engines.py {file}"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-11-24"
+incident = "Fasra's frontend system was going out to other platforms (markupschema.com now, the product next) and had only ever been opened in headless Chromium. WebKit runs both pages clean, but nothing would have said so if it had not."

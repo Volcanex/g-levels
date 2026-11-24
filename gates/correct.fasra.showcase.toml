@@ -1,0 +1,26 @@
+id = "correct.fasra.showcase"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-design"
+principle = "The design page (site/design) draws every part in the list with its states, and every link on its coverage table lands on something."
+guidance = """
+A new part gets a specimen on the design page in the same change: a Spec that draws it with its real states
+(wide and narrow, empty, the edge cases), in the section where a reader would look for it. The page is where
+Gabriel and Studio see the system, so a part with no specimen is a part nobody reviews. Give each Spec a unique id.
+A coverage row may point at a specimen id, or at another page with an anchor (../example/#colour). Run
+`node os/dev/check-design.mjs`.
+"""
+pass = "met: check-design exits 0. There is no attempted."
+remediation = "Each line names the part, the duplicate id or the dead link. Add the specimen with its states, rename the duplicate, or point the row at the page that really has the section. Never satisfy the check with a specimen that draws the part bare and stateless."
+written_against = { model = "claude-opus-5-5", date = "2026-11-24" }
+
+[sensor]
+# os/dev/check-design.mjs: each listed part's export drawn as a component somewhere in site/design/*.js,
+# unique Spec ids, coverage rows that resolve. Exit 1 on any problem.
+type = "command"
+run = "node {repo}/os/dev/check-design.mjs"
+
+[origin]
+date = "2026-11-24"
+incident = "The iso figures, the orb and the map were parts of the system but were shown only on /play, and two coverage rows linked to #colour, which exists only on /example/, so their See it links went nowhere. Nothing compared the page with the list."
