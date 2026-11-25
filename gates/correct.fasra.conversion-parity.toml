@@ -1,0 +1,55 @@
+id = "correct.fasra.conversion-parity"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "fasra-convert"
+principle = "A Baseline screen moved into Fasra Studio does everything the old screen did: every view, chart, filter, drill-down, action, export, state and piece of motion, checked line by line against a list made from the old screen. It calls nothing the old screen did not call, and the old screen keeps working beside it."
+guidance = """
+Load fasra-convert. A conversion lives at convert/<flow>/ in the repo that holds the view.
+Before building, read its parity files (one per old page, every capability listed one by one),
+its flow.md, contract.md and keep.md, and the old screen's source from git objects. Add any
+capability the list missed. Build against the flow's stand-in, never against production, in
+Preact on Fasra's parts and tokens. Keep what the old screen does well: its order, what it
+shows while something runs, its wording and timings. A chart stays a chart and a drill-down
+opens the same detail. The view calls only the endpoints the old screen calls, at the same
+moments. A call the old screen never made goes in the parity file's `added` list with a reason.
+Set a capability to `met` only after seeing it work in the walk, with evidence naming the
+component and what you saw, and name the view's source in the file's `view` list. Only the
+owner can waive a line, so never write `waived` yourself: leave it `missing` and say why in
+the report. Do not edit, slow or retire the old screen.
+Run `python3 /home/gabriel/g-levels/glevels/conversion.py <repo>` and paste its output in the report.
+"""
+pass = "met: the checker exits 0 for the flows in the change, and the reviewer, with the old screen on staging and the new view side by side, finds nothing the old screen shows or does that the new one does not, and nothing the new view calls that the old one did not. attempted: the checker still lists missing capabilities, each named in the note. A capability marked met that the reviewer cannot find is a catch. So is any edit to the old screen."
+remediation = "For each capability the checker or the reviewer names, open the old screen's source at the line on the row, see what it does, and build it in the view from Fasra's parts. For a call the checker says the old screen never made, remove it, or add it to `added` with the reason if the view cannot work without it. For a row marked met whose endpoint the view never names, either the row is wrong or the build is: fix the one that is. Do not mark a capability met to make the checker pass."
+written_against = { model = "claude-fable-5-2", date = "2026-11-25" }
+
+[sensor]
+type = "review"
+run = "python3 ${GLEVELS:-/home/gabriel/g-levels}/glevels/conversion.py {repo}"
+cannot_run_exit = 2
+rubric = """
+You did not build this.
+1. Run the checker for the repo. Exit 2: record impossible with the reason it prints.
+2. Open the old screen on staging and the new view on its stand-in or on staging, side by side. Never production, and never a live page with ?domain= or ?url=. Do not read the builder's notes first.
+3. From the old screen alone, list what it shows, every state you can reach and what every click does. Compare with the parity files: anything you found that they lack is a catch against the inventory.
+4. For each capability marked met, find it in the new view and use it. A chart must be a chart, a drill-down must open the same detail, a waiting state must say the same thing at the same moment, an action must reach the same endpoint. Open the walk's screenshots at full size for the states you cannot reach by hand.
+5. Read every line the checker prints under "for the reviewer". Try each row that writes or spends once, on staging. For each added endpoint decide whether the reason holds. For each path built from a prefix, read the code and confirm the full path is one the old screen called.
+6. Check that the old screen's files are untouched in the change and that its own browser tests still pass.
+7. Record met only if nothing is missing. Otherwise attempted, naming the old page and the capability.
+"""
+
+[origin]
+date = "2026-11-25"
+incident = "Written before the first conversion, at the owner's request, so the class cannot recur: on 2026-11-21 Studio shipped 17 read-only list screens as the replacement for Fasra's admin with no check against the old pages (correct.admin.replacement-parity). Baseline's customer screens are next and they are live: 'We need baseline to keep being usable ... I don't want my boss to get mad because baseline labs AI works right now you know and I don't want it to break', and 'it's a move not a total replacement so make sure there's not use cases left behind by the move we're still relying on'."
+
+[validation]
+date = "2026-11-25"
+sensor = "glevels/conversion.py (the mechanical half, tests in tests/test_conversion.py; the side-by-side review is judged by a separate agent)"
+cases = [
+  "original: the onboarding inventory before anything is built (six old pages, 199 capabilities, every one missing) -> 0 of 199 met, blocking: 199, exit 1",
+  "related: a builder flips a row to met with no evidence, or with no view named to check it against -> refused, exit 2",
+  "related: a builder writes waived on a row with no waived_by, reason or review date -> refused, exit 2 (only the owner waives)",
+  "related: every row met, but the view fetches /api/core/auth/me, which the old screen never called -> a catch, exit 1. The same call listed under added with a reason -> exit 0, shown to the reviewer",
+  "related: a row marked met whose endpoint the view's source never names -> a catch, exit 1",
+  "clean: a flow of three rows, all met with evidence, the view naming the same endpoints -> 3 of 3 met, exit 0",
+]
