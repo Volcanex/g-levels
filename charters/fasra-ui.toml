@@ -12,6 +12,7 @@ principles = [
   "The design page shows every part with its states. A part nobody can see is a part nobody checks.",
   "The parts take their look from the host page: no colour of their own, and every token they read has a fallback or is on the short list every host defines.",
   "A page is done when it runs clean in Chromium and WebKit, at a phone and a desktop width, in light and dark.",
+  "A page draws its grounds with the recipes and the parts, never by copying their paint, so the home and the design page can never disagree.",
 ]
 
 [[gates]]
@@ -37,6 +38,14 @@ id = "correct.fasra.host-contract"
 version = 1
 paths = ["site/os/ui/**", "site/os/kit/kit.css", "site/fasra.css", "site/static/g/g.css", "os/dev/check-host.mjs"]
 blocking = true
+
+[[gates]]
+id = "correct.fasra.surfaces"
+version = 1
+paths = ["site/**", "os/dev/check-surfaces.mjs"]
+blocking = true
+# EXEMPT in check-surfaces.mjs holds site/example/surfaces/, the study option 11 was picked from, which keeps its
+# own hand-drawn options so they still look as they did when chosen. Awaiting Gabriel's yes (2026-11-25).
 
 [[gates]]
 id = "correct.ui.every-engine"
