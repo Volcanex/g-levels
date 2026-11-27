@@ -43,3 +43,9 @@ id = "correct.ui.every-engine"
 version = 1
 paths = ["site/**"]
 blocking = true
+
+[[gates]]
+id = "correct.fasra.tool-look"
+version = 1
+paths = ["site/fasra.css", "site/os/ui/**", "site/studio/**", "os/dev/studio-look.py"]
+blocking = true

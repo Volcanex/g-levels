@@ -1,0 +1,40 @@
+id = "correct.fasra.tool-look"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-design"
+principle = "A tool surface reads as a tool: flat panels on distinct grounds, the brand's touches (the lit rim, the serif, the orbs) kept to small places, and all of it set once in the design language so every screen takes it."
+guidance = """
+Fasra Studio's root carries data-face="tool". Everything below is set under that attribute in site/fasra.css and
+site/os/ui/*.css and recorded in site/os/ui/design.json, never in a screen's own files: a screen that needs its own
+border, shadow, height or font to look right has found a gap in the language, and the fix goes there.
+- Panels, cards, surfaces and rows are flat: a hairline from a token, no lit rim, no soft drop shadow. Shadows are
+  for overlays.
+- The lit rim is a brand touch for small parts (today the primary button and the account avatar, through --rim-edge). Nothing that covers more than
+  20,000 square px carries one, or any other bright inset edge.
+- No text wears the brand serif. Headings take the tool sans through PageHead, ReportHead and HeroBand as shipped.
+  The wordmark keeps its own face.
+- The rail, top bar and dock use icons, never orbs. Every rail link has an icon (the shell's SCREEN_ICONS).
+- Page, card and well are three tones. A card never sits on its own tone, and a boxed thing inside a card sits on
+  the well tone. The rail and the top bar share one ground.
+- Desktop rows, controls and rail links sit on the 32px step. Phones keep 40px controls.
+The public sites set no data-face and must paint exactly as before: prove it with an element-by-element paint
+comparison against the last published tree whenever a tool-face setting changes.
+Run `python3 os/dev/studio-look.py` (through the lane on h). It starts the stand-in itself.
+"""
+pass = "met: studio-look exits 0 and a reviewer who did not build the change has read its leads. attempted: exit 0 with leads nobody has read. There is no met with a fault."
+remediation = "Each line names the rule, the part and the first screen it shows on. A rim or shadow on a large thing: remove it in the tool-face rules, never by hiding the part. Serif text: use the shipped heads, or drop the screen's own font-family. An orb or a missing icon in the frame: add the screen to SCREEN_ICONS. A card on its own tone: move the inner box to the well tone (Surface sunk) or drop the inner box. Never set the fix in a flow's own stylesheet, and never take data-face off a page to quiet the check."
+written_against = { model = "claude-fable-5-2", date = "2026-11-27" }
+
+[sensor]
+# os/dev/studio-look.py: every screen the rail links to, the sign-in screens and an address with no page, on the
+# stand-in Baseline, at 1440 and 390, dark and light. Blocks on face, rim, serif, orbs, grounds and frame. Leads:
+# soft shadows on large things in the flow, and rows, controls and rail links over the 32px step. Exit 2 when it
+# cannot run (no Python Playwright, the stand-in does not start, the rail does not draw).
+type = "command"
+run = "python3 {repo}/os/dev/studio-look.py"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-11-27"
+incident = "Gabriel opened staging Studio three times in one night. First: 'all the same grey for cards inside and out', orbs in the nav, and the editorial serif on a tool. After the fix he asked again whether the orbs and serif were gone, then: 'make the f-studio look better ... a more g-design feel but still needs to be fasra design lang. I think the highlights on dark mode work only in small places and are alike the editorial serif'. Every one of these was a brand touch from the public site carried onto a tool screen by default, and no gate measured the tool face."
