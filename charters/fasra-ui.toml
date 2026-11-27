@@ -61,6 +61,6 @@ blocking = true
 
 [[gates]]
 id = "correct.fasra.shell-rail"
-version = 1
+version = 2
 paths = ["site/os/ui/shell.js", "site/os/ui/shell.css", "site/studio/**", "os/dev/studio-shell-rail.py"]
 blocking = true
