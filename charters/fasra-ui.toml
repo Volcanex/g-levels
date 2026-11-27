@@ -58,3 +58,9 @@ id = "correct.fasra.tool-look"
 version = 1
 paths = ["site/fasra.css", "site/os/ui/**", "site/studio/**", "os/dev/studio-look.py"]
 blocking = true
+
+[[gates]]
+id = "correct.fasra.shell-rail"
+version = 1
+paths = ["site/os/ui/shell.js", "site/os/ui/shell.css", "site/studio/**", "os/dev/studio-shell-rail.py"]
+blocking = true

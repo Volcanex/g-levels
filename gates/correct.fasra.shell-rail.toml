@@ -1,0 +1,42 @@
+id = "correct.fasra.shell-rail"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-navigation"
+principle = "The rail is the frame of a tool: shut means shut, its small controls are quiet marks, it joins the top bar as one piece, and it moves only as much as the owner agreed."
+guidance = """
+Fasra Studio's shell (site/os/ui/shell.js and shell.css) follows g-navigation R8, R1a and R7. Read that skill before
+touching the rail, the dock or the top bar. What the owner has ruled on, each measured by the sensor:
+- Rest. From 721px the rail rests shut as a 56px icon dock and the page starts at 56px. A mouse resting on it for
+  150ms, or keyboard focus inside it, opens it over the page, and nothing behind it moves. A pointer that only
+  crosses it, and a touch, never open it. The pin keeps it open and the page then makes room. Only the pin stores
+  anything.
+- Shut means shut. A shut rail paints no part of any label, at any width, in either theme, with every group open
+  and with a long place name. Clip the row, never fade or shrink the text.
+- The caret of a group is a mark of 24px or less inside its row with 4px clear above and below, and it has no ground
+  of its own. Pointing at it lights the row.
+- The pin is a 24 or 28px icon button with no ground at rest, and its glyph differs between kept and shut.
+- The join. The rail and the top bar share one ground with no rule between them, and the page is set into that frame
+  on a top-left curve of 8px or more.
+- The current place's icon is the fill weight, and becoming current cross-fades it inside 200ms. This is one of the
+  two owner exceptions to "nothing fades in" (site/os/ui/CLAUDE.md), so it stays this small.
+Set all of it in the shell's own files and the design language, never in a screen. Under 721px the rail is the dock
+and none of the rest rules apply.
+Run `python3 os/dev/studio-shell-rail.py` (through the lane on h). It starts the stand-in itself. `--only` runs one
+part, `--inject CSS` shows a part catching a fault.
+"""
+pass = "met: studio-shell-rail exits 0 on the commit that ships and a reviewer who did not build the change has opened the shut, peeked and kept shots at full size in both themes. attempted: exit 0 with shots nobody has opened. There is no met with a failed check."
+remediation = "Each FAIL line names the part (rest, ink, caret, pin, join, fill), the theme and width, and what it measured. A label painted while shut: fix the row's clip in shell.css, never hide the text another way. A ground on the caret or the pin: remove it there, the row carries the hover. A rule or a square corner at the join: the rail and the top bar take one ground and the page keeps its radius. A rail that rests open or peeks on a crossing pointer: the fix is in shell.js (what is stored, and the rest timer), never a longer delay alone. A snapped icon: restore the opacity transition on the icon pair. Never change the sensor's numbers to pass. A number is the owner's ruling and changes only on his word."
+written_against = { model = "claude-fable-5-2", date = "2026-11-27" }
+
+[sensor]
+# os/dev/studio-shell-rail.py in gsp-fasra: six parts (rest, ink, caret, pin, join, fill), 87 checks on the stand-in
+# Baseline at 721 to 1920 wide, dark and light. Exit 0 clean, 1 a fault, 2 when it cannot run (no Python Playwright,
+# the stand-in does not start, the shell does not draw). The last line is "checks N passed P failed F".
+type = "command"
+run = "python3 {repo}/os/dev/studio-shell-rail.py"
+cannot_run_exit = 2
+
+[origin]
+date = "2026-11-27"
+incident = "Gabriel opened Fasra Studio the morning after the tool-look pass: 'The dock and navbar is just broken on F-studio, it doesn't shut properly text is stil visable. We have chevron dropdowns that have background cards the same height as the item? No padding? The open / auto-open lock has a weirdly big backing card ... The intersection between the left and hand panel and top bar should go or be softwened somehow.' After the first fix he asked for the filled icon to change on 'a quick fade ... cus it's a little too jarring', and then: 'You only fixed the basic issues on the rail?', which led to the rail resting shut as a dock. Every one of these was visible in a screenshot, and no gate looked at the shell. Tested on main 8123a44: his four complaints put back as CSS each exit 1 (ink 8 of 11 failed, caret 6 of 7, pin 8 of 11, join 4 of 5), two faults nobody reported exit 1 (a rail resting open, 12 of 47 failed, and an icon that snaps, 4 of 11), a dead stand-in exits 2, and the clean tree exits 0 with 87 of 87."
