@@ -1,0 +1,30 @@
+id = "correct.fasra.surfaces"
+version = 1
+kind = "correcting"
+trigger = "every-run"
+skill = "g-design"
+principle = "A card, a surface, the ask bar and an orb are drawn by their classes and parts, never painted again by a page, and the home's hand-written markup is exactly what the parts draw."
+guidance = """
+fasra.css holds the recipes (.card, .surface, .lit, .orb, .ask) and site/os/ui/surfaces.js draws them as parts
+(Card, Surface, Orb, AskBar), with Panel in layout.js. A box on a ground takes class="surface" (or "surface sunk",
+"surface tile", "card flat") and its own rule keeps only size, place and padding. A page rule whose subject is
+.card, .surface, .ask, .orb or .lit never sets a background, border, radius or shadow: change the recipe in
+fasra.css or add a variant there. The home is written out by hand so it paints before any script runs; when you
+change its ask bar, an orb or a card heading, change the part the same way (and its components.json entry), or the
+other way round. Banner and FindingCard take their wash and ink from --{tone}-wash and --{tone}-ink, never a mix of
+their own. Run `node os/dev/check-surfaces.mjs`.
+"""
+pass = "met: check-surfaces exits 0. There is no attempted. Rules on exempt pages are counted in the report, never dropped."
+remediation = "Each line names the file, the line and what to do: put the surface class on the element and drop the paint from the rule, move a repaint into fasra.css as a variant, or bring the home and the part back to one markup (the message prints both). Never quiet it by renaming a ground token, inlining the paint in JS, or adding a page to EXEMPT without Gabriel's yes."
+written_against = { model = "claude-opus-5-5", date = "2026-11-25" }
+
+[sensor]
+# os/dev/check-surfaces.mjs: (A) page stylesheets, <style> blocks and style attributes that pair a ground token,
+# a border and a card radius; (B) page rules that repaint a recipe; (C) the home's ask bar, orbs and card headings
+# against AskBar, Orb and Card drawn on os/dev/dom.mjs; (D) the Banner and FindingCard tone rules against design.json.
+type = "command"
+run = "node {repo}/os/dev/check-surfaces.mjs"
+
+[origin]
+date = "2026-11-25"
+incident = "Gabriel: 'I am baffled why the home page is not derived from the design? ... i thought it was a component based langauge?' The home drew its thread, dashboard, steps, code sample and pictures with page rules that copied the card recipe, /design showed flatter cards with its own tints, and Banner and FindingCard mixed pale washes of their own, so the showcase and the home disagreed and no check said so. Run against the tree before the fix it reports 17 hand-painted grounds or repaints across six pages and four untoned status surfaces. The home's send arrow also lacked the aria-hidden that AskBar has."
